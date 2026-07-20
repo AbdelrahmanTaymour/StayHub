@@ -10,4 +10,6 @@ public interface IApartmentImageRepository
     void Add(ApartmentImage image);
 
     void Remove(ApartmentImage image);
+
+    Task<int> CountByApartmentId(Guid apartmentId, CancellationToken cancellationToken = default);
 }
