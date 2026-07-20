@@ -85,14 +85,14 @@ public sealed class Booking : Entity
         return Result.Success();
     }
 
-    public Result Reject(DateTime utcNow)
+    public Result Reject(Guid rejectedByUserId, DateTime utcNow)
     {
         if (Status != BookingStatus.Reserved) return Result.Failure(BookingErrors.NotReserved);
 
         Status = BookingStatus.Rejected;
         RejectedOnUtc = utcNow;
 
-        RaiseDomainEvent(new BookingRejectedDomainEvent(Id));
+        RaiseDomainEvent(new BookingRejectedDomainEvent(Id, rejectedByUserId));
 
         return Result.Success();
     }

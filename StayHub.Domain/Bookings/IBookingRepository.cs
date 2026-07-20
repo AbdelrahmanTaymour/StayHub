@@ -11,5 +11,9 @@ public interface IBookingRepository
         DateRange duration,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Booking>> GetConfirmedPastEndDateAsync(
+        DateOnly asOf,
+        CancellationToken cancellationToken = default);
+
     void Add(Booking booking);
 }
