@@ -25,7 +25,7 @@ public sealed class Message : Entity
     public DateTime SentOnUtc { get; private set; }
     public DateTime? ReadOnUtc { get; private set; }
 
-    public static Message Sent(Guid conversationId, Guid senderId, MessageBody body, DateTime sentOnUtc)
+    public static Message Send(Guid conversationId, Guid senderId, MessageBody body, DateTime sentOnUtc)
     {
         var message = new Message(Guid.CreateVersion7(), conversationId, senderId, body, sentOnUtc);
 
@@ -34,7 +34,7 @@ public sealed class Message : Entity
         return message;
     }
 
-    public Result MarkAdRead(DateTime utcNow)
+    public Result MarkAsRead(DateTime utcNow)
     {
         if (ReadOnUtc is not null) return Result.Failure(MessageErrors.AlreadyRead);
 

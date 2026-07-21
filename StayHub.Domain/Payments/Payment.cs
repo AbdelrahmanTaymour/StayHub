@@ -11,12 +11,14 @@ public sealed class Payment : Entity
         Guid bookingId,
         Money amount,
         PaymentProvider provider,
+        ProviderReference providerReference,
         PaymentStatus status,
         DateTime createdOnUtc) : base(id)
     {
         BookingId = bookingId;
         Amount = amount;
         Provider = provider;
+        ProviderReference = providerReference;
         Status = status;
         CreatedOnUtc = createdOnUtc;
     }
@@ -33,6 +35,7 @@ public sealed class Payment : Entity
         Guid bookingId,
         Money amount,
         PaymentProvider provider,
+        ProviderReference providerReference,
         DateTime utcNow)
     {
         var payment = new Payment(
@@ -40,6 +43,7 @@ public sealed class Payment : Entity
             bookingId,
             amount,
             provider,
+            providerReference,
             PaymentStatus.Pending,
             utcNow);
 
@@ -48,7 +52,7 @@ public sealed class Payment : Entity
         return payment;
     }
 
-    public Result MarkAsSucceeded(ProviderReference providerReference, DateTime utcNow)
+    public Result MarkAsSucceeded(DateTime utcNow)
     {
         if (Status != PaymentStatus.Pending) return Result.Failure(PaymentErrors.NotPending);
 
