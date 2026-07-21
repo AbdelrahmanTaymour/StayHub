@@ -35,7 +35,7 @@ public sealed class ApartmentAvailabilityBlock : Entity
         if (start > end) throw new ApplicationException("End date precedes start date");
 
         var block = new ApartmentAvailabilityBlock(
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
             apartmentId,
             start,
             end,

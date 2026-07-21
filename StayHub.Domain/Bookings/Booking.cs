@@ -55,7 +55,7 @@ public sealed class Booking : Entity
         var pricingDetails = pricingService.CalculatePrice(apartment, duration);
 
         var booking = new Booking(
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
             apartment.Id,
             userId,
             duration,

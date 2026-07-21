@@ -28,7 +28,8 @@ public sealed class ApartmentImage : Entity
 
     public static ApartmentImage Create(Guid apartmentId, ImageUrl url, int displayOrder, bool isPrimary = false)
     {
-        var image = new ApartmentImage(Guid.NewGuid(), apartmentId, url, displayOrder, isPrimary, DateTime.UtcNow);
+        var image = new ApartmentImage(Guid.CreateVersion7(), apartmentId, url, displayOrder, isPrimary,
+            DateTime.UtcNow);
 
         image.RaiseDomainEvent(new ApartmentImageAddedDomainEvent(image.Id, image.ApartmentId));
 

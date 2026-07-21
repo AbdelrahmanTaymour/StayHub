@@ -39,7 +39,7 @@ public sealed class MaintenanceRequest : Entity
         Description description)
     {
         var request = new MaintenanceRequest(
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
             apartmentId,
             reportedByUserId,
             title,
