@@ -26,6 +26,7 @@ public sealed class Conversation : Entity
     public Guid GuestId { get; private set; }
     public Guid OwnerId { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
+    public DateTime? LastMessageOnUtc { get; private set; }
 
     public static Conversation Start(Guid apartmentId, Guid? bookingId, Guid guestId, Guid ownerId)
     {
@@ -40,5 +41,10 @@ public sealed class Conversation : Entity
         conversation.RaiseDomainEvent(new ConversationStartedDomainEvent(conversation.Id));
 
         return conversation;
+    }
+
+    public void RegisterMessage(DateTime sentOnUtc)
+    {
+        LastMessageOnUtc = sentOnUtc;
     }
 }

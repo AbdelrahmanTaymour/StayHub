@@ -15,5 +15,10 @@ public interface IMessageRepository
         Guid recipientId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Message>> GetUnreadForRecipientAsync(
+        Guid conversationId,
+        Guid recipientId,
+        CancellationToken cancellationToken = default);
+
     void Add(Message message);
 }
