@@ -6,5 +6,7 @@ public interface IPaymentRepository
 
     Task<Payment?> GetByBookingIdAsync(Guid bookingId, CancellationToken cancellationToken = default);
 
+    Task<Payment?> GetByProviderReferenceAsync(string providerReference, CancellationToken cancellationToken = default);
+
     void Add(Payment payment);
 }

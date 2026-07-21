@@ -6,7 +6,8 @@ namespace StayHub.Domain.Payments;
 
 public sealed class Payment : Entity
 {
-    private Payment(Guid id,
+    private Payment(
+        Guid id,
         Guid bookingId,
         Money amount,
         PaymentProvider provider,
@@ -52,7 +53,6 @@ public sealed class Payment : Entity
         if (Status != PaymentStatus.Pending) return Result.Failure(PaymentErrors.NotPending);
 
         Status = PaymentStatus.Succeeded;
-        ProviderReference = providerReference;
         ProcessedOnUtc = utcNow;
 
         RaiseDomainEvent(new PaymentSucceededDomainEvent(Id, BookingId));
