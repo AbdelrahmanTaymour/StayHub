@@ -11,4 +11,8 @@ public static class UserErrors
     public static Error InvalidCredentials = new(
         "User.InvalidCredentials",
         "The provided credentials were invalid");
+
+    public static Error EmailNotUnique = new(
+        "User.EmailNotUnique",
+        "The provided email is already in use");
 }

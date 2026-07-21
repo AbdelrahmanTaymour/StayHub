@@ -28,7 +28,7 @@ public sealed class UserSession : Entity
 
     public static UserSession Create(Guid userId, DeviceInfo deviceInfo, IpAddress ipAddress, DateTime utcNow)
     {
-        var session = new UserSession(Guid.NewGuid(), userId, deviceInfo, ipAddress, utcNow);
+        var session = new UserSession(Guid.CreateVersion7(), userId, deviceInfo, ipAddress, utcNow);
 
         session.RaiseDomainEvent(new UserSessionCreatedDomainEvent(session.Id, session.UserId));
 

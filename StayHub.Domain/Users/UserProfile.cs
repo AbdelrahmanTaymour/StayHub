@@ -17,33 +17,33 @@ public sealed class UserProfile : Entity
     public DateTime CreatedOnUtc { get; private set; }
     public DateTime? UpdatedOnUtc { get; private set; }
 
-    public static UserProfile Create(Guid userId)
+    public static UserProfile Create(Guid userId, DateTime utcNow)
     {
-        var userProfile = new UserProfile(Guid.NewGuid(), userId, DateTime.UtcNow);
+        var userProfile = new UserProfile(Guid.CreateVersion7(), userId, utcNow);
 
         return userProfile;
     }
 
-    public Result UpdateAvatar(Avatar avatar)
+    public Result UpdateAvatar(Avatar avatar, DateTime utcNow)
     {
         Avatar = avatar;
-        UpdatedOnUtc = DateTime.UtcNow;
+        UpdatedOnUtc = utcNow;
 
         return Result.Success();
     }
 
-    public Result UpdateBio(Bio bio)
+    public Result UpdateBio(Bio bio, DateTime utcNow)
     {
         Bio = bio;
-        UpdatedOnUtc = DateTime.UtcNow;
+        UpdatedOnUtc = utcNow;
 
         return Result.Success();
     }
 
-    public Result UpdatePhoneNumber(PhoneNumber phoneNumber)
+    public Result UpdatePhoneNumber(PhoneNumber phoneNumber, DateTime utcNow)
     {
         PhoneNumber = phoneNumber;
-        UpdatedOnUtc = DateTime.UtcNow;
+        UpdatedOnUtc = utcNow;
 
         return Result.Success();
     }
