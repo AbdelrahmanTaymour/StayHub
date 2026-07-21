@@ -29,9 +29,9 @@ public sealed class Notification : Entity
     public DateTime CreatedOnUtc { get; private set; }
 
 
-    public static Notification Create(Guid userId, NotificationType type, string payload)
+    public static Notification Create(Guid userId, NotificationType type, string payload, DateTime createdOnUtc)
     {
-        return new Notification(Guid.CreateVersion7(), userId, type, payload, DateTime.UtcNow);
+        return new Notification(Guid.CreateVersion7(), userId, type, payload, createdOnUtc);
     }
 
     public Result MarkAsRead()

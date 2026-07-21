@@ -11,4 +11,8 @@ public static class NotificationErrors
     public static Error AlreadyRead = new(
         "Notification.AlreadyRead",
         "The notification has already been marked as read");
+
+    public static Error NotAuthorized = new(
+        "Notification.NotAuthorized",
+        "You can only mark your own notifications as read");
 }
