@@ -1,3 +1,3 @@
 namespace StayHub.Domain.Users;
 
-public record Avatar(string Url);
+public sealed record Avatar(string Url);

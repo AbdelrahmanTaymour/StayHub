@@ -1,3 +1,3 @@
 namespace StayHub.Domain.Users;
 
-public record DeviceInfo(string Value);
+public sealed record DeviceInfo(string Value);

@@ -1,3 +1,3 @@
 namespace StayHub.Domain.Users;
 
-public record FirstName(string Value);
+public sealed record FirstName(string Value);

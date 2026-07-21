@@ -1,3 +1,3 @@
 namespace StayHub.Domain.Users;
 
-public record Bio(string Value);
+public sealed record Bio(string Value);

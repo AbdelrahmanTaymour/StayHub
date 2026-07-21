@@ -26,9 +26,9 @@ public sealed class UserSession : Entity
     public DateTime LastSeenOnUtc { get; private set; }
     public DateTime? RevokedOnUtc { get; private set; }
 
-    public static UserSession Create(Guid userId, DeviceInfo deviceInfo, IpAddress ipAddress)
+    public static UserSession Create(Guid userId, DeviceInfo deviceInfo, IpAddress ipAddress, DateTime utcNow)
     {
-        var session = new UserSession(Guid.NewGuid(), userId, deviceInfo, ipAddress, DateTime.UtcNow);
+        var session = new UserSession(Guid.NewGuid(), userId, deviceInfo, ipAddress, utcNow);
 
         session.RaiseDomainEvent(new UserSessionCreatedDomainEvent(session.Id, session.UserId));
 
@@ -36,18 +36,18 @@ public sealed class UserSession : Entity
     }
 
 
-    public Result Touch()
+    public Result Touch(DateTime utcNow)
     {
-        LastSeenOnUtc = DateTime.UtcNow;
+        LastSeenOnUtc = utcNow;
 
         return Result.Success();
     }
 
-    public Result Revoke()
+    public Result Revoke(DateTime utcNow)
     {
         if (RevokedOnUtc is not null) return Result.Failure(UserSessionErrors.AlreadyRevoked);
 
-        RevokedOnUtc = DateTime.UtcNow;
+        RevokedOnUtc = utcNow;
 
         RaiseDomainEvent(new UserSessionRevokedDomainEvent(Id, UserId));
 
