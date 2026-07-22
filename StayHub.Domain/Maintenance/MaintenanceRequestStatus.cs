@@ -1,4 +1,4 @@
-namespace StayHub.Domain.Apartments;
+namespace StayHub.Domain.Maintenance;
 
 public enum MaintenanceRequestStatus
 {

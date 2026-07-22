@@ -1,10 +1,11 @@
 using MediatR;
 using StayHub.Application.Abstractions.Email;
 using StayHub.Domain.Apartments;
-using StayHub.Domain.Apartments.Events;
+using StayHub.Domain.Maintenance;
+using StayHub.Domain.Maintenance.Events;
 using StayHub.Domain.Users;
 
-namespace StayHub.Application.Apartments.CreateMaintenanceRequest;
+namespace StayHub.Application.Maintenance.CreateMaintenanceRequest;
 
 public class MaintenanceRequestCreatedDomainEventHandler(
     IMaintenanceRequestRepository maintenanceRequestRepository,

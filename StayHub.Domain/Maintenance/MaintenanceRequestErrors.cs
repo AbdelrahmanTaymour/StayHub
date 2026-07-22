@@ -1,6 +1,6 @@
 using StayHub.Domain.Abstractions;
 
-namespace StayHub.Domain.Apartments;
+namespace StayHub.Domain.Maintenance;
 
 public static class MaintenanceRequestErrors
 {

@@ -1,7 +1,8 @@
 using StayHub.Domain.Abstractions;
-using StayHub.Domain.Apartments.Events;
+using StayHub.Domain.Apartments;
+using StayHub.Domain.Maintenance.Events;
 
-namespace StayHub.Domain.Apartments;
+namespace StayHub.Domain.Maintenance;
 
 public sealed class MaintenanceRequest : Entity
 {

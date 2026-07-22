@@ -11,7 +11,7 @@ public sealed class UserProfile : Entity
     }
 
     public Guid UserId { get; private set; }
-    public Avatar? Avatar { get; private set; }
+    public Avatar? AvatarUrl { get; private set; }
     public Bio? Bio { get; private set; }
     public PhoneNumber? PhoneNumber { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
@@ -26,7 +26,7 @@ public sealed class UserProfile : Entity
 
     public Result UpdateAvatar(Avatar avatar, DateTime utcNow)
     {
-        Avatar = avatar;
+        AvatarUrl = avatar;
         UpdatedOnUtc = utcNow;
 
         return Result.Success();
