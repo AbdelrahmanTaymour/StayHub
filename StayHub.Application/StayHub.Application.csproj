@@ -18,4 +18,8 @@
         <ProjectReference Include="..\StayHub.Domain\StayHub.Domain.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Folder Include="Maintenance\"/>
+    </ItemGroup>
+
 </Project>
