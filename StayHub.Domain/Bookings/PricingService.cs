@@ -3,7 +3,7 @@ using StayHub.Domain.Shared;
 
 namespace StayHub.Domain.Bookings;
 
-public abstract class PricingService
+public class PricingService
 {
     public PricingDetails CalculatePrice(Apartment apartment, DateRange period)
     {
@@ -26,7 +26,7 @@ public abstract class PricingService
         var amenitiesUpCharge = Money.Zero(currency);
         if (percentageUpCharge > 0) amenitiesUpCharge = new Money(priceForPeriod.Amount * percentageUpCharge, currency);
 
-        var totalPrice = Money.Zero();
+        var totalPrice = Money.Zero(currency);
         totalPrice += priceForPeriod;
 
         if (!apartment.CleaningFee.IsZero()) totalPrice += apartment.CleaningFee;
