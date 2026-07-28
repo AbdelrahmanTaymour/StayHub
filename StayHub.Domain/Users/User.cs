@@ -13,6 +13,12 @@ public sealed class User : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private User()
+    {
+    }
+
+    public string IdentityId { get; private set; } = string.Empty;
+
     public FirstName FirstName { get; private set; }
 
     public LastName LastName { get; private set; }
@@ -34,5 +40,10 @@ public sealed class User : Entity
     {
         FirstName = firstName;
         LastName = lastName;
+    }
+
+    public void SetIdentityId(string identityId)
+    {
+        IdentityId = identityId;
     }
 }
