@@ -2,17 +2,17 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Domain.Apartments;
 
-public sealed class ApartmentStaffAssignmentErrors
+public static class ApartmentStaffAssignmentErrors
 {
-    public static Error NotFound = new(
+    public static readonly Error NotFound = Error.NotFound(
         "ApartmentStaffAssignment.NotFound",
         "The staff assignment with the specified identifier was not found");
- 
-    public static Error AlreadyAssigned = new(
+
+    public static readonly Error AlreadyAssigned = Error.Conflict(
         "ApartmentStaffAssignment.AlreadyAssigned",
         "This user is already assigned to this apartment");
- 
-    public static Error AlreadyRevoked = new(
+
+    public static readonly Error AlreadyRevoked = Error.Conflict(
         "ApartmentStaffAssignment.AlreadyRevoked",
         "This staff assignment has already been revoked");
 }

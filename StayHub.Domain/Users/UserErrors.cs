@@ -4,15 +4,11 @@ namespace StayHub.Domain.Users;
 
 public static class UserErrors
 {
-    public static Error NotFound = new(
-        "User.Found",
+    public static readonly Error NotFound = Error.NotFound(
+        "User.NotFound",
         "The user with the specified identifier was not found");
 
-    public static Error InvalidCredentials = new(
-        "User.InvalidCredentials",
-        "The provided credentials were invalid");
-
-    public static Error EmailNotUnique = new(
+    public static readonly Error EmailNotUnique = Error.Conflict(
         "User.EmailNotUnique",
         "The provided email is already in use");
 }

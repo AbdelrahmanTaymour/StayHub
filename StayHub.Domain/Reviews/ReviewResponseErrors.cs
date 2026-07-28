@@ -4,11 +4,11 @@ namespace StayHub.Domain.Reviews;
 
 public static class ReviewResponseErrors
 {
-    public static Error NotFound = new(
+    public static readonly Error NotFound = Error.NotFound(
         "ReviewResponse.NotFound",
         "The response with the specified identifier was not found");
 
-    public static Error AlreadyRespondedTo = new(
+    public static readonly Error AlreadyRespondedTo = Error.Conflict(
         "ReviewResponse.AlreadyRespondedTo",
         "This review has already received a response");
 }

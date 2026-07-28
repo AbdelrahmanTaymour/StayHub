@@ -4,19 +4,19 @@ namespace StayHub.Domain.Maintenance;
 
 public static class MaintenanceRequestErrors
 {
-    public static Error NotFound = new(
+    public static readonly Error NotFound = Error.NotFound(
         "MaintenanceRequest.NotFound",
         "The maintenance request with the specified identifier was not found");
 
-    public static Error NotOpen = new(
+    public static readonly Error NotOpen = Error.Conflict(
         "MaintenanceRequest.NotOpen",
         "The maintenance request is not open");
 
-    public static Error NotInProgress = new(
+    public static readonly Error NotInProgress = Error.Conflict(
         "MaintenanceRequest.NotInProgress",
         "The maintenance request is not in progress");
 
-    public static Error NotResolved = new(
+    public static readonly Error NotResolved = Error.Conflict(
         "MaintenanceRequest.NotResolved",
         "The maintenance request is not resolved");
 }

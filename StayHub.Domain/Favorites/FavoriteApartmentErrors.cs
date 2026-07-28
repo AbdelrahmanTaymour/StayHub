@@ -4,11 +4,11 @@ namespace StayHub.Domain.Favorites;
 
 public static class FavoriteApartmentErrors
 {
-    public static Error AlreadyFavorited = new(
+    public static readonly Error AlreadyFavorited = Error.Conflict(
         "FavoriteApartment.AlreadyFavorited",
         "This apartment is already in the user's favorites");
 
-    public static Error NotFound = new(
+    public static readonly Error NotFound = Error.NotFound(
         "FavoriteApartment.NotFound",
         "This apartment is not in the user's favorites");
 }
