@@ -19,6 +19,10 @@ public sealed class UserSession : Entity
         LastSeenOnUtc = createdOnUtc;
     }
 
+    private UserSession()
+    {
+    }
+
     public Guid UserId { get; }
     public DeviceInfo DeviceInfo { get; private set; }
     public IpAddress IpAddress { get; private set; }

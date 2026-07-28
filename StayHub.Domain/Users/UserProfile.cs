@@ -10,6 +10,10 @@ public sealed class UserProfile : Entity
         CreatedOnUtc = utcNow;
     }
 
+    private UserProfile()
+    {
+    }
+
     public Guid UserId { get; private set; }
     public Avatar? AvatarUrl { get; private set; }
     public Bio? Bio { get; private set; }
