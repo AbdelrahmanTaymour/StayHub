@@ -20,6 +20,10 @@ public sealed class ApartmentAvailabilityBlock : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private ApartmentAvailabilityBlock()
+    {
+    }
+
     public Guid ApartmentId { get; }
     public DateOnly Start { get; }
     public DateOnly End { get; }

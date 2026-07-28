@@ -5,13 +5,22 @@ namespace StayHub.Domain.Apartments;
 
 public sealed class ApartmentStaffAssignment : Entity
 {
-    private ApartmentStaffAssignment(Guid id, Guid apartmentId, Guid userId, ApartmentStaffRole role, DateTime utcNow) :
+    private ApartmentStaffAssignment(
+        Guid id,
+        Guid apartmentId,
+        Guid userId,
+        ApartmentStaffRole role,
+        DateTime utcNow) :
         base(id)
     {
         ApartmentId = apartmentId;
         UserId = userId;
         Role = role;
         CreatedOnUtc = utcNow;
+    }
+
+    private ApartmentStaffAssignment()
+    {
     }
 
     public Guid ApartmentId { get; private set; }
