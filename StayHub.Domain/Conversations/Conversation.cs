@@ -21,6 +21,10 @@ public sealed class Conversation : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private Conversation()
+    {
+    }
+
     public Guid ApartmentId { get; private set; }
     public Guid? BookingId { get; private set; }
     public Guid GuestId { get; private set; }

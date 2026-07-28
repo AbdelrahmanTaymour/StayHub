@@ -23,6 +23,10 @@ public sealed class Payment : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private Payment()
+    {
+    }
+
     public Guid BookingId { get; }
     public Money Amount { get; private set; }
     public PaymentProvider Provider { get; private set; }

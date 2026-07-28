@@ -6,7 +6,7 @@ namespace StayHub.Domain.Maintenance;
 
 public sealed class MaintenanceRequest : Entity
 {
-    public MaintenanceRequest(
+    private MaintenanceRequest(
         Guid id,
         Guid apartmentId,
         Guid reportedByUserId,
@@ -22,6 +22,10 @@ public sealed class MaintenanceRequest : Entity
         Description = description;
         Status = status;
         CreatedOnUtc = createdOnUtc;
+    }
+
+    private MaintenanceRequest()
+    {
     }
 
     public Guid ApartmentId { get; private set; }

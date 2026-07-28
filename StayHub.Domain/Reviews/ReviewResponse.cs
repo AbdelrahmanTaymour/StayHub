@@ -17,6 +17,10 @@ public sealed class ReviewResponse : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private ReviewResponse()
+    {
+    }
+
     public Guid ReviewId { get; }
     public Comment Comment { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }

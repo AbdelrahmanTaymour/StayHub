@@ -16,6 +16,10 @@ public sealed class FavoriteApartment : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private FavoriteApartment()
+    {
+    }
+
     public Guid UserId { get; private set; }
 
     public Guid ApartmentId { get; private set; }

@@ -22,6 +22,10 @@ public sealed class AuditLog : Entity
         OccurredOnUtc = occurredOnUtc;
     }
 
+    private AuditLog()
+    {
+    }
+
     public Guid? UserId { get; private set; }
     public string EntityName { get; private set; }
     public string EntityId { get; private set; }

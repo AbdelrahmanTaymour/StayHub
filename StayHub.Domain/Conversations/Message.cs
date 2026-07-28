@@ -19,6 +19,10 @@ public sealed class Message : Entity
         SentOnUtc = sentOnUtc;
     }
 
+    private Message()
+    {
+    }
+
     public Guid ConversationId { get; }
     public Guid SenderId { get; }
     public MessageBody Body { get; private set; }

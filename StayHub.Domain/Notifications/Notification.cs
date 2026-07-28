@@ -18,6 +18,10 @@ public sealed class Notification : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private Notification()
+    {
+    }
+
     public Guid UserId { get; private set; }
 
     public NotificationType Type { get; private set; }

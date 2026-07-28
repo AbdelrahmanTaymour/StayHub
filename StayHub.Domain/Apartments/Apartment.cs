@@ -26,6 +26,10 @@ public sealed class Apartment : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private Apartment()
+    {
+    }
+
     public Guid OwnerId { get; private set; }
     public Name Name { get; private set; }
     public Description Description { get; private set; }

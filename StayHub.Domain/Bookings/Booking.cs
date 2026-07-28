@@ -17,7 +17,7 @@ public sealed class Booking : Entity
         Money amenitiesUpCharge,
         Money totalPrice,
         BookingStatus status,
-        DateTime createdAt) : base(id)
+        DateTime createdOnUtc) : base(id)
     {
         ApartmentId = apartmentId;
         UserId = userId;
@@ -27,7 +27,11 @@ public sealed class Booking : Entity
         AmenitiesUpCharge = amenitiesUpCharge;
         TotalPrice = totalPrice;
         Status = status;
-        CreatedAt = createdAt;
+        CreatedOnUtc = createdOnUtc;
+    }
+
+    private Booking()
+    {
     }
 
     public Guid ApartmentId { get; private set; }
@@ -38,7 +42,7 @@ public sealed class Booking : Entity
     public Money AmenitiesUpCharge { get; private set; }
     public Money TotalPrice { get; private set; }
     public BookingStatus Status { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTime CreatedOnUtc { get; private set; }
     public DateTime? ConfirmedOnUtc { get; private set; }
     public DateTime? RejectedOnUtc { get; private set; }
     public DateTime? CompletedOnUtc { get; private set; }

@@ -20,6 +20,10 @@ public sealed class ApartmentImage : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
+    private ApartmentImage()
+    {
+    }
+
     public Guid ApartmentId { get; }
     public ImageUrl Url { get; }
     public int DisplayOrder { get; private set; }
