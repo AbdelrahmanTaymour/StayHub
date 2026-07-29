@@ -3,7 +3,7 @@ using StayHub.Application.Abstractions.Email;
 using StayHub.Domain.Users;
 using StayHub.Domain.Users.Events;
 
-namespace StayHub.Application.Users.CreateUser;
+namespace StayHub.Application.Users.RegisterUser;
 
 public class UserCreatedWelcomeEmailDomainEventHandler(
     IUserRepository userRepository,

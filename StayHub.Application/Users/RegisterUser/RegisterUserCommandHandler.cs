@@ -4,7 +4,7 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Users;
 
-namespace StayHub.Application.Users.CreateUser;
+namespace StayHub.Application.Users.RegisterUser;
 
 internal sealed class RegisterUserCommandHandler(
     IUserRepository userRepository,

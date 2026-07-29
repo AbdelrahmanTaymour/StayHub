@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace StayHub.Application.Users.CreateUser;
+namespace StayHub.Application.Users.RegisterUser;
 
 public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
 {
