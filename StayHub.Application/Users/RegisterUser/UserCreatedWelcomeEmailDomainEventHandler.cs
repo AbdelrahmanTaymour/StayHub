@@ -7,8 +7,7 @@ namespace StayHub.Application.Users.CreateUser;
 
 public class UserCreatedWelcomeEmailDomainEventHandler(
     IUserRepository userRepository,
-    IEmailService emailService
-) : INotificationHandler<UserCreatedDomainEvent>
+    IEmailService emailService) : INotificationHandler<UserCreatedDomainEvent>
 {
     public async Task Handle(UserCreatedDomainEvent notification, CancellationToken cancellationToken)
     {
