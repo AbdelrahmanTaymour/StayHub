@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -5,16 +6,17 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.CreateUser;
 
-internal sealed class CreateUserCommandHandler(
+internal sealed class RegisterUserCommandHandler(
     IUserRepository userRepository,
     IUserProfileRepository userProfileRepository,
+    IAuthenticationService authenticationService,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider)
-    : ICommandHandler<CreateUserCommand, Guid>
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<RegisterUserCommand, Guid>
 {
-    public async Task<Result<Guid>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
         var email = Email.Create(request.Email);
+
         var isEmailUnique = await userRepository.IsEmailUniqueAsync(email, cancellationToken);
 
         if (!isEmailUnique) return Result.Failure<Guid>(UserErrors.EmailNotUnique);
@@ -24,6 +26,15 @@ internal sealed class CreateUserCommandHandler(
             new LastName(request.LastName),
             email,
             dateTimeProvider.UtcNow);
+
+        var identityIdResult = await authenticationService.RegisterAsync(
+            user,
+            request.Password,
+            cancellationToken);
+
+        if (identityIdResult.IsFailure) return Result.Failure<Guid>(identityIdResult.Error);
+
+        user.SetIdentityId(identityIdResult.Value);
 
         userRepository.Add(user);
 

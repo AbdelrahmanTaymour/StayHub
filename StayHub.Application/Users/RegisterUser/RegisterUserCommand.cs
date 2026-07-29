@@ -2,7 +2,8 @@ using StayHub.Application.Abstractions.Messaging;
 
 namespace StayHub.Application.Users.CreateUser;
 
-public sealed record CreateUserCommand(
+public sealed record RegisterUserCommand(
     string FirstName,
     string LastName,
-    string Email) : ICommand<Guid>;
+    string Email,
+    string Password) : ICommand<Guid>;
