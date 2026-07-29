@@ -1,5 +1,3 @@
-using StayHub.Domain.Apartments;
-
 namespace StayHub.Application.Apartments.GetApartment;
 
 public sealed record ApartmentResponse
@@ -24,7 +22,7 @@ public sealed record ApartmentResponse
 
     public bool IsActive { get; init; }
 
-    public IReadOnlyList<Amenity> Amenities { get; set; } = [];
+    public IReadOnlyList<string> Amenities { get; set; } = [];
 
     public IReadOnlyList<ApartmentImageResponse> Images { get; set; } = [];
 }

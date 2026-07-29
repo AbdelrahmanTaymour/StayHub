@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Bookings;
 
 namespace StayHub.Application.Bookings.GetBooking;
 
@@ -40,6 +41,6 @@ internal sealed class GetBookingQueryHandler(
                 request.BookingId
             });
 
-        return bookingResponse;
+        return bookingResponse ?? Result.Failure<BookingResponse>(BookingErrors.NotFound);
     }
 }

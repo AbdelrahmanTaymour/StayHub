@@ -26,6 +26,7 @@ internal sealed class GetApartmentQueryHandler(
                                a.cleaning_fee_amount AS CleaningFeeAmount,
                                a.cleaning_fee_currency AS CleaningFeeCurrency,
                                a.is_active AS IsActive,
+                               a.amenities As Amenities,
                                a.address_country AS Country,
                                a.address_state AS State,
                                a.address_zip_code AS ZipCode,
@@ -33,11 +34,6 @@ internal sealed class GetApartmentQueryHandler(
                                a.address_street AS Street
                            FROM apartments AS a
                            WHERE a.id = @ApartmentId;
-
-                           SELECT 
-                               aa.amenity AS Amenity
-                           FROM apartment_amenities AS aa
-                           WHERE aa.apartment_id = @ApartmentId;
 
                            SELECT 
                                ai.id AS Id,
@@ -61,6 +57,7 @@ internal sealed class GetApartmentQueryHandler(
             (apt, address) =>
             {
                 apt.Address = address;
+                apt.Amenities = apt.Amenities.Select(a => a).ToList();
                 return apt;
             },
             "Country").FirstOrDefault();
@@ -68,10 +65,8 @@ internal sealed class GetApartmentQueryHandler(
         if (apartment is null) return Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
 
         // 2. Read collections efficiently
-        var amenities = await multi.ReadAsync<Amenity>();
         var images = await multi.ReadAsync<ApartmentImageResponse>();
 
-        apartment.Amenities = amenities.ToList();
         apartment.Images = images.ToList();
 
         return apartment;

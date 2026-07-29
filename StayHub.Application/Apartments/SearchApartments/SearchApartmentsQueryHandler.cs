@@ -73,7 +73,7 @@ internal sealed class SearchApartmentsQueryHandler(
                         AND NOT EXISTS (
                             SELECT 1 FROM bookings b
                             WHERE b.apartment_id = a.id
-                              AND b.status IN @ActiveBookingStatuses
+                              AND b.status = ANY(@ActiveBookingStatuses)
                               AND b.duration_start < @End
                               AND b.duration_end > @Start
                         )
@@ -98,7 +98,9 @@ internal sealed class SearchApartmentsQueryHandler(
         parameters.Add("Offset", (page - 1) * pageSize);
         parameters.Add("PageSize", pageSize);
 
-        var apartments = await connection.QueryAsync<ApartmentSummaryResponse>(sql.ToString(), parameters);
+        var apartments = await connection.QueryAsync<ApartmentSummaryResponse>(
+            sql.ToString(),
+            parameters);
 
         return apartments.ToList();
     }
