@@ -30,10 +30,14 @@ public sealed class ApartmentImage : Entity
     public bool IsPrimary { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
-    public static ApartmentImage Create(Guid apartmentId, ImageUrl url, int displayOrder, bool isPrimary = false)
+    public static ApartmentImage Create(
+        Guid apartmentId,
+        ImageUrl url,
+        int displayOrder,
+        DateTime utcNow,
+        bool isPrimary = false)
     {
-        var image = new ApartmentImage(Guid.CreateVersion7(), apartmentId, url, displayOrder, isPrimary,
-            DateTime.UtcNow);
+        var image = new ApartmentImage(Guid.CreateVersion7(), apartmentId, url, displayOrder, isPrimary, utcNow);
 
         image.RaiseDomainEvent(new ApartmentImageAddedDomainEvent(image.Id, image.ApartmentId));
 

@@ -56,14 +56,14 @@ public sealed class ApartmentStaffAssignment : Entity
         return Result.Success();
     }
 
-    public Result Revoke()
+    public Result Revoke(DateTime utcNow)
     {
         if (RevokedOnUtc is not null)
         {
             return Result.Failure(ApartmentStaffAssignmentErrors.AlreadyRevoked);
         }
 
-        RevokedOnUtc = DateTime.UtcNow;
+        RevokedOnUtc = utcNow;
 
         RaiseDomainEvent(new ApartmentStaffAssignmentRevokedDomainEvent(Id));
 

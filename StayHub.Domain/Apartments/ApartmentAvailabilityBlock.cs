@@ -34,7 +34,8 @@ public sealed class ApartmentAvailabilityBlock : Entity
         Guid apartmentId,
         DateOnly start,
         DateOnly end,
-        ApartmentUnavailabilityReason reason)
+        ApartmentUnavailabilityReason reason,
+        DateTime utcNow)
     {
         if (start > end) throw new ApplicationException("End date precedes start date");
 
@@ -44,7 +45,7 @@ public sealed class ApartmentAvailabilityBlock : Entity
             start,
             end,
             reason,
-            DateTime.UtcNow);
+            utcNow);
 
         block.RaiseDomainEvent(
             new ApartmentAvailabilityBlockCreatedDomainEvent(block.Id, block.ApartmentId, block.Start, block.End));
