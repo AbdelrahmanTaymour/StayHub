@@ -1,4 +1,5 @@
 using MediatR;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
@@ -11,7 +12,8 @@ public class BookingReservedConversationStartedDomainEventHandler(
     IBookingRepository bookingRepository,
     IApartmentRepository apartmentRepository,
     IConversationRepository conversationRepository,
-    IUnitOfWork unitOfWork) : INotificationHandler<BookingReservedDomainEvent>
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : INotificationHandler<BookingReservedDomainEvent>
 {
     public async Task Handle(BookingReservedDomainEvent notification, CancellationToken cancellationToken)
     {
@@ -31,7 +33,12 @@ public class BookingReservedConversationStartedDomainEventHandler(
 
         if (existingConversation is not null) return;
 
-        var conversation = Conversation.Start(apartment.Id, booking.Id, booking.UserId, apartment.OwnerId);
+        var conversation = Conversation.Start(
+            apartment.Id,
+            booking.Id,
+            booking.UserId,
+            apartment.OwnerId,
+            dateTimeProvider.UtcNow);
 
         conversationRepository.Add(conversation);
 

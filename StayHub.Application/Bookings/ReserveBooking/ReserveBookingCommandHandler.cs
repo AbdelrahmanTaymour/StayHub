@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Exceptions;
@@ -12,6 +13,7 @@ internal sealed class ReserveBookingCommandHandler(
     IUserRepository userRepository,
     IApartmentRepository apartmentRepository,
     IBookingRepository bookingRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     PricingService pricingService,
     IDateTimeProvider dateTimeProvider
@@ -19,13 +21,15 @@ internal sealed class ReserveBookingCommandHandler(
 {
     public async Task<Result<Guid>> Handle(ReserveBookingCommand request, CancellationToken cancellationToken)
     {
-        var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var user = await userRepository.GetByIdAsync(userContext.UserId, cancellationToken);
 
-        if (user is null) return Result.Failure<Guid>(UserErrors.NotFound);
+        if (user is null)
+            return Result.Failure<Guid>(UserErrors.NotFound);
 
         var apartment = await apartmentRepository.GetByIdAsync(request.ApartmentId, cancellationToken);
 
-        if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
+        if (apartment is null)
+            return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
         var duration = DateRange.Create(request.StartDate, request.EndDate);
 
