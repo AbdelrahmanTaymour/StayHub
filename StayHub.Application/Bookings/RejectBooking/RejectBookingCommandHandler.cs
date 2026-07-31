@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -9,6 +10,7 @@ namespace StayHub.Application.Bookings.RejectBooking;
 internal sealed class RejectBookingCommandHandler(
     IBookingRepository bookingRepository,
     IApartmentRepository apartmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<RejectBookingCommand>
 {
@@ -22,12 +24,12 @@ internal sealed class RejectBookingCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        var isGuest = booking.UserId == request.RejectedByUserId;
-        var isOwner = apartment.OwnerId == request.RejectedByUserId;
+        var isGuest = booking.UserId == userContext.UserId;
+        var isOwner = apartment.OwnerId == userContext.UserId;
 
         if (!isGuest && !isOwner) return Result.Failure(BookingErrors.NotAuthorized);
 
-        var result = booking.Reject(request.RejectedByUserId, dateTimeProvider.UtcNow);
+        var result = booking.Reject(userContext.UserId, dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
 
