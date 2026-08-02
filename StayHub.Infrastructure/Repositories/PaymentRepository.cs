@@ -13,6 +13,17 @@ internal sealed class PaymentRepository(ApplicationDbContext dbContext)
             .FirstOrDefaultAsync(payment => payment.BookingId == bookingId, cancellationToken);
     }
 
+    public async Task<Payment?> GetActiveByBookingIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    {
+        return await DbContext
+            .Set<Payment>()
+            .FirstOrDefaultAsync(
+                payment =>
+                    payment.BookingId == bookingId &&
+                    (payment.Status == PaymentStatus.Pending || payment.Status == PaymentStatus.Succeeded),
+                cancellationToken);
+    }
+
     public async Task<Payment?> GetByProviderReferenceAsync(
         string providerReference,
         CancellationToken cancellationToken = default)
