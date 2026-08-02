@@ -5,7 +5,14 @@ namespace StayHub.Domain.Users;
 
 public sealed class User : Entity
 {
-    private User(Guid id, FirstName firstName, LastName lastName, Email email, DateTime createdOnUtc) : base(id)
+    private readonly List<UserRole> _roles = [];
+
+    private User(
+        Guid id,
+        FirstName firstName,
+        LastName lastName,
+        Email email,
+        DateTime createdOnUtc) : base(id)
     {
         FirstName = firstName;
         LastName = lastName;
@@ -27,11 +34,20 @@ public sealed class User : Entity
 
     public DateTime CreatedOnUtc { get; private set; }
 
+    public IReadOnlyCollection<UserRole> Roles => _roles.ToList().AsReadOnly();
+
+
     public static User Create(FirstName firstName, LastName lastName, Email email, DateTime utcNow)
     {
         var user = new User(Guid.CreateVersion7(), firstName, lastName, email, utcNow);
 
         user.RaiseDomainEvent(new UserCreatedDomainEvent(user.Id));
+
+        user._roles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = Role.Guest.Id
+        });
 
         return user;
     }
