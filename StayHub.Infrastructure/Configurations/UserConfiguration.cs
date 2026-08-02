@@ -30,5 +30,13 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(user => user.Email).IsUnique();
 
         builder.HasIndex(user => user.IdentityId).IsUnique();
+
+        builder.HasMany(u => u.Roles)
+            .WithOne()
+            .HasForeignKey(ur => ur.UserId);
+
+        builder.Metadata
+            .FindNavigation(nameof(User.Roles))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }
