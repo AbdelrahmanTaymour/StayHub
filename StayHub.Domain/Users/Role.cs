@@ -11,6 +11,10 @@ public sealed class Role
         Name = name;
     }
 
+    private Role()
+    {
+    }
+
     public int Id { get; init; }
     public string Name { get; init; } = string.Empty;
 

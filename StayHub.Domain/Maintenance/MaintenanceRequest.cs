@@ -41,7 +41,8 @@ public sealed class MaintenanceRequest : Entity
         Guid apartmentId,
         Guid reportedByUserId,
         Title title,
-        Description description)
+        Description description,
+        DateTime utcNow)
     {
         var request = new MaintenanceRequest(
             Guid.CreateVersion7(),
@@ -50,7 +51,7 @@ public sealed class MaintenanceRequest : Entity
             title,
             description,
             MaintenanceRequestStatus.Open,
-            DateTime.UtcNow);
+            utcNow);
 
         request.RaiseDomainEvent(new MaintenanceRequestCreatedDomainEvent(request.Id));
 

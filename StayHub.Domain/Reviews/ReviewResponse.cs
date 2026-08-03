@@ -25,9 +25,9 @@ public sealed class ReviewResponse : Entity
     public Comment Comment { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
-    public static ReviewResponse Create(Guid reviewId, Comment comment)
+    public static ReviewResponse Create(Guid reviewId, Comment comment, DateTime utcNow)
     {
-        var response = new ReviewResponse(Guid.CreateVersion7(), reviewId, comment, DateTime.UtcNow);
+        var response = new ReviewResponse(Guid.CreateVersion7(), reviewId, comment, utcNow);
 
         response.RaiseDomainEvent(new ReviewResponseCreatedDomainEvent(response.Id, response.ReviewId));
 

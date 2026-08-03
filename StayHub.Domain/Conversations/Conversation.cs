@@ -32,7 +32,7 @@ public sealed class Conversation : Entity
     public DateTime CreatedOnUtc { get; private set; }
     public DateTime? LastMessageOnUtc { get; private set; }
 
-    public static Conversation Start(Guid apartmentId, Guid? bookingId, Guid guestId, Guid ownerId)
+    public static Conversation Start(Guid apartmentId, Guid? bookingId, Guid guestId, Guid ownerId, DateTime utcNow)
     {
         var conversation = new Conversation(
             Guid.CreateVersion7(),
@@ -40,7 +40,7 @@ public sealed class Conversation : Entity
             bookingId,
             guestId,
             ownerId,
-            DateTime.UtcNow);
+            utcNow);
 
         conversation.RaiseDomainEvent(new ConversationStartedDomainEvent(conversation.Id));
 

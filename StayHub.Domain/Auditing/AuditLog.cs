@@ -38,7 +38,8 @@ public sealed class AuditLog : Entity
         string entityName,
         string entityId,
         AuditAction action,
-        string changes)
+        string changes,
+        DateTime utcNow)
     {
         return new AuditLog(
             Guid.CreateVersion7(),
@@ -46,6 +47,6 @@ public sealed class AuditLog : Entity
             entityId,
             action,
             changes,
-            DateTime.UtcNow);
+            utcNow);
     }
 }
