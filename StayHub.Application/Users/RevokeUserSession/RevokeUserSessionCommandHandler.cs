@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -7,6 +8,7 @@ namespace StayHub.Application.Users.RevokeUserSession;
 
 public class RevokeUserSessionCommandHandler(
     IUserSessionRepository userSessionRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<RevokeUserSessionCommand>
 {
@@ -16,7 +18,7 @@ public class RevokeUserSessionCommandHandler(
 
         if (session is null) return Result.Failure(UserSessionErrors.NotFound);
 
-        if (session.UserId != request.RequestedByUserId) return Result.Failure(UserSessionErrors.NotAuthorized);
+        if (session.UserId != userContext.UserId) return Result.Failure(UserSessionErrors.NotAuthorized);
 
         var result = session.Revoke(dateTimeProvider.UtcNow);
 
