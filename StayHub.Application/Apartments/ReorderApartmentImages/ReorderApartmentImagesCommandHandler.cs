@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -7,6 +8,7 @@ namespace StayHub.Application.Apartments.ReorderApartmentImages;
 internal sealed class ReorderApartmentImagesCommandHandler(
     IApartmentRepository apartmentRepository,
     IApartmentImageRepository imageRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork) : ICommandHandler<ReorderApartmentImagesCommand>
 {
     public async Task<Result> Handle(ReorderApartmentImagesCommand request, CancellationToken cancellationToken)
@@ -15,7 +17,7 @@ internal sealed class ReorderApartmentImagesCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId) return Result.Failure(ApartmentErrors.NotAuthorized);
 
         var images = await imageRepository.GetByApartmentIdAsync(request.ApartmentId, cancellationToken);
 

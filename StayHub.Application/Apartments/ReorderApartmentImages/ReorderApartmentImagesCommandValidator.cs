@@ -9,9 +9,6 @@ public class ReorderApartmentImagesCommandValidator : AbstractValidator<ReorderA
         RuleFor(x => x.ApartmentId)
             .NotEmpty();
 
-        RuleFor(x => x.RequestedByUserId)
-            .NotEmpty();
-
         RuleFor(x => x.OrderedImageIds)
             .NotNull()
             .WithMessage("Image IDs list cannot be null.")

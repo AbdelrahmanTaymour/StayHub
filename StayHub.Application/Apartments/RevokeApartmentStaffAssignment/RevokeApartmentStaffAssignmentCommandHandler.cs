@@ -1,3 +1,5 @@
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -7,7 +9,9 @@ namespace StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 internal sealed class RevokeApartmentStaffAssignmentCommandHandler(
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
     IApartmentRepository apartmentRepository,
-    IUnitOfWork unitOfWork) : ICommandHandler<RevokeApartmentStaffAssignmentCommand>
+    IUserContext userContext,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<RevokeApartmentStaffAssignmentCommand>
 {
     public async Task<Result> Handle(
         RevokeApartmentStaffAssignmentCommand request,
@@ -21,9 +25,9 @@ internal sealed class RevokeApartmentStaffAssignmentCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId) return Result.Failure(ApartmentErrors.NotAuthorized);
 
-        var result = assignment.Revoke();
+        var result = assignment.Revoke(dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
 
