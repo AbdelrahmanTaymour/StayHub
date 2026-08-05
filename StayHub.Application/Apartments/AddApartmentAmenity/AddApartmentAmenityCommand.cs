@@ -5,5 +5,4 @@ namespace StayHub.Application.Apartments.AddApartmentAmenity;
 
 public sealed record AddApartmentAmenityCommand(
     Guid ApartmentId,
-    Amenity Amenity,
-    Guid RequestedByUserId) : ICommand;
+    Amenity Amenity) : ICommand;

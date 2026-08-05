@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -6,6 +7,7 @@ namespace StayHub.Application.Apartments.AddApartmentAmenity;
 
 internal sealed class AddApartmentAmenityCommandHandler(
     IApartmentRepository apartmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork) : ICommandHandler<AddApartmentAmenityCommand>
 {
     public async Task<Result> Handle(AddApartmentAmenityCommand request, CancellationToken cancellationToken)
@@ -14,7 +16,7 @@ internal sealed class AddApartmentAmenityCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId) return Result.Failure(ApartmentErrors.NotAuthorized);
 
         var result = apartment.AddAmenity(request.Amenity);
 
