@@ -7,7 +7,6 @@ public class CreateApartmentCommandValidator : AbstractValidator<CreateApartment
 {
     public CreateApartmentCommandValidator()
     {
-        RuleFor(x => x.OwnerId).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
         RuleFor(x => x.Street).NotEmpty();
