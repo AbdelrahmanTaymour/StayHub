@@ -5,5 +5,4 @@ namespace StayHub.Application.Apartments.RemoveApartmentAmenity;
 
 public sealed record RemoveApartmentAmenityCommand(
     Guid ApartmentId,
-    Amenity Amenity,
-    Guid RequestedByUserId) : ICommand;
+    Amenity Amenity) : ICommand;
