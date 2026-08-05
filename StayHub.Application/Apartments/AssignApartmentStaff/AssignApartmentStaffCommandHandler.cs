@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -10,6 +11,7 @@ public class AssignApartmentStaffCommandHandler(
     IApartmentRepository apartmentRepository,
     IUserRepository userRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<AssignApartmentStaffCommand, Guid>
 {
@@ -19,7 +21,8 @@ public class AssignApartmentStaffCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId)
+            return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var staffUser = await userRepository.GetByIdAsync(request.StaffUserId, cancellationToken);
 

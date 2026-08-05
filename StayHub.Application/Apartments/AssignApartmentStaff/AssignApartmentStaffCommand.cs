@@ -5,6 +5,5 @@ namespace StayHub.Application.Apartments.AssignApartmentStaff;
 
 public sealed record AssignApartmentStaffCommand(
     Guid ApartmentId,
-    Guid RequestedByUserId,
     Guid StaffUserId,
     ApartmentStaffRole Role) : ICommand<Guid>;
