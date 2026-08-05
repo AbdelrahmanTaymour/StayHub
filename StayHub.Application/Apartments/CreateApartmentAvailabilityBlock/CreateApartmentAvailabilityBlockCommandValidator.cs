@@ -10,8 +10,6 @@ public class
         RuleFor(x => x.ApartmentId)
             .NotEmpty();
 
-        RuleFor(x => x.RequestedByUserId)
-            .NotEmpty();
 
         RuleFor(x => x.Start)
             .GreaterThanOrEqualTo(DateOnly.FromDateTime(DateTime.UtcNow))

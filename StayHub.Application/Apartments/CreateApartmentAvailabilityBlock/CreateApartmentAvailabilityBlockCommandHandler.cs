@@ -1,3 +1,5 @@
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -9,7 +11,9 @@ internal sealed class CreateApartmentAvailabilityBlockCommandHandler(
     IApartmentRepository apartmentRepository,
     IApartmentAvailabilityBlockRepository blockRepository,
     IBookingRepository bookingRepository,
-    IUnitOfWork unitOfWork) : ICommandHandler<CreateApartmentAvailabilityBlockCommand, Guid>
+    IUserContext userContext,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateApartmentAvailabilityBlockCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(
         CreateApartmentAvailabilityBlockCommand request,
@@ -19,7 +23,8 @@ internal sealed class CreateApartmentAvailabilityBlockCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId)
+            return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var blockOverlap = await blockRepository.IsOverlappingAsync(
             request.ApartmentId,
@@ -35,7 +40,12 @@ internal sealed class CreateApartmentAvailabilityBlockCommandHandler(
 
         if (bookingOverlap) return Result.Failure<Guid>(ApartmentAvailabilityBlockErrors.Overlap);
 
-        var block = ApartmentAvailabilityBlock.Create(request.ApartmentId, request.Start, request.End, request.Reason);
+        var block = ApartmentAvailabilityBlock.Create(
+            request.ApartmentId,
+            request.Start,
+            request.End,
+            request.Reason,
+            dateTimeProvider.UtcNow);
 
         blockRepository.Add(block);
 
