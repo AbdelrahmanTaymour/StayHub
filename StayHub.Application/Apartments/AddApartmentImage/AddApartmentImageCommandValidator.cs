@@ -26,9 +26,6 @@ public class AddApartmentImageCommandValidator : AbstractValidator<AddApartmentI
         RuleFor(x => x.ApartmentId)
             .NotEmpty();
 
-        RuleFor(x => x.RequestedByUserId)
-            .NotEmpty();
-
         RuleFor(x => x.FileContent)
             .NotNull()
             .WithMessage("File content is required.")

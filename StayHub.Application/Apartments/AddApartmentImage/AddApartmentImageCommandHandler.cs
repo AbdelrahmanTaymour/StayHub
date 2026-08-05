@@ -1,3 +1,5 @@
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
@@ -9,7 +11,9 @@ public class AddApartmentImageCommandHandler(
     IApartmentRepository apartmentRepository,
     IApartmentImageRepository imageRepository,
     IFileStorageService fileStorageService,
-    IUnitOfWork unitOfWork) : ICommandHandler<AddApartmentImageCommand, Guid>
+    IUserContext userContext,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<AddApartmentImageCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(AddApartmentImageCommand request, CancellationToken cancellationToken)
     {
@@ -17,7 +21,8 @@ public class AddApartmentImageCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId)
+            return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var countExistingImages = await imageRepository.CountByApartmentId(
             request.ApartmentId,
@@ -33,6 +38,7 @@ public class AddApartmentImageCommandHandler(
             request.ApartmentId,
             new ImageUrl(url),
             countExistingImages,
+            dateTimeProvider.UtcNow,
             request.IsPrimary);
 
         imageRepository.Add(image);
