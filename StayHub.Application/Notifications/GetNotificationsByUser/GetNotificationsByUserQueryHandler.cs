@@ -1,4 +1,5 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -6,7 +7,8 @@ using StayHub.Domain.Abstractions;
 namespace StayHub.Application.Notifications.GetNotificationsByUser;
 
 internal sealed class GetNotificationsByUserQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
     : IQueryHandler<GetNotificationsByUserQuery, IReadOnlyList<NotificationResponse>>
 {
     public async Task<Result<IReadOnlyList<NotificationResponse>>> Handle(
@@ -33,7 +35,7 @@ internal sealed class GetNotificationsByUserQueryHandler(
             sql,
             new
             {
-                request.UserId,
+                userContext.UserId,
                 Offset = (request.Page - 1) * request.PageSize,
                 request.PageSize
             });
