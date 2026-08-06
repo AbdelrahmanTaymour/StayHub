@@ -7,7 +7,6 @@ public class CreateMaintenanceRequestCommandValidator : AbstractValidator<Create
     public CreateMaintenanceRequestCommandValidator()
     {
         RuleFor(x => x.ApartmentId).NotEmpty();
-        RuleFor(x => x.ReportedByUserId).NotEmpty();
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
     }

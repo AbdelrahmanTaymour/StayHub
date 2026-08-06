@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -9,6 +10,7 @@ internal sealed class StartMaintenanceRequestCommandHandler(
     IMaintenanceRequestRepository maintenanceRequestRepository,
     IApartmentRepository apartmentRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork) : ICommandHandler<StartMaintenanceRequestCommand>
 {
     public async Task<Result> Handle(StartMaintenanceRequestCommand request, CancellationToken cancellationToken)
@@ -23,11 +25,11 @@ internal sealed class StartMaintenanceRequestCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        var isOwner = apartment.OwnerId == request.RequestedByUserId;
+        var isOwner = apartment.OwnerId == userContext.UserId;
 
         var isActiveStaff = !isOwner && await staffAssignmentRepository.GetActiveAsync(
             apartment.Id,
-            request.RequestedByUserId,
+            userContext.UserId,
             cancellationToken) is not null;
 
         if (!isOwner && !isActiveStaff) return Result.Failure(ApartmentErrors.NotAuthorized);

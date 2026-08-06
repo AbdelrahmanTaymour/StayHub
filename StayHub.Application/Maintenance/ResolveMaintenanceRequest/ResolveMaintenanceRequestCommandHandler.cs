@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -10,6 +11,7 @@ internal sealed class ResolveMaintenanceRequestCommandHandler(
     IMaintenanceRequestRepository maintenanceRequestRepository,
     IApartmentRepository apartmentRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<ResolveMaintenanceRequestCommand>
 {
@@ -25,11 +27,11 @@ internal sealed class ResolveMaintenanceRequestCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        var isOwner = apartment.OwnerId == request.RequestedByUserId;
+        var isOwner = apartment.OwnerId == userContext.UserId;
 
         var isActiveStaff = !isOwner && await staffAssignmentRepository.GetActiveAsync(
             apartment.Id,
-            request.RequestedByUserId,
+            userContext.UserId,
             cancellationToken) is not null;
 
         if (!isOwner && !isActiveStaff) return Result.Failure(ApartmentErrors.NotAuthorized);

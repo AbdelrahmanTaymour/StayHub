@@ -1,3 +1,5 @@
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -8,7 +10,9 @@ namespace StayHub.Application.Maintenance.CreateMaintenanceRequest;
 internal sealed class CreateMaintenanceRequestCommandHandler(
     IApartmentRepository apartmentRepository,
     IMaintenanceRequestRepository maintenanceRequestRepository,
-    IUnitOfWork unitOfWork) : ICommandHandler<CreateMaintenanceRequestCommand, Guid>
+    IUserContext userContext,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateMaintenanceRequestCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateMaintenanceRequestCommand request, CancellationToken cancellationToken)
     {
@@ -18,9 +22,10 @@ internal sealed class CreateMaintenanceRequestCommandHandler(
 
         var maintenanceRequest = MaintenanceRequest.Create(
             request.ApartmentId,
-            request.ReportedByUserId,
+            userContext.UserId,
             new Title(request.Title),
-            new Description(request.Description));
+            new Description(request.Description),
+            dateTimeProvider.UtcNow);
 
         maintenanceRequestRepository.Add(maintenanceRequest);
 
