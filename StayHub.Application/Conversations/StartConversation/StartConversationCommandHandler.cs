@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -10,30 +11,38 @@ internal sealed class StartConversationCommandHandler(
     IApartmentRepository apartmentRepository,
     IConversationRepository conversationRepository,
     IMessageRepository messageRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<StartConversationCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(StartConversationCommand request, CancellationToken cancellationToken)
     {
+        var guestId = userContext.UserId;
+
         var apartment = await apartmentRepository.GetByIdAsync(request.ApartmentId, cancellationToken);
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
         var conversation = await conversationRepository.GetBetweenParticipantsAsync(
             apartment.Id,
-            request.GuestId,
+            guestId,
             apartment.OwnerId,
             cancellationToken);
 
         if (conversation is null)
         {
-            conversation = Conversation.Start(apartment.Id, null, request.GuestId, apartment.OwnerId);
+            conversation = Conversation.Start(
+                apartment.Id,
+                null,
+                guestId,
+                apartment.OwnerId,
+                dateTimeProvider.UtcNow);
             conversationRepository.Add(conversation);
         }
 
         var message = Message.Send(
             conversation.Id,
-            request.GuestId,
+            guestId,
             new MessageBody(request.InitialMessage),
             dateTimeProvider.UtcNow);
 
