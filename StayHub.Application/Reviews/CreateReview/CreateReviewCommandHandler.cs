@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -9,6 +10,7 @@ namespace StayHub.Application.Reviews.CreateReview;
 internal sealed class CreateReviewCommandHandler(
     IBookingRepository bookingRepository,
     IReviewRepository reviewRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateReviewCommand, Guid>
 {
@@ -18,7 +20,7 @@ internal sealed class CreateReviewCommandHandler(
 
         if (booking is null) return Result.Failure<Guid>(BookingErrors.NotFound);
 
-        if (booking.UserId != request.UserId) return Result.Failure<Guid>(ReviewErrors.NotAuthorized);
+        if (booking.UserId != userContext.UserId) return Result.Failure<Guid>(ReviewErrors.NotAuthorized);
 
         var alreadyReviewed = await reviewRepository.ExistsForBookingAsync(request.BookingId, cancellationToken);
 

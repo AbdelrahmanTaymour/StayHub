@@ -1,3 +1,5 @@
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -9,7 +11,9 @@ internal sealed class CreateReviewResponseCommandHandler(
     IReviewRepository reviewRepository,
     IReviewResponseRepository reviewResponseRepository,
     IApartmentRepository apartmentRepository,
-    IUnitOfWork unitOfWork) : ICommandHandler<CreateReviewResponseCommand, Guid>
+    IUserContext userContext,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateReviewResponseCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateReviewResponseCommand request, CancellationToken cancellationToken)
     {
@@ -21,13 +25,13 @@ internal sealed class CreateReviewResponseCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != request.RequestedByUserId) return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId) return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var existingResponse = await reviewResponseRepository.GetByReviewIdAsync(request.ReviewId, cancellationToken);
 
         if (existingResponse is not null) return Result.Failure<Guid>(ReviewResponseErrors.AlreadyRespondedTo);
 
-        var response = ReviewResponse.Create(request.ReviewId, new Comment(request.Comment));
+        var response = ReviewResponse.Create(request.ReviewId, new Comment(request.Comment), dateTimeProvider.UtcNow);
 
         reviewResponseRepository.Add(response);
 

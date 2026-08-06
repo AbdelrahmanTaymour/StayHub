@@ -7,7 +7,6 @@ public class CreateReviewResponseCommandValidator : AbstractValidator<CreateRevi
     public CreateReviewResponseCommandValidator()
     {
         RuleFor(x => x.ReviewId).NotEmpty();
-        RuleFor(x => x.RequestedByUserId).NotEmpty();
         RuleFor(x => x.Comment).NotEmpty().MaximumLength(2000);
     }
 }
