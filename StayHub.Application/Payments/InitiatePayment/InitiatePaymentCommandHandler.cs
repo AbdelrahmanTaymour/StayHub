@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Abstractions.Payments;
@@ -12,6 +13,7 @@ internal sealed class InitiatePaymentCommandHandler(
     IBookingRepository bookingRepository,
     IPaymentRepository paymentRepository,
     IPaymentGatewayService paymentGatewayService,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<InitiatePaymentCommand, InitiatePaymentResponse>
@@ -22,17 +24,21 @@ internal sealed class InitiatePaymentCommandHandler(
     {
         var booking = await bookingRepository.GetByIdAsync(request.BookingId, cancellationToken);
 
-        if (booking is null) return Result.Failure<InitiatePaymentResponse>(BookingErrors.NotFound);
+        if (booking is null)
+            return Result.Failure<InitiatePaymentResponse>(BookingErrors.NotFound);
 
-        if (booking.UserId != request.RequestedByUserId)
+        if (booking.UserId != userContext.UserId)
             return Result.Failure<InitiatePaymentResponse>(PaymentErrors.NotAuthorized);
 
         if (booking.Status != BookingStatus.Confirmed)
             return Result.Failure<InitiatePaymentResponse>(PaymentErrors.BookingNotConfirmed);
 
-        var existingPayment = await paymentRepository.GetByBookingIdAsync(booking.Id, cancellationToken);
+        // Only an active (Pending/Succeeded) payment blocks a new attempt - a prior Failed attempt
+        // must not permanently lock the guest out of ever paying for this booking.
+        var activePayment = await paymentRepository.GetActiveByBookingIdAsync(booking.Id, cancellationToken);
 
-        if (existingPayment is not null) return Result.Failure<InitiatePaymentResponse>(PaymentErrors.AlreadyInitiated);
+        if (activePayment is not null)
+            return Result.Failure<InitiatePaymentResponse>(PaymentErrors.AlreadyInitiated);
 
         var intent = await paymentGatewayService.CreatePaymentIntentAsync(
             booking.TotalPrice.Amount,

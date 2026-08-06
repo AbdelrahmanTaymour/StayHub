@@ -1,3 +1,5 @@
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Abstractions.Payments;
 using StayHub.Domain.Abstractions;
@@ -12,7 +14,9 @@ internal sealed class RefundPaymentCommandHandler(
     IBookingRepository bookingRepository,
     IApartmentRepository apartmentRepository,
     IPaymentGatewayService paymentGatewayService,
-    IUnitOfWork unitOfWork) : ICommandHandler<RefundPaymentCommand>
+    IUserContext userContext,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<RefundPaymentCommand>
 {
     public async Task<Result> Handle(RefundPaymentCommand request, CancellationToken cancellationToken)
     {
@@ -28,14 +32,14 @@ internal sealed class RefundPaymentCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        var isGuest = booking.UserId == request.RequestedByUserId;
-        var isOwner = apartment.OwnerId == request.RequestedByUserId;
+        var isGuest = booking.UserId == userContext.UserId;
+        var isOwner = apartment.OwnerId == userContext.UserId;
 
         if (!isGuest && !isOwner) return Result.Failure(PaymentErrors.NotAuthorized);
 
         await paymentGatewayService.RefundAsync(payment.ProviderReference, cancellationToken);
 
-        var result = payment.Refund(DateTime.UtcNow);
+        var result = payment.Refund(dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
 
