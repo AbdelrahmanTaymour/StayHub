@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -9,6 +10,7 @@ namespace StayHub.Application.Favorites.AddFavoriteApartment;
 internal sealed class AddFavoriteApartmentCommandHandler(
     IApartmentRepository apartmentRepository,
     IFavoriteApartmentRepository favoriteApartmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<AddFavoriteApartmentCommand>
 {
@@ -19,13 +21,13 @@ internal sealed class AddFavoriteApartmentCommandHandler(
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
         var existing = await favoriteApartmentRepository.GetAsync(
-            request.UserId,
+            userContext.UserId,
             request.ApartmentId,
             cancellationToken);
 
         if (existing is not null) return Result.Failure(FavoriteApartmentErrors.AlreadyFavorited);
 
-        var favorite = FavoriteApartment.Create(request.UserId, request.ApartmentId, dateTimeProvider.UtcNow);
+        var favorite = FavoriteApartment.Create(userContext.UserId, request.ApartmentId, dateTimeProvider.UtcNow);
 
         favoriteApartmentRepository.Add(favorite);
 

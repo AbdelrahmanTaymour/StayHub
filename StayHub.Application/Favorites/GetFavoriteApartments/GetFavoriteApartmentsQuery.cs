@@ -3,5 +3,5 @@ using StayHub.Application.Apartments.GetApartmentsByOwner;
 
 namespace StayHub.Application.Favorites.GetFavoriteApartments;
 
-public sealed record GetFavoriteApartmentsQuery(Guid UserId, int Page, int PageSize)
+public sealed record GetFavoriteApartmentsQuery(int Page, int PageSize)
     : IQuery<IReadOnlyList<ApartmentSummaryResponse>>;

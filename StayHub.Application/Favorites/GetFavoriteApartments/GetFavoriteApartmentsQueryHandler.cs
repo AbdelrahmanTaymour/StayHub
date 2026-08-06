@@ -1,4 +1,5 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
@@ -7,7 +8,8 @@ using StayHub.Domain.Abstractions;
 namespace StayHub.Application.Favorites.GetFavoriteApartments;
 
 internal sealed class GetFavoriteApartmentsQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
     : IQueryHandler<GetFavoriteApartmentsQuery, IReadOnlyList<ApartmentSummaryResponse>>
 {
     public async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> Handle(
@@ -37,7 +39,7 @@ internal sealed class GetFavoriteApartmentsQueryHandler(
             sql,
             new
             {
-                request.UserId,
+                userContext.UserId,
                 Offset = (request.Page - 1) * request.PageSize,
                 request.PageSize
             });

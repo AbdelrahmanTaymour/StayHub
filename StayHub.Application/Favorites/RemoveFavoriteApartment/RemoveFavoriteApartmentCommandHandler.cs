@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Favorites;
@@ -6,12 +7,13 @@ namespace StayHub.Application.Favorites.RemoveFavoriteApartment;
 
 internal sealed class RemoveFavoriteApartmentCommandHandler(
     IFavoriteApartmentRepository favoriteApartmentRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork) : ICommandHandler<RemoveFavoriteApartmentCommand>
 {
     public async Task<Result> Handle(RemoveFavoriteApartmentCommand request, CancellationToken cancellationToken)
     {
         var favorite = await favoriteApartmentRepository.GetAsync(
-            request.UserId,
+            userContext.UserId,
             request.ApartmentId,
             cancellationToken);
 
