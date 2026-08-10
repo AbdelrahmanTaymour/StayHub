@@ -30,6 +30,8 @@ internal sealed class PermissionConfiguration : IEntityTypeConfiguration<Permiss
             Permission.ReviewRespond,
             Permission.FavoriteManage,
             Permission.ConversationManage,
-            Permission.NotificationManage);
+            Permission.NotificationManage,
+            Permission.MaintenanceCreate,
+            Permission.MaintenanceManage);
     }
 }

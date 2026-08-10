@@ -21,7 +21,9 @@ internal sealed class RolePermissionConfiguration : IEntityTypeConfiguration<Rol
         Permission.ReviewRespond,
         Permission.FavoriteManage,
         Permission.ConversationManage,
-        Permission.NotificationManage
+        Permission.NotificationManage,
+        Permission.MaintenanceCreate,
+        Permission.MaintenanceManage
     ];
 
     public void Configure(EntityTypeBuilder<RolePermission> builder)
