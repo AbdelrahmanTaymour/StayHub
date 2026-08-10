@@ -16,6 +16,8 @@ public sealed class Permission
     public static readonly Permission FavoriteManage = new(12, "favorite:manage");
     public static readonly Permission ConversationManage = new(13, "conversation:manage");
     public static readonly Permission NotificationManage = new(14, "notification:manage");
+    public static readonly Permission MaintenanceCreate = new(15, "maintenance:create");
+    public static readonly Permission MaintenanceManage = new(16, "maintenance:manage");
 
     public Permission(int id, string name)
     {
