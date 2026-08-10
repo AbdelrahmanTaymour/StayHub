@@ -1,4 +1,5 @@
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Users.Events;
 
 namespace StayHub.Domain.Users;
 
@@ -33,6 +34,8 @@ public sealed class UserProfile : Entity
         AvatarUrl = avatar;
         UpdatedOnUtc = utcNow;
 
+        RaiseDomainEvent(new UserProfileUpdatedDomainEvent(UserId));
+
         return Result.Success();
     }
 
@@ -41,6 +44,8 @@ public sealed class UserProfile : Entity
         Bio = bio;
         UpdatedOnUtc = utcNow;
 
+        RaiseDomainEvent(new UserProfileUpdatedDomainEvent(UserId));
+
         return Result.Success();
     }
 
@@ -48,6 +53,8 @@ public sealed class UserProfile : Entity
     {
         PhoneNumber = phoneNumber;
         UpdatedOnUtc = utcNow;
+
+        RaiseDomainEvent(new UserProfileUpdatedDomainEvent(UserId));
 
         return Result.Success();
     }
