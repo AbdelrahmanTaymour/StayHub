@@ -11,4 +11,8 @@ public static class UserErrors
     public static readonly Error EmailNotUnique = Error.Conflict(
         "User.EmailNotUnique",
         "The provided email is already in use");
+
+    public static readonly Error Forbidden = Error.Unauthorized(
+        "User.Forbidden",
+        "You do not have permission to access another user's details");
 }

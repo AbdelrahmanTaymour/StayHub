@@ -56,6 +56,8 @@ public sealed class User : Entity
     {
         FirstName = firstName;
         LastName = lastName;
+
+        RaiseDomainEvent(new UserNameUpdatedDomainEvent(Id));
     }
 
     public void SetIdentityId(string identityId)
