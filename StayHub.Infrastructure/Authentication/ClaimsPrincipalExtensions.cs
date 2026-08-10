@@ -18,4 +18,10 @@ internal static class ClaimsPrincipalExtensions
         return principal?.FindFirstValue(ClaimTypes.NameIdentifier) ??
                throw new ApplicationException("User identity is unavailable");
     }
+
+    public static IReadOnlyCollection<string> GetRoles(this ClaimsPrincipal? principal)
+    {
+        return principal?.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToArray()
+               ?? [];
+    }
 }

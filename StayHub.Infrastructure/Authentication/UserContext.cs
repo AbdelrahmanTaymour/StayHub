@@ -18,4 +18,11 @@ internal sealed class UserContext(IHttpContextAccessor httpContextAccessor) : IU
             .User
             .GetIdentityId() ??
         throw new ApplicationException("User context is unavailable");
+
+    public IReadOnlyCollection<string> Roles =>
+        httpContextAccessor
+            .HttpContext?
+            .User
+            .GetRoles() ??
+        [];
 }

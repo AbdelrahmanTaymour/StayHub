@@ -12,6 +12,12 @@ internal sealed class PermissionAuthorizationPolicyProvider(IOptions<Authorizati
 
         if (policy is not null) return policy;
 
+
+        // Deliberately NOT cached back into AuthorizationOptions here - AuthorizationOptions'
+        // internal policy map is a plain, non-thread-safe Dictionary, and concurrent requests
+        // hitting a permission for the first time simultaneously could race on writing to it.
+        // Building a small AuthorizationPolicy object fresh each time is cheap enough that this
+        // isn't worth the concurrency risk.
         return new AuthorizationPolicyBuilder()
             .AddRequirements(new PermissionRequirement(policyName))
             .Build();

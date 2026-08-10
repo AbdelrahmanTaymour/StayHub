@@ -13,7 +13,9 @@ internal sealed class CustomClaimsTransformation(
     {
         if (principal.HasClaim(claim => claim.Type == ClaimTypes.Role) &&
             principal.HasClaim(claim => claim.Type == JwtRegisteredClaimNames.Sub))
+        {
             return principal;
+        }
 
         var userId = principal.GetIdentityId();
 
