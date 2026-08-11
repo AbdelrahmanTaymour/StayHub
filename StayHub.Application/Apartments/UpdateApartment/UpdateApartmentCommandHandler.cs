@@ -3,6 +3,7 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Shared;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.Apartments.UpdateApartment;
 
@@ -17,7 +18,9 @@ internal sealed class UpdateApartmentCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != userContext.UserId) return Result.Failure(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+            return Result.Failure(ApartmentErrors.NotAuthorized);
 
         var price = new Money(request.PriceAmount, Currency.FromCode(request.PriceCurrency));
         var cleaningFee = new Money(request.CleaningFeeAmount, Currency.FromCode(request.CleaningFeeCurrency));

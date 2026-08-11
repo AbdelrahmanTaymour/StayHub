@@ -2,6 +2,7 @@ using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.Apartments.ActivateApartment;
 
@@ -16,7 +17,9 @@ internal sealed class ActivateApartmentCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != userContext.UserId) return Result.Failure(ApartmentErrors.NotAuthorized);
+        if (apartment.OwnerId != userContext.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+            return Result.Failure(ApartmentErrors.NotAuthorized);
 
         var result = apartment.Activate();
 

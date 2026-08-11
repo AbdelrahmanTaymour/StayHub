@@ -4,10 +4,11 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.Apartments.AddApartmentImage;
 
-public class AddApartmentImageCommandHandler(
+internal sealed class AddApartmentImageCommandHandler(
     IApartmentRepository apartmentRepository,
     IApartmentImageRepository imageRepository,
     IFileStorageService fileStorageService,
@@ -21,13 +22,15 @@ public class AddApartmentImageCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != userContext.UserId)
+        if (apartment.OwnerId != userContext.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
             return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var countExistingImages = await imageRepository.CountByApartmentId(
             request.ApartmentId,
             cancellationToken);
 
+        // TODO: TO BACKGROUND JOB
         var url = await fileStorageService.UploadAsync(
             request.FileContent,
             request.FileName,
@@ -43,8 +46,16 @@ public class AddApartmentImageCommandHandler(
 
         imageRepository.Add(image);
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return image.Id;
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return image.Id;
+        }
+        catch
+        {
+            // Clean up orphan file in cloud/storage if database commit fails
+            await fileStorageService.DeleteAsync(url, cancellationToken);
+            throw;
+        }
     }
 }

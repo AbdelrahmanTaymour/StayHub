@@ -1,4 +1,5 @@
 using Dapper;
+using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -7,11 +8,25 @@ using StayHub.Domain.Apartments;
 namespace StayHub.Application.Apartments.GetApartment;
 
 internal sealed class GetApartmentQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory) : IQueryHandler<GetApartmentQuery, ApartmentResponse>
+    ISqlConnectionFactory sqlConnectionFactory,
+    ICacheService cacheService) : IQueryHandler<GetApartmentQuery, ApartmentResponse>
 {
-    public async Task<Result<ApartmentResponse>> Handle(
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    public async Task<Result<ApartmentResponse>> Handle(GetApartmentQuery request, CancellationToken cancellationToken)
+    {
+        var apartment = await cacheService.GetOrCreateAsync(
+            CacheKeys.Apartment(request.ApartmentId),
+            _ => LoadApartmentAsync(request, cancellationToken),
+            CacheDuration,
+            cancellationToken);
+
+        return apartment ?? Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
+    }
+
+    private async Task<ApartmentResponse?> LoadApartmentAsync(
         GetApartmentQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
@@ -47,27 +62,24 @@ internal sealed class GetApartmentQueryHandler(
 
         using var multi = await connection.QueryMultipleAsync(
             sql,
-            new
-            {
-                request.ApartmentId
-            });
+            new { request.ApartmentId });
 
-        // 1. Read a single apartment row directly
-        var apartment = multi.Read<ApartmentResponse, AddressResponse, ApartmentResponse>(
-            (apt, address) =>
-            {
-                apt.Address = address;
-                apt.Amenities = apt.Amenities.Select(a => a).ToList();
-                return apt;
-            },
-            "Country").FirstOrDefault();
+        var apartment = multi
+            .Read<ApartmentResponse, AddressResponse, ApartmentResponse>(
+                (apt, address) =>
+                {
+                    apt.Address = address;
+                    return apt;
+                },
+                "Country")
+            .SingleOrDefault();
 
-        if (apartment is null) return Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
+        if (apartment is null)
+            return null;
 
-        // 2. Read collections efficiently
-        var images = await multi.ReadAsync<ApartmentImageResponse>();
-
-        apartment.Images = images.ToList();
+        apartment.Images = multi
+            .Read<ApartmentImageResponse>()
+            .ToList();
 
         return apartment;
     }
