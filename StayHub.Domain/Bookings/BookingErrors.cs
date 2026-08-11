@@ -42,5 +42,5 @@ public static class BookingErrors
 
     public static readonly Error NotAuthorized = Error.Unauthorized(
         "Booking.NotAuthorized",
-        "Only the guest or the apartment owner can reject this booking");
+        "You're not authorized to perform this action");
 }

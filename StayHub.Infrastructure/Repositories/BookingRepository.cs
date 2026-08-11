@@ -10,8 +10,7 @@ internal sealed class BookingRepository(ApplicationDbContext dbContext)
     private static readonly IReadOnlyCollection<BookingStatus> ActiveBookingStatuses =
     [
         BookingStatus.Reserved,
-        BookingStatus.Confirmed,
-        BookingStatus.Completed
+        BookingStatus.Confirmed
     ];
 
     public async Task<bool> IsOverlappingAsync(
@@ -38,5 +37,24 @@ internal sealed class BookingRepository(ApplicationDbContext dbContext)
             .Set<Booking>()
             .Where(booking => booking.Status == BookingStatus.Confirmed && booking.Duration.End <= asOf)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> HasActiveBookingAsync(
+        Guid apartmentId,
+        Guid userId,
+        DateTime asOfUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var asOfDate = DateOnly.FromDateTime(asOfUtc);
+
+        return await DbContext
+            .Set<Booking>()
+            .AnyAsync(
+                booking =>
+                    booking.ApartmentId == apartmentId &&
+                    booking.UserId == userId &&
+                    booking.Duration.End >= asOfDate &&
+                    ActiveBookingStatuses.Contains(booking.Status),
+                cancellationToken);
     }
 }
