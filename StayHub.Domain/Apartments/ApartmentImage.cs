@@ -47,6 +47,8 @@ public sealed class ApartmentImage : Entity
     public void SetAsPrimary()
     {
         IsPrimary = true;
+
+        RaiseDomainEvent(new ApartmentImageUpdatedDomainEvent(Id));
     }
 
     public void UnsetAsPrimary()

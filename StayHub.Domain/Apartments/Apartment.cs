@@ -76,6 +76,8 @@ public sealed class Apartment : Entity
         Description = description;
         Price = price;
         CleaningFee = cleaningFee;
+
+        RaiseDomainEvent(new ApartmentUpdatedDomainEvent(Id));
     }
 
     public Result AddAmenity(Amenity amenity)
@@ -86,6 +88,8 @@ public sealed class Apartment : Entity
         }
 
         Amenities.Add(amenity);
+
+        RaiseDomainEvent(new ApartmentAmenitiesChangedDomainEvent(Id));
 
         return Result.Success();
     }
@@ -100,6 +104,8 @@ public sealed class Apartment : Entity
         }
 
         Amenities.Remove(apartmentAmenity);
+
+        RaiseDomainEvent(new ApartmentAmenitiesChangedDomainEvent(Id));
 
         return Result.Success();
     }
@@ -126,6 +132,8 @@ public sealed class Apartment : Entity
         }
 
         IsActive = true;
+
+        RaiseDomainEvent(new ApartmentActivatedDomainEvent(Id));
 
         return Result.Success();
     }
