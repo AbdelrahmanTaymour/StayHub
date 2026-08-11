@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,14 +20,17 @@ using StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 using StayHub.Application.Apartments.SearchApartments;
 using StayHub.Application.Apartments.UpdateApartment;
 using StayHub.Domain.Apartments;
+using StayHub.Infrastructure.Authorization;
 
 namespace StayHub.Api.Controllers.Apartments;
 
 [Authorize]
 [ApiController]
+[ApiVersion(ApiVersions.V1)]
 [Route("api/v{version:apiVersion}/apartments")]
 public sealed class ApartmentsController(ISender sender) : ControllerBase
 {
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApartmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -39,6 +43,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
         return result.IsFailure ? result.ToProblemDetails(this) : Ok(result.Value);
     }
 
+    [AllowAnonymous]
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ApartmentSummaryResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ApartmentSummaryResponse>>> Search(
@@ -59,6 +64,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
 
+    [AllowAnonymous]
     [HttpGet("by-owner/{ownerId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<ApartmentSummaryResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ApartmentSummaryResponse>>> GetByOwner(
@@ -75,6 +81,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.ApartmentCreate)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Guid>> Create(CreateApartmentRequest request, CancellationToken cancellationToken)
@@ -100,6 +107,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -121,6 +129,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{id:guid}/activate")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -133,6 +142,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{id:guid}/deactivate")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -147,6 +157,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     // ---- Amenities ----
 
     [HttpPost("{id:guid}/amenities")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -164,6 +175,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("{id:guid}/amenities")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -179,6 +191,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     // ---- Images ----
 
     [HttpPost("{id:guid}/images")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -204,6 +217,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("images/{imageId:guid}")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -217,6 +231,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:guid}/images/order")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -236,6 +251,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     // ---- Availability blocks ----
 
     [HttpPost("{id:guid}/availability-blocks")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -253,10 +269,13 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
 
         var result = await sender.Send(command, cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails(this) : Ok(result.Value);
+        return result.IsFailure
+            ? result.ToProblemDetails(this)
+            : CreatedAtAction(nameof(GetApartment), new { id }, result.Value);
     }
 
     [HttpDelete("availability-blocks/{blockId:guid}")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -272,6 +291,7 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
     // ---- Staff assignments ----
 
     [HttpPost("{id:guid}/staff")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -282,13 +302,15 @@ public sealed class ApartmentsController(ISender sender) : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new AssignApartmentStaffCommand(id, request.StaffUserId, request.Role);
-
         var result = await sender.Send(command, cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails(this) : Ok(result.Value);
+        return result.IsFailure
+            ? result.ToProblemDetails(this)
+            : CreatedAtAction(nameof(GetApartment), new { id }, result.Value);
     }
 
     [HttpDelete("staff/{assignmentId:guid}")]
+    [HasPermission(Permissions.ApartmentManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
