@@ -1,18 +1,29 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Bookings;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.Bookings.GetBookingsByUser;
 
 public class GetBookingsByUserQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
     : IQueryHandler<GetBookingsByUserQuery, IReadOnlyList<BookingSummaryResponse>>
 {
     public async Task<Result<IReadOnlyList<BookingSummaryResponse>>> Handle(
         GetBookingsByUserQuery request,
         CancellationToken cancellationToken)
     {
+        // Enforce Self or Admin authorization check
+        var isSelf = userContext.UserId == request.UserId;
+        var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
+
+        if (!isSelf && !isAdmin)
+            return Result.Failure<IReadOnlyList<BookingSummaryResponse>>(BookingErrors.NotAuthorized);
+
         using var connection = sqlConnectionFactory.CreateConnection();
 
         const string sql = """
