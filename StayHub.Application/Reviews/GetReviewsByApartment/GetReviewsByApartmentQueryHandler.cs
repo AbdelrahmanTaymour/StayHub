@@ -1,4 +1,5 @@
 using Dapper;
+using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -6,12 +7,24 @@ using StayHub.Domain.Abstractions;
 namespace StayHub.Application.Reviews.GetReviewsByApartment;
 
 internal sealed class GetReviewsByApartmentQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    ICacheService cacheService)
     : IQueryHandler<GetReviewsByApartmentQuery, IReadOnlyList<ReviewListItemResponse>>
 {
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(3);
+
     public async Task<Result<IReadOnlyList<ReviewListItemResponse>>> Handle(
         GetReviewsByApartmentQuery request,
         CancellationToken cancellationToken)
+    {
+        return await cacheService.GetOrCreateAsync(
+            CacheKeys.ReviewsByApartment(request.ApartmentId, request.Page, request.PageSize),
+            _ => LoadAsync(request),
+            CacheDuration,
+            cancellationToken);
+    }
+
+    private async Task<Result<IReadOnlyList<ReviewListItemResponse>>> LoadAsync(GetReviewsByApartmentQuery request)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 

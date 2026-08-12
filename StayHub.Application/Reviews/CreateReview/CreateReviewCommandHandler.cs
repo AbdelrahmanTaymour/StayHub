@@ -18,17 +18,29 @@ internal sealed class CreateReviewCommandHandler(
     {
         var booking = await bookingRepository.GetByIdAsync(request.BookingId, cancellationToken);
 
-        if (booking is null) return Result.Failure<Guid>(BookingErrors.NotFound);
+        if (booking is null)
+        {
+            return Result.Failure<Guid>(BookingErrors.NotFound);
+        }
 
-        if (booking.UserId != userContext.UserId) return Result.Failure<Guid>(ReviewErrors.NotAuthorized);
+        if (booking.UserId != userContext.UserId)
+        {
+            return Result.Failure<Guid>(ReviewErrors.NotAuthorized);
+        }
 
         var alreadyReviewed = await reviewRepository.ExistsForBookingAsync(request.BookingId, cancellationToken);
 
-        if (alreadyReviewed) return Result.Failure<Guid>(ReviewErrors.AlreadyReviewed);
+        if (alreadyReviewed)
+        {
+            return Result.Failure<Guid>(ReviewErrors.AlreadyReviewed);
+        }
 
         var ratingResult = Rating.Create(request.Rating);
 
-        if (ratingResult.IsFailure) return Result.Failure<Guid>(Rating.Invalid);
+        if (ratingResult.IsFailure)
+        {
+            return Result.Failure<Guid>(ratingResult.Error);
+        }
 
         var review = Review.Create(
             booking,
@@ -36,7 +48,10 @@ internal sealed class CreateReviewCommandHandler(
             new Comment(request.Comment),
             dateTimeProvider.UtcNow);
 
-        if (review.IsFailure) return Result.Failure<Guid>(review.Error);
+        if (review.IsFailure)
+        {
+            return Result.Failure<Guid>(review.Error);
+        }
 
         reviewRepository.Add(review.Value);
 

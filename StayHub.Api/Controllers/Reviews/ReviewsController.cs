@@ -1,17 +1,23 @@
+using Asp.Versioning;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StayHub.Api.Extensions;
 using StayHub.Application.Reviews.CreateReview;
 using StayHub.Application.Reviews.CreateReviewResponse;
 using StayHub.Application.Reviews.GetReview;
 using StayHub.Application.Reviews.GetReviewsByApartment;
+using StayHub.Infrastructure.Authorization;
 
 namespace StayHub.Api.Controllers.Reviews;
 
+[Authorize]
 [ApiController]
+[ApiVersion(ApiVersions.V1)]
 [Route("api/v{version:apiVersion}/reviews")]
 public sealed class ReviewsController(ISender sender) : ControllerBase
 {
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ReviewResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -24,6 +30,7 @@ public sealed class ReviewsController(ISender sender) : ControllerBase
         return result.IsFailure ? result.ToProblemDetails(this) : Ok(result.Value);
     }
 
+    [AllowAnonymous]
     [HttpGet("by-apartment/{apartmentId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<ReviewListItemResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ReviewListItemResponse>>> GetByApartment(
@@ -40,6 +47,7 @@ public sealed class ReviewsController(ISender sender) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.ReviewCreate)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -57,6 +65,7 @@ public sealed class ReviewsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{reviewId:guid}/response")]
+    [HasPermission(Permissions.ReviewRespond)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
