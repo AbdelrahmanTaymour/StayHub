@@ -26,9 +26,9 @@ public static class SeedDataExtensions
         var owner = new
         {
             Id = ownerId,
-            FirstName = faker.Name.FirstName(),
-            LastName = faker.Name.LastName(),
-            Email = faker.Internet.Email(),
+            FirstName = "Abdelrahman",
+            LastName = "Taymour",
+            Email = "taymour@example.com",
             CreatedOnUtc = DateTime.UtcNow
         };
 

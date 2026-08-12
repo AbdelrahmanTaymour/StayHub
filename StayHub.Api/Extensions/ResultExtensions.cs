@@ -7,7 +7,10 @@ public static class ResultExtensions
 {
     public static ObjectResult ToProblemDetails(this Result result, ControllerBase controller)
     {
-        if (result.IsSuccess) throw new InvalidOperationException("Cannot convert a successful result to a problem.");
+        if (result.IsSuccess)
+        {
+            throw new InvalidOperationException("Cannot convert a successful result to a problem.");
+        }
 
         return controller.Problem(
             type: GetType(result.Error.Type),

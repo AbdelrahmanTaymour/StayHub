@@ -36,14 +36,12 @@ if (app.Environment.IsDevelopment())
         {
             var url = $"/swagger/{description.GroupName}/swagger.json";
             var name = description.GroupName.ToUpperInvariant();
+
             options.SwaggerEndpoint(url, name);
         }
     });
 
     app.ApplyMigrations();
-
-    // TODO: Remove this after migration
-    //app.SeedData();
 }
 
 app.UseHttpsRedirection();
@@ -53,7 +51,6 @@ app.UseRequestContextLogging();
 app.UseSerilogRequestLogging();
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();
