@@ -1,4 +1,6 @@
+using Asp.Versioning;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StayHub.Api.Extensions;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
@@ -8,7 +10,12 @@ using StayHub.Application.Favorites.RemoveFavoriteApartment;
 
 namespace StayHub.Api.Controllers.Favorites;
 
+// No [HasPermission] anywhere in this controller — every endpoint operates on
+// the caller's own favorites list (no userId route param at all), so it's
+// self-scoped by construction, same reasoning as Notifications.
+[Authorize]
 [ApiController]
+[ApiVersion(ApiVersions.V1)]
 [Route("api/v{version:apiVersion}/users/{userId:guid}/favorites")]
 public sealed class FavoritesController(ISender sender) : ControllerBase
 {
