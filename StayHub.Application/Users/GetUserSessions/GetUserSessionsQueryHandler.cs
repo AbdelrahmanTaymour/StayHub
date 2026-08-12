@@ -1,18 +1,27 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.GetUserSessions;
 
 internal sealed class GetUserSessionsQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
     : IQueryHandler<GetUserSessionsQuery, IReadOnlyList<UserSessionResponse>>
 {
     public async Task<Result<IReadOnlyList<UserSessionResponse>>> Handle(
         GetUserSessionsQuery request,
         CancellationToken cancellationToken)
     {
+        if (userContext.UserId != request.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+        {
+            return Result.Failure<IReadOnlyList<UserSessionResponse>>(UserSessionErrors.NotAuthorized);
+        }
+
         using var connection = sqlConnectionFactory.CreateConnection();
 
         const string sql = """

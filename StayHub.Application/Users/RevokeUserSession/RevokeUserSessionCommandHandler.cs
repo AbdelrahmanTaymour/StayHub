@@ -18,7 +18,11 @@ public class RevokeUserSessionCommandHandler(
 
         if (session is null) return Result.Failure(UserSessionErrors.NotFound);
 
-        if (session.UserId != userContext.UserId) return Result.Failure(UserSessionErrors.NotAuthorized);
+        if (session.UserId != userContext.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+        {
+            return Result.Failure(UserSessionErrors.NotAuthorized);
+        }
 
         var result = session.Revoke(dateTimeProvider.UtcNow);
 

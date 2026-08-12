@@ -1,5 +1,6 @@
 using Dapper;
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Users.GetUser;
@@ -10,9 +11,25 @@ namespace StayHub.Application.Users.GetLoggedInUser;
 
 internal sealed class GetLoggedInUserHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext) : IQueryHandler<GetLoggedInQuery, UserResponse>
+    IUserContext userContext,
+    ICacheService cacheService) : IQueryHandler<GetLoggedInUserQuery, UserResponse>
 {
-    public async Task<Result<UserResponse>> Handle(GetLoggedInQuery request, CancellationToken cancellationToken)
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
+
+    public async Task<Result<UserResponse>> Handle(GetLoggedInUserQuery request, CancellationToken cancellationToken)
+    {
+        var userId = userContext.UserId;
+
+        var user = await cacheService.GetOrCreateAsync(
+            CacheKeys.LoggedInUser(userId),
+            _ => LoadAsync(userId),
+            CacheDuration,
+            cancellationToken);
+
+        return user ?? Result.Failure<UserResponse>(UserErrors.NotFound);
+    }
+
+    private async Task<UserResponse?> LoadAsync(Guid userId)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
@@ -30,8 +47,6 @@ internal sealed class GetLoggedInUserHandler(
                            WHERE u.id = @UserId
                            """;
 
-        var user = await connection.QueryFirstOrDefaultAsync<UserResponse>(sql, new { userContext.UserId });
-
-        return user ?? Result.Failure<UserResponse>(UserErrors.NotFound);
+        return await connection.QueryFirstOrDefaultAsync<UserResponse>(sql, new { UserId = userId });
     }
 }

@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,15 +14,18 @@ using StayHub.Application.Users.RegisterUser;
 using StayHub.Application.Users.RevokeUserSession;
 using StayHub.Application.Users.UpdateUserName;
 using StayHub.Application.Users.UpdateUserProfile;
+using StayHub.Infrastructure.Authorization;
 
 namespace StayHub.Api.Controllers.Users;
 
 [Authorize]
 [ApiController]
+[ApiVersion(ApiVersions.V1)]
 [Route("api/v{version:apiVersion}/users")]
 public sealed class UsersController(ISender sender) : ControllerBase
 {
     [HttpGet("me")]
+    [HasPermission(Permissions.UserRead)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -35,6 +39,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [HasPermission(Permissions.UserRead)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserResponse>> GetUser(Guid id, CancellationToken cancellationToken)
@@ -46,6 +51,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
         return result.IsFailure ? result.ToProblemDetails(this) : Ok(result.Value);
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -61,6 +67,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
             : CreatedAtAction(nameof(GetUser), new { id = result.Value }, result.Value);
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(AccessTokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -75,6 +82,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
         return result.IsFailure ? result.ToProblemDetails(this) : Ok(result.Value);
     }
 
+    [AllowAnonymous]
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(AccessTokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -102,6 +110,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:guid}/name")]
+    [HasPermission(Permissions.UserUpdate)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -116,6 +125,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:guid}/profile")]
+    [HasPermission(Permissions.UserUpdate)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> UpdateProfile(
@@ -133,6 +143,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
     // ---- Sessions ----
 
     [HttpGet("{id:guid}/sessions")]
+    [HasPermission(Permissions.UserManageSessions)]
     [ProducesResponseType(typeof(IReadOnlyList<UserSessionResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<UserSessionResponse>>> GetSessions(
         Guid id,
@@ -146,6 +157,7 @@ public sealed class UsersController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("sessions/{sessionId:guid}")]
+    [HasPermission(Permissions.UserManageSessions)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

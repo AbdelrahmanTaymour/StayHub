@@ -3,4 +3,4 @@ using StayHub.Application.Users.GetUser;
 
 namespace StayHub.Application.Users.GetLoggedInUser;
 
-public sealed record GetLoggedInQuery : IQuery<UserResponse>;
+public sealed record GetLoggedInUserQuery : IQuery<UserResponse>;

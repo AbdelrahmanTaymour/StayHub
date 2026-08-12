@@ -1,4 +1,6 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -7,9 +9,30 @@ using StayHub.Domain.Users;
 namespace StayHub.Application.Users.GetUser;
 
 internal sealed class GetUserQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory) : IQueryHandler<GetUserQuery, UserResponse>
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext,
+    ICacheService cacheService) : IQueryHandler<GetUserQuery, UserResponse>
 {
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
+
     public async Task<Result<UserResponse>> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        if (userContext.UserId != request.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+        {
+            return Result.Failure<UserResponse>(UserErrors.NotAuthorized);
+        }
+
+        var user = await cacheService.GetOrCreateAsync(
+            CacheKeys.User(request.UserId),
+            _ => LoadAsync(request.UserId),
+            CacheDuration,
+            cancellationToken);
+
+        return user ?? Result.Failure<UserResponse>(UserErrors.NotFound);
+    }
+
+    private async Task<UserResponse?> LoadAsync(Guid userId)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
@@ -27,8 +50,6 @@ internal sealed class GetUserQueryHandler(
                            WHERE u.id = @UserId
                            """;
 
-        var user = await connection.QueryFirstOrDefaultAsync<UserResponse>(sql, new { request.UserId });
-
-        return user ?? Result.Failure<UserResponse>(UserErrors.NotFound);
+        return await connection.QueryFirstOrDefaultAsync<UserResponse>(sql, new { UserId = userId });
     }
 }

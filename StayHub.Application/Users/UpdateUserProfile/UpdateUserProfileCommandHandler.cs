@@ -1,3 +1,4 @@
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -7,11 +8,18 @@ namespace StayHub.Application.Users.UpdateUserProfile;
 
 internal sealed class UpdateUserProfileCommandHandler(
     IUserProfileRepository userProfileRepository,
+    IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<UpdateUserProfileCommand>
 {
     public async Task<Result> Handle(UpdateUserProfileCommand request, CancellationToken cancellationToken)
     {
+        if (userContext.UserId != request.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+        {
+            return Result.Failure(UserErrors.NotAuthorized);
+        }
+
         var profile = await userProfileRepository.GetByUserIdAsync(request.UserId, cancellationToken);
 
         if (profile is null) return Result.Failure(UserProfileErrors.NotFound);

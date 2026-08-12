@@ -12,7 +12,7 @@ public static class UserErrors
         "User.EmailNotUnique",
         "The provided email is already in use");
 
-    public static readonly Error Forbidden = Error.Unauthorized(
-        "User.Forbidden",
-        "You do not have permission to access another user's details");
+    public static readonly Error NotAuthorized = Error.Unauthorized(
+        "User.NotAuthorized",
+        "You can only access your own details");
 }
