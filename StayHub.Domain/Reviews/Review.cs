@@ -52,7 +52,7 @@ public sealed class Review : Entity
             comment,
             createdOnUtc);
 
-        review.RaiseDomainEvent(new ReviewCreatedDomainEvent(review.Id));
+        review.RaiseDomainEvent(new ReviewCreatedDomainEvent(review.Id, booking.ApartmentId));
 
         return review;
     }
