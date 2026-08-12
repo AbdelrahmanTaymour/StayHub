@@ -23,6 +23,13 @@ internal sealed class StartConversationCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
+        if (apartment.OwnerId == guestId)
+        {
+            return Result.Failure<Guid>(ConversationErrors.CannotMessageSelf);
+        }
+
+        var now = dateTimeProvider.UtcNow;
+
         var conversation = await conversationRepository.GetBetweenParticipantsAsync(
             apartment.Id,
             guestId,
@@ -36,7 +43,8 @@ internal sealed class StartConversationCommandHandler(
                 null,
                 guestId,
                 apartment.OwnerId,
-                dateTimeProvider.UtcNow);
+                now);
+
             conversationRepository.Add(conversation);
         }
 
@@ -44,7 +52,9 @@ internal sealed class StartConversationCommandHandler(
             conversation.Id,
             guestId,
             new MessageBody(request.InitialMessage),
-            dateTimeProvider.UtcNow);
+            now);
+
+        conversation.RegisterMessage(now);
 
         messageRepository.Add(message);
 

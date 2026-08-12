@@ -1,16 +1,18 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 
-namespace StayHub.Application.Conversations.GetConversationsByUser;
+namespace StayHub.Application.Conversations.GetMyConversations;
 
-internal sealed class GetConversationsByUserQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
-    : IQueryHandler<GetConversationsByUserQuery, IReadOnlyList<ConversationSummaryResponse>>
+internal sealed class GetMyConversationsQueryHandler(
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
+    : IQueryHandler<GetMyConversationsQuery, IReadOnlyList<ConversationSummaryResponse>>
 {
     public async Task<Result<IReadOnlyList<ConversationSummaryResponse>>> Handle(
-        GetConversationsByUserQuery request,
+        GetMyConversationsQuery request,
         CancellationToken cancellationToken)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
@@ -34,7 +36,9 @@ internal sealed class GetConversationsByUserQueryHandler(
                            ORDER BY c.last_message_on_utc DESC NULLS LAST
                            """;
 
-        var conversations = await connection.QueryAsync<ConversationSummaryResponse>(sql, new { request.UserId });
+        var conversations = await connection.QueryAsync<ConversationSummaryResponse>(
+            sql,
+            new { UserId = userContext.UserId });
 
         return conversations.ToList();
     }

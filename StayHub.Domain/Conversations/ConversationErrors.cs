@@ -11,4 +11,12 @@ public static class ConversationErrors
     public static readonly Error AlreadyExists = Error.Conflict(
         "Conversation.AlreadyExists",
         "A conversation between these participants already exists for this apartment");
+
+    public static readonly Error CannotMessageSelf = Error.Validation(
+        "Conversation:CannotMessageSelf",
+        "You cannot message yourself");
+
+    public static readonly Error NotAuthorized = Error.Unauthorized(
+        "Conversation.NotAuthorized",
+        "You are not authorized to perform this action");
 }

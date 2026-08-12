@@ -25,11 +25,15 @@ internal sealed class SendMessageCommandHandler(
             conversation.OwnerId != senderId)
             return Result.Failure<Guid>(MessageErrors.NotAuthorized);
 
+        var now = dateTimeProvider.UtcNow;
+
         var message = Message.Send(
             conversation.Id,
             senderId,
             new MessageBody(request.Body),
-            dateTimeProvider.UtcNow);
+            now);
+
+        conversation.RegisterMessage(now);
 
         messageRepository.Add(message);
 

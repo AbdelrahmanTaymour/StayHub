@@ -1,4 +1,4 @@
-namespace StayHub.Application.Conversations.GetConversationsByUser;
+namespace StayHub.Application.Conversations.GetMyConversations;
 
 public sealed class ConversationSummaryResponse
 {

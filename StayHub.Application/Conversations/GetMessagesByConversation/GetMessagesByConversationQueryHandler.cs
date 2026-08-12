@@ -1,4 +1,5 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -6,7 +7,8 @@ using StayHub.Domain.Abstractions;
 namespace StayHub.Application.Conversations.GetMessagesByConversation;
 
 internal sealed class GetMessagesByConversationQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
     : IQueryHandler<GetMessagesByConversationQuery, IReadOnlyList<MessageResponse>>
 {
     public async Task<Result<IReadOnlyList<MessageResponse>>> Handle(
@@ -15,17 +17,20 @@ internal sealed class GetMessagesByConversationQueryHandler(
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
+        // Security check inside SQL query: verify user is participant
         const string sql = """
                            SELECT
-                               id AS Id,
-                               sender_id AS SenderId,
-                               body AS Body,
-                               sent_on_utc AS SentOnUtc,
-                               read_on_utc AS ReadOnUtc
-                           FROM messages
-                           WHERE conversation_id = @ConversationId
-                           ORDER BY sent_on_utc DESC
-                           OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+                               m.id AS Id,
+                               m.sender_id AS SenderId,
+                               m.body AS Body,
+                               m.sent_on_utc AS SentOnUtc,
+                               m.read_on_utc AS ReadOnUtc
+                           FROM messages m
+                           INNER JOIN conversations c ON c.id = m.conversation_id
+                           WHERE m.conversation_id = @ConversationId
+                             AND (c.guest_id = @UserId OR c.owner_id = @UserId)
+                           ORDER BY m.sent_on_utc DESC
+                           LIMIT @PageSize OFFSET @Offset
                            """;
 
         var messages = await connection.QueryAsync<MessageResponse>(
@@ -33,6 +38,7 @@ internal sealed class GetMessagesByConversationQueryHandler(
             new
             {
                 request.ConversationId,
+                UserId = userContext.UserId,
                 Offset = (request.Page - 1) * request.PageSize,
                 request.PageSize
             });

@@ -21,7 +21,9 @@ internal sealed class MarkConversationAsReadCommandHandler(
 
         if (conversation.GuestId != userContext.UserId &&
             conversation.OwnerId != userContext.UserId)
-            return Result.Failure(MessageErrors.NotAuthorized);
+        {
+            return Result.Failure(ConversationErrors.NotAuthorized);
+        }
 
         var unreadMessages = await messageRepository.GetUnreadForRecipientAsync(
             conversation.Id,
