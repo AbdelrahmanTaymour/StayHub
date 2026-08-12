@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,12 +8,15 @@ using StayHub.Application.Payments.InitiatePayment;
 using StayHub.Application.Payments.MarkPaymentFailed;
 using StayHub.Application.Payments.MarkPaymentSucceeded;
 using StayHub.Application.Payments.RefundPayment;
+using StayHub.Infrastructure.Authorization;
 using StayHub.Infrastructure.Payments;
 using Stripe;
 
 namespace StayHub.Api.Controllers.Payments;
 
+[Authorize]
 [ApiController]
+[ApiVersion(ApiVersions.V1)]
 [Route("api/v{version:apiVersion}/payments")]
 public sealed class PaymentsController(ISender sender, StripeWebhookEventParser webhookEventParser) : ControllerBase
 {
@@ -29,24 +33,26 @@ public sealed class PaymentsController(ISender sender, StripeWebhookEventParser 
     }
 
     [HttpPost]
+    [HasPermission(Permissions.PaymentCreate)]
     [ProducesResponseType(typeof(InitiatePaymentResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<InitiatePaymentResponse>> Initiate(
-        [FromBody] Guid bookingId,
+        [FromBody] InitiatePaymentRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new InitiatePaymentCommand(bookingId);
+        var command = new InitiatePaymentCommand(request.BookingId);
 
         var result = await sender.Send(command, cancellationToken);
 
         return result.IsFailure
             ? result.ToProblemDetails(this)
-            : CreatedAtAction(nameof(GetByBooking), new { bookingId }, result.Value);
+            : CreatedAtAction(nameof(GetByBooking), new { request.BookingId }, result.Value);
     }
 
     [HttpPost("{paymentId:guid}/refund")]
+    [HasPermission(Permissions.PaymentRefund)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -61,8 +67,8 @@ public sealed class PaymentsController(ISender sender, StripeWebhookEventParser 
     }
 
     /// <summary>
-    ///     Called by Stripe, never by a client. Verifies the signature before trusting the payload -
-    ///     see StripeWebhookEventParser and the setup guide for why this check is mandatory.
+    /// Called by Stripe, never by a client. Verifies the signature before trusting the payload -
+    /// see StripeWebhookEventParser and the setup guide for why this check is mandatory.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("webhook")]
@@ -70,17 +76,21 @@ public sealed class PaymentsController(ISender sender, StripeWebhookEventParser 
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Webhook(CancellationToken cancellationToken)
     {
+        if (!Request.Headers.TryGetValue("Stripe-Signature", out var signatureHeader))
+        {
+            return BadRequest();
+        }
+
         var requestBody = await new StreamReader(Request.Body).ReadToEndAsync(cancellationToken);
 
         Event stripeEvent;
 
         try
         {
-            stripeEvent = webhookEventParser.ConstructEvent(requestBody, Request.Headers["Stripe-Signature"]!);
+            stripeEvent = webhookEventParser.ConstructEvent(requestBody, signatureHeader!);
         }
         catch (StripeException)
         {
-            // Signature verification failed - this request did not genuinely come from Stripe.
             return BadRequest();
         }
 

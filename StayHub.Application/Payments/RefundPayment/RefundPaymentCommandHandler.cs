@@ -6,6 +6,7 @@ using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 using StayHub.Domain.Payments;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.Payments.RefundPayment;
 
@@ -34,8 +35,12 @@ internal sealed class RefundPaymentCommandHandler(
 
         var isGuest = booking.UserId == userContext.UserId;
         var isOwner = apartment.OwnerId == userContext.UserId;
+        var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
 
-        if (!isGuest && !isOwner) return Result.Failure(PaymentErrors.NotAuthorized);
+        if (!isGuest && !isOwner && !isAdmin)
+        {
+            return Result.Failure(PaymentErrors.NotAuthorized);
+        }
 
         await paymentGatewayService.RefundAsync(payment.ProviderReference, cancellationToken);
 
