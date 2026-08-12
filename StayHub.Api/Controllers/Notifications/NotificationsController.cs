@@ -1,4 +1,6 @@
+using Asp.Versioning;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StayHub.Api.Extensions;
 using StayHub.Application.Notifications.GetNotificationsByUser;
@@ -6,7 +8,12 @@ using StayHub.Application.Notifications.MarkNotificationAsRead;
 
 namespace StayHub.Api.Controllers.Notifications;
 
+// No [HasPermission] — GetNotificationsByUserQuery doesn't even take the
+// route's userId, meaning caller identity is already resolved server-side.
+// Self-scoped by construction.
+[Authorize]
 [ApiController]
+[ApiVersion(ApiVersions.V1)]
 [Route("api/v{version:apiVersion}/users/{userId:guid}/notifications")]
 public sealed class NotificationsController(ISender sender) : ControllerBase
 {
