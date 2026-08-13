@@ -1,6 +1,10 @@
+using Hangfire;
+using Hangfire.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using StayHub.Api.Middleware;
 using StayHub.Infrastructure;
+using StayHub.Infrastructure.BackgroundJobs;
+using StayHub.Infrastructure.Outbox;
 
 namespace StayHub.Api.Extensions;
 
@@ -23,6 +27,31 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseRequestContextLogging(this IApplicationBuilder app)
     {
         app.UseMiddleware<RequestContextLoggingMiddleware>();
+
+        return app;
+    }
+
+    public static IApplicationBuilder UseBackgroundProcessing(this IApplicationBuilder app)
+    {
+        ProcessOutboxMessagesJobSetup.Start(app);
+        CompleteExpiredBookingsJobSetup.Start(app);
+
+        return app;
+    }
+
+    public static IApplicationBuilder UseHangfireDashboard(
+        this IApplicationBuilder app)
+    {
+        var environment = app.ApplicationServices
+            .GetRequiredService<IHostEnvironment>();
+
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            DashboardTitle = "StayHub Background Jobs",
+            Authorization = environment.IsDevelopment()
+                ? Array.Empty<IDashboardAuthorizationFilter>()
+                : new IDashboardAuthorizationFilter[] { new HangfireDashboardAuthorizationFilter() }
+        });
 
         return app;
     }
