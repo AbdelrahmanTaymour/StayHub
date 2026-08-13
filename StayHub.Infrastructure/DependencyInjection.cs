@@ -11,11 +11,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Email;
 using StayHub.Application.Abstractions.Payments;
 using StayHub.Application.Abstractions.Storage;
+using StayHub.Application.Bookings;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Auditing;
@@ -29,9 +31,12 @@ using StayHub.Domain.Reviews;
 using StayHub.Domain.Users;
 using StayHub.Infrastructure.Authentication;
 using StayHub.Infrastructure.Authorization;
+using StayHub.Infrastructure.BackgroundJobs;
+using StayHub.Infrastructure.Caching;
 using StayHub.Infrastructure.Clock;
 using StayHub.Infrastructure.Data;
 using StayHub.Infrastructure.Email;
+using StayHub.Infrastructure.Outbox;
 using StayHub.Infrastructure.Payments;
 using StayHub.Infrastructure.Repositories;
 using StayHub.Infrastructure.Storage;
@@ -55,12 +60,13 @@ public static class DependencyInjection
 
         AddPersistence(services, connectionString);
         AddEmail(services, configuration);
-        AddBackgroundJobs(services, connectionString);
+        AddBackgroundJobs(services, configuration, connectionString);
         AddRepositories(services);
         AddPayments(services, configuration);
         AddFileStorage(services, configuration);
         AddAuthentication(services, configuration);
         AddAuthorization(services);
+        AddCaching(services, configuration);
         AddHealthChecks(services, configuration);
 
         AddApiVersioning(services);
@@ -79,26 +85,6 @@ public static class DependencyInjection
 
         SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
         SqlMapper.AddTypeHandler(new AmenityListTypeHandler());
-    }
-
-    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
-
-        services.AddSingleton<SmtpEmailSender>();
-
-        services.AddScoped<IEmailService, QueuedEmailService>();
-    }
-
-    private static void AddBackgroundJobs(IServiceCollection services, string connectionString)
-    {
-        services.AddHangfire(config => config
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
-
-        services.AddHangfireServer();
     }
 
     private static void AddRepositories(IServiceCollection services)
@@ -191,6 +177,16 @@ public static class DependencyInjection
         services.AddTransient<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
     }
 
+    private static void AddCaching(IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString =
+            configuration.GetConnectionString("Cache") ??
+            throw new ArgumentNullException(nameof(configuration));
+
+        services.AddStackExchangeRedisCache(options => options.Configuration = connectionString);
+
+        services.AddSingleton<ICacheService, CacheService>();
+    }
 
     private static void AddHealthChecks(IServiceCollection services, IConfiguration configuration)
     {
@@ -217,5 +213,36 @@ public static class DependencyInjection
                 options.GroupNameFormat = "'v'V";
                 options.SubstituteApiVersionInUrl = true;
             });
+    }
+
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+
+        services.AddSingleton<SmtpEmailSender>();
+
+        services.AddScoped<SendEmailJob>();
+
+        services.AddScoped<IEmailService, QueuedEmailService>();
+    }
+
+    private static void AddBackgroundJobs(IServiceCollection services, IConfiguration configuration,
+        string connectionString)
+    {
+        services.Configure<OutboxOptions>(configuration.GetSection("Outbox"));
+
+        services.Configure<CompleteExpiredBookingsJobOptions>(
+            configuration.GetSection(CompleteExpiredBookingsJobOptions.SectionName));
+
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+
+        services.AddHangfireServer();
+
+        services.AddScoped<ProcessOutboxMessagesJob>();
+        services.AddScoped<CompleteExpiredBookingsJob>();
     }
 }
