@@ -53,6 +53,10 @@ app.UseSerilogRequestLogging();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard();
+
+app.UseBackgroundProcessing();
+
 app.MapControllers();
 
 app.MapHealthChecks("health", new HealthCheckOptions
