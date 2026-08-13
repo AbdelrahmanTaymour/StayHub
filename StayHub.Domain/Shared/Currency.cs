@@ -3,9 +3,9 @@ namespace StayHub.Domain.Shared;
 public record Currency
 {
     internal static readonly Currency None = new("");
-    private static readonly Currency Usd = new("USD");
-    private static readonly Currency Eur = new("EUR");
-    private static readonly Currency Egp = new("EGP");
+    public static readonly Currency Usd = new("USD");
+    public static readonly Currency Eur = new("EUR");
+    public static readonly Currency Egp = new("EGP");
 
     public static readonly IReadOnlyCollection<Currency> All =
     [
