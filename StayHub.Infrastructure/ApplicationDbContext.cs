@@ -1,24 +1,29 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Exceptions;
 using StayHub.Domain.Abstractions;
+using StayHub.Infrastructure.Outbox;
 
 namespace StayHub.Infrastructure;
 
 public sealed class ApplicationDbContext(
     DbContextOptions options,
-    IPublisher publisher)
+    IDateTimeProvider dateTimeProvider)
     : DbContext(options), IUnitOfWork
 {
+    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
+    {
+        TypeNameHandling = TypeNameHandling.All
+    };
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await base.SaveChangesAsync(cancellationToken);
+            AddDomainEventsAsOutboxMessages();
 
-            await PublishDomainEventsAsync();
-
-            return result;
+            return await base.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -33,9 +38,9 @@ public sealed class ApplicationDbContext(
         base.OnModelCreating(modelBuilder);
     }
 
-    private async Task PublishDomainEventsAsync()
+    private void AddDomainEventsAsOutboxMessages()
     {
-        var domainEvents = ChangeTracker
+        var outboxMessages = ChangeTracker
             .Entries<Entity>()
             .Select(entry => entry.Entity)
             .SelectMany(entity =>
@@ -46,8 +51,13 @@ public sealed class ApplicationDbContext(
 
                 return domainEvents;
             })
+            .Select(domainEvent => new OutboxMessage(
+                Guid.CreateVersion7(),
+                domainEvent.GetType().Name,
+                JsonConvert.SerializeObject(domainEvent, JsonSerializerSettings),
+                dateTimeProvider.UtcNow))
             .ToList();
 
-        foreach (var domainEvent in domainEvents) await publisher.Publish(domainEvent);
+        AddRange(outboxMessages);
     }
 }
