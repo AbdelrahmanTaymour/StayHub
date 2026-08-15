@@ -18,7 +18,7 @@ internal sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSe
 
         builder.Property(session => session.IpAddress)
             .HasMaxLength(45)
-            .HasConversion(ip => ip.Value, value => IpAddress.Create(value));
+            .HasConversion(ip => ip.Value, value => IpAddress.Create(value).Value);
 
         builder.HasIndex(session => new { session.UserId, session.RevokedOnUtc });
 

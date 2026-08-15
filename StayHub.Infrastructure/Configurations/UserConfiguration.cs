@@ -22,7 +22,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(user => user.Email)
             .HasMaxLength(300)
-            .HasConversion(email => email.Value, value => Domain.Users.Email.Create(value));
+            .HasConversion(email => email.Value, value => Domain.Users.Email.Create(value).Value);
 
         builder.Property(user => user.IdentityId)
             .HasMaxLength(64);

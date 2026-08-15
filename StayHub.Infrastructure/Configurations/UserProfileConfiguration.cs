@@ -22,7 +22,7 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
 
         builder.Property(profile => profile.PhoneNumber)
             .HasMaxLength(30)
-            .HasConversion(phoneNumber => phoneNumber.Value, value => PhoneNumber.Create(value));
+            .HasConversion(phoneNumber => phoneNumber.Value, value => PhoneNumber.Create(value).Value);
 
         builder.HasIndex(profile => profile.UserId).IsUnique();
 
