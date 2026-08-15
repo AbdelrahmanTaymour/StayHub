@@ -1,5 +1,4 @@
 using Dapper;
-using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -7,24 +6,12 @@ using StayHub.Domain.Abstractions;
 namespace StayHub.Application.Apartments.GetApartmentsByOwner;
 
 internal sealed class GetApartmentsByOwnerQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory,
-    ICacheService cacheService)
+    ISqlConnectionFactory sqlConnectionFactory)
     : IQueryHandler<GetApartmentsByOwnerQuery, IReadOnlyList<ApartmentSummaryResponse>>
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(60);
-
     public async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> Handle(
         GetApartmentsByOwnerQuery request,
         CancellationToken cancellationToken)
-    {
-        return await cacheService.GetOrCreateAsync(
-            CacheKeys.ApartmentsByOwner(request.OwnerId, request.Page, request.PageSize),
-            _ => LoadAsync(request),
-            CacheDuration,
-            cancellationToken);
-    }
-
-    private async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> LoadAsync(GetApartmentsByOwnerQuery request)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 

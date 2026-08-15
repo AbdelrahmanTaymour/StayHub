@@ -1,5 +1,4 @@
 using Dapper;
-using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
@@ -8,25 +7,9 @@ using StayHub.Domain.Apartments;
 namespace StayHub.Application.Apartments.GetApartment;
 
 internal sealed class GetApartmentQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory,
-    ICacheService cacheService) : IQueryHandler<GetApartmentQuery, ApartmentResponse>
+    ISqlConnectionFactory sqlConnectionFactory) : IQueryHandler<GetApartmentQuery, ApartmentResponse>
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-
     public async Task<Result<ApartmentResponse>> Handle(GetApartmentQuery request, CancellationToken cancellationToken)
-    {
-        var apartment = await cacheService.GetOrCreateAsync(
-            CacheKeys.Apartment(request.ApartmentId),
-            _ => LoadApartmentAsync(request, cancellationToken),
-            CacheDuration,
-            cancellationToken);
-
-        return apartment ?? Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
-    }
-
-    private async Task<ApartmentResponse?> LoadApartmentAsync(
-        GetApartmentQuery request,
-        CancellationToken cancellationToken = default)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
@@ -75,7 +58,7 @@ internal sealed class GetApartmentQueryHandler(
             .SingleOrDefault();
 
         if (apartment is null)
-            return null;
+            return Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
 
         apartment.Images = multi
             .Read<ApartmentImageResponse>()

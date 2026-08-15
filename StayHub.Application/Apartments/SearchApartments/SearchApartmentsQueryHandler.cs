@@ -1,6 +1,5 @@
 using System.Text;
 using Dapper;
-using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
@@ -10,47 +9,25 @@ using StayHub.Domain.Bookings;
 namespace StayHub.Application.Apartments.SearchApartments;
 
 internal sealed class SearchApartmentsQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory,
-    ICacheService cacheService)
+    ISqlConnectionFactory sqlConnectionFactory)
     : IQueryHandler<SearchApartmentsQuery, IReadOnlyList<ApartmentSummaryResponse>>
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(45);
-
     private static readonly int[] ActiveBookingStatuses =
     [
         (int)BookingStatus.Reserved,
         (int)BookingStatus.Confirmed
     ];
 
-
     public async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> Handle(
         SearchApartmentsQuery request,
         CancellationToken cancellationToken)
-    {
-        var normalizedRequest = NormalizeRequest(request);
-
-        var cacheKey = CacheKeys.ApartmentSearch(
-            BuildFilterKey(normalizedRequest));
-
-
-        var apartments = await cacheService.GetOrCreateAsync(
-            cacheKey,
-            _ => LoadApartmentsAsync(normalizedRequest),
-            CacheDuration,
-            cancellationToken);
-
-
-        return apartments.ToList();
-    }
-
-
-    private async Task<IReadOnlyList<ApartmentSummaryResponse>> LoadApartmentsAsync(
-        SearchApartmentsQuery request)
     {
         if (request.Start is not null &&
             request.End is not null &&
             request.Start >= request.End)
             return Array.Empty<ApartmentSummaryResponse>();
+
+        var normalizedRequest = NormalizeRequest(request);
 
         using var connection = sqlConnectionFactory.CreateConnection();
 
@@ -74,47 +51,39 @@ internal sealed class SearchApartmentsQueryHandler(
                                     """);
 
 
-        if (!string.IsNullOrWhiteSpace(request.City))
+        if (!string.IsNullOrWhiteSpace(normalizedRequest.City))
         {
             sql.Append("""
 
                        AND a.address_city ILIKE @City
                        """);
 
-            parameters.Add(
-                "City",
-                $"%{request.City.Trim()}%");
+            parameters.Add("City", $"%{normalizedRequest.City.Trim()}%");
         }
 
 
-        if (request.MinPrice.HasValue)
+        if (normalizedRequest.MinPrice.HasValue)
         {
             sql.Append("""
 
                        AND a.price_amount >= @MinPrice
                        """);
 
-            parameters.Add(
-                "MinPrice",
-                request.MinPrice.Value);
+            parameters.Add("MinPrice", normalizedRequest.MinPrice.Value);
         }
 
-
-        if (request.MaxPrice.HasValue)
+        if (normalizedRequest.MaxPrice.HasValue)
         {
             sql.Append("""
 
                        AND a.price_amount <= @MaxPrice
                        """);
 
-            parameters.Add(
-                "MaxPrice",
-                request.MaxPrice.Value);
+            parameters.Add("MaxPrice", normalizedRequest.MaxPrice.Value);
         }
 
 
-        if (request.Start.HasValue &&
-            request.End.HasValue)
+        if (normalizedRequest is { Start: not null, End: not null })
         {
             sql.Append("""
 
@@ -138,20 +107,10 @@ internal sealed class SearchApartmentsQueryHandler(
                        )
                        """);
 
-
-            parameters.Add(
-                "ActiveBookingStatuses",
-                ActiveBookingStatuses);
-
-            parameters.Add(
-                "Start",
-                request.Start.Value);
-
-            parameters.Add(
-                "End",
-                request.End.Value);
+            parameters.Add("ActiveBookingStatuses", ActiveBookingStatuses);
+            parameters.Add("Start", normalizedRequest.Start.Value);
+            parameters.Add("End", normalizedRequest.End.Value);
         }
-
 
         sql.Append("""
 
@@ -161,24 +120,15 @@ internal sealed class SearchApartmentsQueryHandler(
                    ROWS FETCH NEXT @PageSize ROWS ONLY;
                    """);
 
-
-        parameters.Add(
-            "Offset",
-            (request.Page - 1) * request.PageSize);
-
-
-        parameters.Add(
-            "PageSize",
-            request.PageSize);
-
+        parameters.Add("Offset", (normalizedRequest.Page - 1) * normalizedRequest.PageSize);
+        parameters.Add("PageSize", normalizedRequest.PageSize);
 
         var apartments =
             await connection.QueryAsync<ApartmentSummaryResponse>(
                 sql.ToString(),
                 parameters);
 
-
-        return apartments.AsList();
+        return apartments.ToList();
     }
 
 
@@ -206,20 +156,5 @@ internal sealed class SearchApartmentsQueryHandler(
             PageSize = pageSize,
             City = request.City?.Trim()
         };
-    }
-
-
-    private static string BuildFilterKey(
-        SearchApartmentsQuery request)
-    {
-        return string.Join(
-            '|',
-            request.City,
-            request.MinPrice,
-            request.MaxPrice,
-            request.Start,
-            request.End,
-            request.Page,
-            request.PageSize);
     }
 }
