@@ -1,11 +1,7 @@
-using MediatR;
-using StayHub.Application.Abstractions.Caching;
-using StayHub.Domain.Reviews;
-using StayHub.Domain.Reviews.Events;
+namespace StayHub.Application.Reviews;
 
-namespace StayHub.Application.Reviews.CreateReview;
-
-public sealed class ReviewCacheInvalidationHandler(
+// TODO: REFACTOR CACHE INVALIDATION
+/*public sealed class ReviewCacheInvalidationHandler(
     ICacheService cacheService,
     IReviewRepository reviewRepository)
     : INotificationHandler<ReviewCreatedDomainEvent>,
@@ -31,4 +27,4 @@ public sealed class ReviewCacheInvalidationHandler(
 
         await cacheService.RemoveAsync(CacheKeys.ReviewsByApartment(review.ApartmentId, 1, 20), cancellationToken);
     }
-}
+}*/
