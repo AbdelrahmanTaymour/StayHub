@@ -17,14 +17,16 @@ internal sealed class RegisterUserCommandHandler(
     {
         var email = Email.Create(request.Email);
 
-        var isEmailUnique = await userRepository.IsEmailUniqueAsync(email, cancellationToken);
+        if (email.IsFailure) return Result.Failure<Guid>(email.Error);
+
+        var isEmailUnique = await userRepository.IsEmailUniqueAsync(email.Value, cancellationToken);
 
         if (!isEmailUnique) return Result.Failure<Guid>(UserErrors.EmailNotUnique);
 
         var user = User.Create(
             new FirstName(request.FirstName),
             new LastName(request.LastName),
-            email,
+            email.Value,
             dateTimeProvider.UtcNow);
 
         var identityIdResult = await authenticationService.RegisterAsync(

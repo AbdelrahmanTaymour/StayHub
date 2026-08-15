@@ -29,7 +29,13 @@ internal sealed class UpdateUserProfileCommandHandler(
         if (request.Bio is not null) profile.UpdateBio(new Bio(request.Bio), dateTimeProvider.UtcNow);
 
         if (request.PhoneNumber is not null)
-            profile.UpdatePhoneNumber(PhoneNumber.Create(request.PhoneNumber), dateTimeProvider.UtcNow);
+        {
+            var phoneNumber = PhoneNumber.Create(request.PhoneNumber);
+
+            if (phoneNumber.IsFailure) return Result.Failure(phoneNumber.Error);
+
+            profile.UpdatePhoneNumber(phoneNumber.Value, dateTimeProvider.UtcNow);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

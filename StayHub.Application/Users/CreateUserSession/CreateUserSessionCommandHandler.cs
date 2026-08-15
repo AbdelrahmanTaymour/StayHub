@@ -17,10 +17,15 @@ internal sealed class CreateUserSessionCommandHandler(
 
         if (user is null) return Result.Failure<Guid>(UserErrors.NotFound);
 
+        var ipAddress = IpAddress.Create(request.IpAddress);
+
+        if (ipAddress.IsFailure)
+            return Result.Failure<Guid>(ipAddress.Error);
+
         var session = UserSession.Create(
             request.UserId,
             new DeviceInfo(request.DeviceInfo),
-            IpAddress.Create(request.IpAddress),
+            ipAddress.Value,
             dateTimeProvider.UtcNow);
 
         userSessionRepository.Add(session);
