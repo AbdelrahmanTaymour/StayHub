@@ -1,6 +1,17 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
+using StayHub.Api.Endpoints.Apartments;
+using StayHub.Api.Endpoints.Bookings;
+using StayHub.Api.Endpoints.Conversations;
+using StayHub.Api.Endpoints.Favorites;
+using StayHub.Api.Endpoints.Maintenance;
+using StayHub.Api.Endpoints.Notifications;
+using StayHub.Api.Endpoints.Payments;
+using StayHub.Api.Endpoints.Reviews;
+using StayHub.Api.Endpoints.Users;
 using StayHub.Api.Extensions;
 using StayHub.Api.OpenApi;
 using StayHub.Application;
@@ -58,6 +69,24 @@ app.UseHangfireDashboard();
 app.UseBackgroundProcessing();
 
 app.MapControllers();
+
+ApiVersionSet apiVersionSet = app.NewApiVersionSet()
+    .HasApiVersion(new ApiVersion(1))
+    .ReportApiVersions()
+    .Build();
+
+var routeGroupBuilder = app.MapGroup("api/v{version:apiVersion}").WithApiVersionSet(apiVersionSet);
+
+routeGroupBuilder.MapBookingEndpoints();
+routeGroupBuilder.MapApartmentEndpoints();
+routeGroupBuilder.MapPaymentEndpoints();
+routeGroupBuilder.MapReviewEndpoints();
+routeGroupBuilder.MapConversationEndpoints();
+routeGroupBuilder.MapFavoriteEndpoints();
+routeGroupBuilder.MapNotificationEndpoints();
+routeGroupBuilder.MapMaintenanceEndpoints();
+routeGroupBuilder.MapUserEndpoints();
+
 
 app.MapHealthChecks("health", new HealthCheckOptions
 {

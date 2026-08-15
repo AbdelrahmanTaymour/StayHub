@@ -1,18 +1,17 @@
-using Microsoft.AspNetCore.Mvc;
 using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Extensions;
 
 public static class ResultExtensions
 {
-    public static ObjectResult ToProblemDetails(this Result result, ControllerBase controller)
+    public static IResult ToProblemDetails(this Result result)
     {
         if (result.IsSuccess)
         {
             throw new InvalidOperationException("Cannot convert a successful result to a problem.");
         }
 
-        return controller.Problem(
+        return Results.Problem(
             type: GetType(result.Error.Type),
             title: GetTitle(result.Error.Type),
             detail: result.Error.Message,
