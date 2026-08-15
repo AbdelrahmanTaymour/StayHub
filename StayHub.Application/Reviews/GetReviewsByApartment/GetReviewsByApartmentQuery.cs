@@ -1,6 +1,11 @@
-using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Caching;
 
 namespace StayHub.Application.Reviews.GetReviewsByApartment;
 
 public sealed record GetReviewsByApartmentQuery(Guid ApartmentId, int Page, int PageSize)
-    : IQuery<IReadOnlyList<ReviewListItemResponse>>;
+    : ICachedQuery<IReadOnlyList<ReviewListItemResponse>>
+{
+    public string CacheKey => CacheKeys.ReviewsByApartment(ApartmentId, Page, PageSize);
+
+    public TimeSpan? Expiration => TimeSpan.FromMinutes(3);
+}
