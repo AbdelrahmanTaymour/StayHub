@@ -15,10 +15,9 @@ public static class DependencyInjection
             cfg.LicenseKey = configuration["MediatR:LicenseKey"];
 
             cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
-
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
-
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            cfg.AddOpenBehavior(typeof(QueryCachingPipelineBehavior<,>));
         });
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
