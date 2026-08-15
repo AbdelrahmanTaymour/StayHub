@@ -1,4 +1,4 @@
-namespace StayHub.Api.Controllers;
+namespace StayHub.Api.Endpoints;
 
 public static class Roles
 {

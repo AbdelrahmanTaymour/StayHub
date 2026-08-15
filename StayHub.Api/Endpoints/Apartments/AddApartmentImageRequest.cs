@@ -1,4 +1,4 @@
-namespace StayHub.Api.Controllers.Apartments;
+namespace StayHub.Api.Endpoints.Apartments;
 
 public sealed class AddApartmentImageRequest
 {

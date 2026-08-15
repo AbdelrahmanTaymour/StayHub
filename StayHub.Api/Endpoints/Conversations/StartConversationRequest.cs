@@ -1,3 +1,3 @@
-namespace StayHub.Api.Controllers.Conversations;
+namespace StayHub.Api.Endpoints.Conversations;
 
 public sealed record StartConversationRequest(Guid ApartmentId, string InitialMessage);

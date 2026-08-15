@@ -1,3 +1,3 @@
-namespace StayHub.Api.Controllers.Payments;
+namespace StayHub.Api.Endpoints.Payments;
 
 public sealed record InitiatePaymentRequest(Guid BookingId);

@@ -69,7 +69,7 @@ public static class BookingEndpoints
     {
         var result = await sender.Send(new GetBookingQuery(id), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> GetMine(
@@ -80,7 +80,7 @@ public static class BookingEndpoints
     {
         var result = await sender.Send(new GetMyBookingsQuery(page, pageSize), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> GetByUser(
@@ -92,7 +92,7 @@ public static class BookingEndpoints
     {
         var result = await sender.Send(new GetBookingsByUserQuery(userId, page, pageSize), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> GetByApartment(
@@ -104,7 +104,7 @@ public static class BookingEndpoints
     {
         var result = await sender.Send(new GetBookingsByApartmentQuery(apartmentId, page, pageSize), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> Reserve(
@@ -125,27 +125,27 @@ public static class BookingEndpoints
     {
         var result = await sender.Send(new ConfirmBookingCommand(id), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.NoContent();
     }
 
     private static async Task<IResult> Reject(Guid id, ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new RejectBookingCommand(id), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.NoContent();
     }
 
     private static async Task<IResult> Cancel(Guid id, ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CancelBookingCommand(id), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.NoContent();
     }
 
     private static async Task<IResult> Complete(Guid id, ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CompleteBookingCommand(id), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.NoContent();
     }
 }
