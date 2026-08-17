@@ -1,9 +1,14 @@
 using System.Text.RegularExpressions;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Domain.Users;
 
 public sealed partial record PhoneNumber
 {
+    internal static readonly Error Invalid = Error.Validation(
+        "PhoneNumber.Invalid",
+        "The provided phone number is invalid");
+
     private static readonly Regex PhoneRegex = MyRegex();
 
     private PhoneNumber(string value)
@@ -16,14 +21,16 @@ public sealed partial record PhoneNumber
     [GeneratedRegex(@"^\+?[1-9]\d{1,14}$", RegexOptions.Compiled)]
     private static partial Regex MyRegex();
 
-    public static PhoneNumber Create(string value)
+    public static Result<PhoneNumber> Create(string value)
     {
-        var cleanedValue = value?.Trim() ?? string.Empty;
+        var cleanedValue = value.Trim();
 
         if (string.IsNullOrWhiteSpace(cleanedValue) || !PhoneRegex.IsMatch(cleanedValue))
-            throw new ArgumentException($"The phone number '{value}' is invalid.", nameof(value));
+        {
+            return Result.Failure<PhoneNumber>(Invalid);
+        }
 
-        return new PhoneNumber(cleanedValue);
+        return Result.Success(new PhoneNumber(cleanedValue));
     }
 
     public static implicit operator string(PhoneNumber phone)
