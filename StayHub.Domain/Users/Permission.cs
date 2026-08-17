@@ -19,7 +19,14 @@ public sealed class Permission
     public static readonly Permission MaintenanceCreate = new(15, "maintenance:create");
     public static readonly Permission MaintenanceManage = new(16, "maintenance:manage");
 
-    public Permission(int id, string name)
+    public static readonly IReadOnlyCollection<Permission> All =
+    [
+        UserRead, UserUpdate, UserManageSessions, ApartmentCreate, ApartmentManage, BookingCreate,
+        BookingManage, PaymentCreate, PaymentRefund, ReviewCreate, ReviewRespond, FavoriteManage,
+        ConversationManage, NotificationManage, MaintenanceCreate, MaintenanceManage
+    ];
+
+    private Permission(int id, string name)
     {
         Id = id;
         Name = name;

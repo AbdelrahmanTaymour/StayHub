@@ -39,9 +39,14 @@ public sealed class UserSession : Entity
         return session;
     }
 
-
     public Result Touch(DateTime utcNow)
     {
+        if (RevokedOnUtc is not null)
+            return Result.Failure(UserSessionErrors.Revoked);
+
+        if (utcNow < LastSeenOnUtc)
+            return Result.Failure(UserSessionErrors.InvalidTimestamp);
+
         LastSeenOnUtc = utcNow;
 
         return Result.Success();
@@ -49,11 +54,16 @@ public sealed class UserSession : Entity
 
     public Result Revoke(DateTime utcNow)
     {
-        if (RevokedOnUtc is not null) return Result.Failure(UserSessionErrors.AlreadyRevoked);
+        if (RevokedOnUtc is not null)
+            return Result.Failure(UserSessionErrors.AlreadyRevoked);
+
+        if (utcNow < CreatedOnUtc)
+            return Result.Failure(UserSessionErrors.InvalidTimestamp);
 
         RevokedOnUtc = utcNow;
 
-        RaiseDomainEvent(new UserSessionRevokedDomainEvent(Id, UserId));
+        RaiseDomainEvent(
+            new UserSessionRevokedDomainEvent(Id, UserId));
 
         return Result.Success();
     }

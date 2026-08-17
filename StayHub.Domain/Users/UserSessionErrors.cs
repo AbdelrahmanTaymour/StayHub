@@ -15,4 +15,12 @@ public static class UserSessionErrors
     public static readonly Error NotAuthorized = Error.Unauthorized(
         "UserSession.NotAuthorized",
         "You can only revoke your own sessions");
+
+    public static readonly Error Revoked = Error.Validation(
+        "UserSession.Revoked",
+        "The session has been revoked");
+
+    public static readonly Error InvalidTimestamp = Error.Validation(
+        "UserSession.InvalidTimestamp",
+        "The timestamp is invalid for the current session state.");
 }
