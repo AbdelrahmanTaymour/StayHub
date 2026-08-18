@@ -6,6 +6,8 @@ namespace StayHub.Domain.Apartments;
 
 public sealed class Apartment : Entity
 {
+    private readonly List<Amenity> _amenities = [];
+
     private Apartment(Guid id,
         Guid ownerId,
         Name name,
@@ -39,7 +41,8 @@ public sealed class Apartment : Entity
     public bool IsActive { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
     public DateTime? LastBookedOnUtc { get; internal set; }
-    public List<Amenity> Amenities { get; private set; } = new();
+
+    public IReadOnlyCollection<Amenity> Amenities => _amenities.AsReadOnly();
 
     public static Apartment Create(
         Guid ownerId,
@@ -51,7 +54,7 @@ public sealed class Apartment : Entity
         DateTime utcNow)
     {
         var apartment = new Apartment(
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
             ownerId,
             name,
             description,
@@ -82,12 +85,12 @@ public sealed class Apartment : Entity
 
     public Result AddAmenity(Amenity amenity)
     {
-        if (Amenities.Any(a => a == amenity))
+        if (_amenities.Any(a => a == amenity))
         {
             return Result.Failure(ApartmentErrors.AmenityAlreadyAdded);
         }
 
-        Amenities.Add(amenity);
+        _amenities.Add(amenity);
 
         RaiseDomainEvent(new ApartmentAmenitiesChangedDomainEvent(Id));
 
@@ -98,12 +101,12 @@ public sealed class Apartment : Entity
     {
         var apartmentAmenity = Amenities.FirstOrDefault(a => a == amenity);
 
-        if (Amenities.Any(a => a == amenity))
+        if (_amenities.All(a => a != amenity))
         {
             return Result.Failure(ApartmentErrors.AmenityNotFound);
         }
 
-        Amenities.Remove(apartmentAmenity);
+        _amenities.Remove(apartmentAmenity);
 
         RaiseDomainEvent(new ApartmentAmenitiesChangedDomainEvent(Id));
 
@@ -136,5 +139,10 @@ public sealed class Apartment : Entity
         RaiseDomainEvent(new ApartmentActivatedDomainEvent(Id));
 
         return Result.Success();
+    }
+
+    public void UpdateLastBooked(DateTime utcNow)
+    {
+        LastBookedOnUtc = utcNow;
     }
 }
