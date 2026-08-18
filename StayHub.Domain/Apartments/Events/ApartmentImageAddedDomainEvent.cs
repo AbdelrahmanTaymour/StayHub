@@ -2,4 +2,4 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Domain.Apartments.Events;
 
-public sealed record ApartmentImageAddedDomainEvent(Guid Id, Guid ApartmentId) : IDomainEvent;
+public sealed record ApartmentImageAddedDomainEvent(Guid ImageId, Guid ApartmentId) : IDomainEvent;
