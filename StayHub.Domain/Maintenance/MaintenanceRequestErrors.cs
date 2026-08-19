@@ -19,4 +19,9 @@ public static class MaintenanceRequestErrors
     public static readonly Error NotResolved = Error.Conflict(
         "MaintenanceRequest.NotResolved",
         "The maintenance request is not resolved");
+
+    public static readonly Error NotAuthorized = Error.Unauthorized(
+        "MaintenanceRequest.NotAuthorized",
+        "You're not authorized to perform this action"
+    );
 }
