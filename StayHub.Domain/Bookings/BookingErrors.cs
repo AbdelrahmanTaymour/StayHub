@@ -24,23 +24,15 @@ public static class BookingErrors
         "Booking.AlreadyStarted",
         "The booking has already started");
 
-    public static readonly Error AlreadyCheckedIn = Error.Conflict(
-        "Booking.AlreadyCheckedIn",
-        "The booking has already been checked into");
-
-    public static readonly Error CheckInNotAvailableYet = Error.Conflict(
-        "Booking.CheckInNotAvailableYet",
-        "Check-in is not available before the booking's start date");
-
-    public static readonly Error NotCheckedIn = Error.Conflict(
-        "Booking.NotCheckedIn",
-        "The booking has not been checked into yet");
-
-    public static readonly Error AlreadyCheckedOut = Error.Conflict(
-        "Booking.AlreadyCheckedOut",
-        "The booking has already been checked out of");
+    public static readonly Error NotCancellable = Error.Conflict(
+        "Booking.NotCancellable",
+        "The booking cannot be cancelled in its current status");
 
     public static readonly Error NotAuthorized = Error.Unauthorized(
         "Booking.NotAuthorized",
         "You're not authorized to perform this action");
+
+    public static readonly Error InvalidDuration = Error.Validation(
+        "Booking.InvalidDuration",
+        "The booking duration must be at least 1 night");
 }

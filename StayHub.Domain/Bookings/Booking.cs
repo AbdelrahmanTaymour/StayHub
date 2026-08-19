@@ -48,7 +48,7 @@ public sealed class Booking : Entity
     public DateTime? CompletedOnUtc { get; private set; }
     public DateTime? CancelledOnUtc { get; private set; }
 
-    public static Booking Reserve(
+    public static Result<Booking> Reserve(
         Apartment apartment,
         Guid userId,
         DateRange duration,
@@ -56,6 +56,9 @@ public sealed class Booking : Entity
         DateTime utcNow
     )
     {
+        if (duration.LengthInDays <= 0)
+            return Result.Failure<Booking>(BookingErrors.InvalidDuration);
+
         var pricingDetails = pricingService.CalculatePrice(apartment, duration);
 
         var booking = new Booking(
@@ -71,8 +74,6 @@ public sealed class Booking : Entity
             utcNow);
 
         booking.RaiseDomainEvent(new BookingReservedDomainEvent(booking.Id));
-
-        apartment.LastBookedOnUtc = utcNow;
 
         return booking;
     }
@@ -115,12 +116,22 @@ public sealed class Booking : Entity
 
     public Result Cancel(DateTime utcNow)
     {
-        if (Status != BookingStatus.Confirmed) return Result.Failure(BookingErrors.NotConfirmed);
+        if (Status is not (BookingStatus.Reserved or BookingStatus.Confirmed))
+        {
+            return Result.Failure(BookingErrors.NotCancellable);
+        }
+
+        var currentDate = DateOnly.FromDateTime(utcNow);
+
+        if (currentDate > Duration.Start)
+        {
+            return Result.Failure(BookingErrors.AlreadyStarted);
+        }
 
         Status = BookingStatus.Cancelled;
         CancelledOnUtc = utcNow;
 
-        RaiseDomainEvent(new BookingCompletedDomainEvent(Id));
+        RaiseDomainEvent(new BookingCancelledDomainEvent(Id));
 
         return Result.Success();
     }
