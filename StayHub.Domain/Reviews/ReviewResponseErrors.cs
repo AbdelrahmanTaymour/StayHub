@@ -11,4 +11,9 @@ public static class ReviewResponseErrors
     public static readonly Error AlreadyRespondedTo = Error.Conflict(
         "ReviewResponse.AlreadyRespondedTo",
         "This review has already received a response");
+
+    public static readonly Error NotAuthorized = Error.Unauthorized(
+        "ReviewResponse.NotAuthorized",
+        "You can only respond to your own apartment's reviews"
+    );
 }
