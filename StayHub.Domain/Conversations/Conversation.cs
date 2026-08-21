@@ -32,8 +32,14 @@ public sealed class Conversation : Entity
     public DateTime CreatedOnUtc { get; private set; }
     public DateTime? LastMessageOnUtc { get; private set; }
 
-    public static Conversation Start(Guid apartmentId, Guid? bookingId, Guid guestId, Guid ownerId, DateTime utcNow)
+    public static Result<Conversation> Start(Guid apartmentId, Guid? bookingId, Guid guestId, Guid ownerId,
+        DateTime utcNow)
     {
+        if (ownerId == guestId)
+        {
+            return Result.Failure<Conversation>(ConversationErrors.CannotMessageSelf);
+        }
+
         var conversation = new Conversation(
             Guid.CreateVersion7(),
             apartmentId,
