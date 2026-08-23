@@ -6,7 +6,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.RevokeUserSession;
 
-public class RevokeUserSessionCommandHandler(
+public class RevokeUserSession(
     IUserSessionRepository userSessionRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
