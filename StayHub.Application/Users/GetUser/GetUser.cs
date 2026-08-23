@@ -7,7 +7,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.GetUser;
 
-internal sealed class GetUserQueryHandler(
+internal sealed class GetUser(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext) : IQueryHandler<GetUserQuery, UserResponse>
 {

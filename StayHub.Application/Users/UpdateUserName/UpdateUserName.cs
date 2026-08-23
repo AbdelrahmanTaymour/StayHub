@@ -5,7 +5,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.UpdateUserName;
 
-internal sealed class UpdateUserNameCommandHandler(
+internal sealed class UpdateUserName(
     IUserRepository userRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork) : ICommandHandler<UpdateUserNameCommand>
