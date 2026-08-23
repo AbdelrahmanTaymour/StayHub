@@ -4,7 +4,7 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Users.LogInUser;
 
-internal sealed class LogInUserCommandHandler(IJwtService jwtService)
+internal sealed class LogInUser(IJwtService jwtService)
     : ICommandHandler<LogInUserCommand, AccessTokenResponse>
 {
     public Task<Result<AccessTokenResponse>> Handle(LogInUserCommand request, CancellationToken cancellationToken)

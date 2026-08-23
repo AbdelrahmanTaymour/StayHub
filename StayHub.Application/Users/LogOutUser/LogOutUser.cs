@@ -4,7 +4,7 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Users.LogOutUser;
 
-internal sealed class LogOutUserCommandHandler(IJwtService jwtService) : ICommandHandler<LogOutUserCommand>
+internal sealed class LogOutUser(IJwtService jwtService) : ICommandHandler<LogOutUserCommand>
 {
     public Task<Result> Handle(LogOutUserCommand request, CancellationToken cancellationToken)
     {
