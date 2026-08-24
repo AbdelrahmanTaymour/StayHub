@@ -1,6 +1,6 @@
 namespace StayHub.Infrastructure.BackgroundJobs;
 
-internal sealed class CompleteExpiredBookingsJobOptions
+public sealed class CompleteExpiredBookingsJobOptions
 {
     public const string SectionName = "BackgroundJobs:CompleteExpiredBookings";
 

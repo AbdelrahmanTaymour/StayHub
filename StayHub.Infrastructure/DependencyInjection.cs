@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.BackgroundJobs;
 using StayHub.Application.Abstractions.Caching;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Data;
@@ -223,26 +224,39 @@ public static class DependencyInjection
 
         services.AddScoped<SendEmailJob>();
 
-        services.AddScoped<IEmailService, QueuedEmailService>();
+        services.AddScoped<IEmailService, EmailService>();
     }
 
-    private static void AddBackgroundJobs(IServiceCollection services, IConfiguration configuration,
+    private static void AddBackgroundJobs(
+        IServiceCollection services,
+        IConfiguration configuration,
         string connectionString)
     {
-        services.Configure<OutboxOptions>(configuration.GetSection("Outbox"));
+        services.Configure<BackgroundJobsOptions>(
+            configuration.GetSection(
+                BackgroundJobsOptions.SectionName));
 
-        services.Configure<CompleteExpiredBookingsJobOptions>(
-            configuration.GetSection(CompleteExpiredBookingsJobOptions.SectionName));
+        var backgroundJobsSection =
+            configuration.GetSection(
+                BackgroundJobsOptions.SectionName);
+
+        var enabled = backgroundJobsSection.GetValue<bool>(
+            nameof(BackgroundJobsOptions.Enabled));
+
+        if (!enabled) return;
 
         services.AddHangfire(config => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+            .UsePostgreSqlStorage(options =>
+                options.UseNpgsqlConnection(connectionString)));
 
         services.AddHangfireServer();
 
         services.AddScoped<ProcessOutboxMessagesJob>();
         services.AddScoped<CompleteExpiredBookingsJob>();
+
+        services.AddScoped<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
     }
 }
