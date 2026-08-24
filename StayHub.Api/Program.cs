@@ -53,6 +53,11 @@ if (app.Environment.IsDevelopment())
     });
 
     app.ApplyMigrations();
+
+    // REMARK: Uncomment in the initial setup
+    // if you want to seed initial data.
+    // (It's not a must)
+    //app.SeedData();
 }
 
 app.UseHttpsRedirection();
@@ -63,8 +68,6 @@ app.UseSerilogRequestLogging();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseHangfireDashboard();
 
 app.UseBackgroundProcessing();
 
@@ -94,3 +97,5 @@ app.MapHealthChecks("health", new HealthCheckOptions
 });
 
 app.Run();
+
+public partial class Program;
