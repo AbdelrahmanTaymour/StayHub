@@ -21,6 +21,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="StayHub.Application.UnitTests"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <Folder Include="Maintenance\"/>
     </ItemGroup>
 

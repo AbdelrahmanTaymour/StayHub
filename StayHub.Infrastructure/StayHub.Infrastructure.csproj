@@ -28,4 +28,8 @@
         <PackageReference Include="Stripe.net" Version="52.1.1"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="StayHub.Application.IntegrationTests"/>
+    </ItemGroup>
+
 </Project>
