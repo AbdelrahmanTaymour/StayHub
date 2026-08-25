@@ -38,7 +38,7 @@ public class BookingReservedConversationStartedDomainEventHandler(
             booking.Id,
             booking.UserId,
             apartment.OwnerId,
-            dateTimeProvider.UtcNow);
+            dateTimeProvider.UtcNow).Value;
 
         conversationRepository.Add(conversation);
 

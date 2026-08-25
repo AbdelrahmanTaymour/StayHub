@@ -17,6 +17,8 @@ internal sealed class ConfirmBookingCommandHandler(
 {
     public async Task<Result> Handle(ConfirmBookingCommand request, CancellationToken cancellationToken)
     {
+        var utcNow = dateTimeProvider.UtcNow;
+
         var booking = await bookingRepository.GetByIdAsync(request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -32,10 +34,12 @@ internal sealed class ConfirmBookingCommandHandler(
 
         if (!isOwner && !isAdmin) return Result.Failure(BookingErrors.NotAuthorized);
 
-        var result = booking.Confirm(dateTimeProvider.UtcNow);
+        var result = booking.Confirm(utcNow);
 
         if (result.IsFailure)
             return result;
+
+        apartment.UpdateLastBooked(utcNow);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
