@@ -30,7 +30,7 @@ internal sealed class CreateReviewResponseCommandHandler(
         var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
         if (!isOwner && !isAdmin)
         {
-            return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
+            return Result.Failure<Guid>(ReviewResponseErrors.NotAuthorized);
         }
 
         var existingResponse = await reviewResponseRepository.GetByReviewIdAsync(request.ReviewId, cancellationToken);
