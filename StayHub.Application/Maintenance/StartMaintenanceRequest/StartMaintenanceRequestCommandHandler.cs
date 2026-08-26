@@ -35,7 +35,7 @@ internal sealed class StartMaintenanceRequestCommandHandler(
 
         if (!isOwner && !isAdmin && !isActiveStaff)
         {
-            return Result.Failure(ApartmentErrors.NotAuthorized);
+            return Result.Failure(MaintenanceRequestErrors.NotAuthorized);
         }
 
         var result = maintenanceRequest.Start();

@@ -37,7 +37,7 @@ internal sealed class CreateMaintenanceRequestCommandHandler(
 
             if (!hasActiveBooking)
             {
-                return Result.Failure<Guid>(BookingErrors.NotFound);
+                return Result.Failure<Guid>(MaintenanceRequestErrors.NotAuthorized);
             }
         }
 

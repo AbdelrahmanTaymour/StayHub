@@ -37,7 +37,7 @@ internal sealed class ResolveMaintenanceRequestCommandHandler(
 
         if (!isOwner && !isAdmin && !isActiveStaff)
         {
-            return Result.Failure(ApartmentErrors.NotAuthorized);
+            return Result.Failure(MaintenanceRequestErrors.NotAuthorized);
         }
 
         var result = maintenanceRequest.Resolve(dateTimeProvider.UtcNow);
