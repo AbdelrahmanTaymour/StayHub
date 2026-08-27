@@ -19,7 +19,7 @@ internal sealed class ReorderApartmentImagesCommandHandler(
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
         if (apartment.OwnerId != userContext.UserId &&
-            userContext.Roles.Contains(Role.Admin.Name))
+            !userContext.Roles.Contains(Role.Admin.Name))
             return Result.Failure(ApartmentErrors.NotAuthorized);
 
         var images = await imageRepository.GetByApartmentIdAsync(request.ApartmentId, cancellationToken);
