@@ -56,8 +56,15 @@ internal sealed class InitiatePaymentCommandHandler(
 
         paymentRepository.Add(payment);
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return new InitiatePaymentResponse(payment.Id, intent.ClientSecret);
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return Result.Success(new InitiatePaymentResponse(payment.Id, intent.ClientSecret));
+        }
+        catch
+        {
+            await paymentGatewayService.RefundAsync(intent.ProviderReference, cancellationToken);
+            throw;
+        }
     }
 }

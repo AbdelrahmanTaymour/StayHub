@@ -42,11 +42,11 @@ internal sealed class RefundPaymentCommandHandler(
             return Result.Failure(PaymentErrors.NotAuthorized);
         }
 
-        await paymentGatewayService.RefundAsync(payment.ProviderReference, cancellationToken);
-
         var result = payment.Refund(dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
+
+        await paymentGatewayService.RefundAsync(payment.ProviderReference, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -21,6 +21,7 @@ public class PaymentFailedDomainEventHandler(
 
         if (guest is null) return;
 
+
         await emailService.SendAsync(
             guest.Email,
             "Payment failed",
