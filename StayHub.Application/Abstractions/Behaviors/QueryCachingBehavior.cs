@@ -5,9 +5,9 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Abstractions.Behaviors;
 
-internal sealed class QueryCachingPipelineBehavior<TRequest, TResponse>(
+internal sealed class QueryCachingBehavior<TRequest, TResponse>(
     ICacheService cacheService,
-    ILogger<QueryCachingPipelineBehavior<TRequest, TResponse>> logger)
+    ILogger<QueryCachingBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, Result<TResponse>>
     where TRequest : ICachedQuery<TResponse>
 {

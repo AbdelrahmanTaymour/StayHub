@@ -22,7 +22,7 @@ public class LoggingBehavior<TRequest, TResponse>(
         {
             logger.LogInformation("Executing request {RequestName}", requestName);
 
-            var result = await next();
+            var result = await next(cancellationToken);
 
             if (result.IsSuccess)
                 logger.LogInformation("Request {RequestName} processed successfully", requestName);

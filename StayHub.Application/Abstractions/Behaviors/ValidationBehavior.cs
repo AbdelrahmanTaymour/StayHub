@@ -15,7 +15,7 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        if (!validators.Any()) return await next();
+        if (!validators.Any()) return await next(cancellationToken);
 
         var context = new ValidationContext<TRequest>(request);
 
