@@ -21,7 +21,9 @@ public static class CompleteExpiredBookingsJobSetup
             .GetRequiredService<IOptions<CompleteExpiredBookingsJobOptions>>()
             .Value;
 
-        RecurringJob.AddOrUpdate<CompleteExpiredBookingsJob>(
+        var recurringJobManager = app.ApplicationServices.GetRequiredService<IRecurringJobManager>();
+
+        recurringJobManager.AddOrUpdate<CompleteExpiredBookingsJob>(
             JobId,
             job => job.ExecuteAsync(CancellationToken.None),
             options.CronExpression,

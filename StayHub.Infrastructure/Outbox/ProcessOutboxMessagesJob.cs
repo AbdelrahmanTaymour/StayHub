@@ -39,6 +39,7 @@ internal sealed class ProcessOutboxMessagesJob(
     IPublisher publisher,
     IDateTimeProvider dateTimeProvider,
     IOptions<OutboxOptions> outboxOptions,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<ProcessOutboxMessagesJob> logger)
 {
     private static readonly JsonSerializerSettings JsonSerializerSettings = new()
@@ -61,7 +62,11 @@ internal sealed class ProcessOutboxMessagesJob(
         {
             // Always reschedule, even if this run threw or found nothing to do —
             // otherwise a single unhandled failure would silently kill the chain.
-            BackgroundJob.Schedule<ProcessOutboxMessagesJob>(
+            // Uses the injected IBackgroundJobClient (service-based API) rather
+            // than the static BackgroundJob class — the static reads the
+            // process-wide JobStorage.Current, which is never set by
+            // AddHangfire(...) and threw at startup. See ProcessOutboxMessagesJobSetup.
+            backgroundJobClient.Schedule<ProcessOutboxMessagesJob>(
                 job => job.ProcessAsync(JobCancellationToken.Null),
                 TimeSpan.FromSeconds(_outboxOptions.IntervalInSeconds));
         }

@@ -38,8 +38,8 @@ internal sealed class SearchApartmentsQueryHandler(
                                         a.id AS Id,
                                         a.name AS Name,
                                         a.address_city AS City,
-                                        a.price_amount AS PriceAmount,
-                                        a.price_currency AS PriceCurrency,
+                                        a.price_amount AS Price,
+                                        a.price_currency AS Currency,
                                         img.url AS PrimaryImageUrl
                                     FROM apartments a
 

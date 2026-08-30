@@ -69,7 +69,6 @@ public static class DependencyInjection
         AddAuthorization(services);
         AddCaching(services, configuration);
         AddHealthChecks(services, configuration);
-
         AddApiVersioning(services);
 
         return services;
@@ -227,14 +226,14 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
     }
 
-    private static void AddBackgroundJobs(
-        IServiceCollection services,
-        IConfiguration configuration,
+    private static void AddBackgroundJobs(IServiceCollection services, IConfiguration configuration,
         string connectionString)
     {
         services.Configure<BackgroundJobsOptions>(
             configuration.GetSection(
                 BackgroundJobsOptions.SectionName));
+
+        services.Configure<OutboxOptions>(configuration.GetSection("Outbox"));
 
         var backgroundJobsSection =
             configuration.GetSection(
