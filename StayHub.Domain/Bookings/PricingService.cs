@@ -32,6 +32,10 @@ public class PricingService
         if (!apartment.CleaningFee.IsZero()) totalPrice += apartment.CleaningFee;
 
         totalPrice += amenitiesUpCharge;
-        return new PricingDetails(priceForPeriod, apartment.CleaningFee, amenitiesUpCharge, totalPrice);
+
+        // Money is owned by its aggregate, so create a separate instance for the Booking.
+        var cleaningFee = apartment.CleaningFee.Copy();
+
+        return new PricingDetails(priceForPeriod, cleaningFee, amenitiesUpCharge, totalPrice);
     }
 }
