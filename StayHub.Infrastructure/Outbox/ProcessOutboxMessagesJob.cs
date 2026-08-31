@@ -44,7 +44,8 @@ internal sealed class ProcessOutboxMessagesJob(
 {
     private static readonly JsonSerializerSettings JsonSerializerSettings = new()
     {
-        TypeNameHandling = TypeNameHandling.All
+        TypeNameHandling = TypeNameHandling.All,
+        MetadataPropertyHandling = MetadataPropertyHandling.ReadAhead
     };
 
     private readonly OutboxOptions _outboxOptions = outboxOptions.Value;
