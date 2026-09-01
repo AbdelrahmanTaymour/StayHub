@@ -13,4 +13,19 @@ internal static class UserTestData
 
         return user;
     }
+
+    public static UserProfile CreateProfile(Guid userId, DateTime? utcNow = null)
+    {
+        return UserProfile.Create(userId, utcNow ?? DateTime.UtcNow);
+    }
+
+    public static UserSession CreateSession(
+        Guid userId,
+        string deviceInfo = "Chrome on Windows",
+        string ipAddress = "203.0.113.5",
+        DateTime? utcNow = null)
+    {
+        return UserSession.Create(userId, new DeviceInfo(deviceInfo), IpAddress.Create(ipAddress).Value,
+            utcNow ?? DateTime.UtcNow);
+    }
 }
