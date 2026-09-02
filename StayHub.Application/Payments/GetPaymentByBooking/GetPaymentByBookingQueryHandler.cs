@@ -22,7 +22,7 @@ internal sealed class GetPaymentByBookingQueryHandler(
                            SELECT
                                p.id AS Id,
                                p.booking_id AS BookingId,
-                               p.amount_value AS AmountValue,
+                               p.amount_amount AS AmountValue,
                                p.amount_currency AS AmountCurrency,
                                p.status AS Status,
                                p.created_on_utc AS CreatedOnUtc,
