@@ -12,7 +12,7 @@ public static class MessageErrors
         "Message.AlreadyRead",
         "The message has already been marked as read");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "Message.NotAuthorized",
         "Only participants in this conversation can send messages");
 }

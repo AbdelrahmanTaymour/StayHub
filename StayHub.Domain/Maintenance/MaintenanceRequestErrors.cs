@@ -20,7 +20,7 @@ public static class MaintenanceRequestErrors
         "MaintenanceRequest.NotResolved",
         "The maintenance request is not resolved");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "MaintenanceRequest.NotAuthorized",
         "You're not authorized to perform this action"
     );

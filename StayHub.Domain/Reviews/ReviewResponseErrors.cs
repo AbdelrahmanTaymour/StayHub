@@ -12,7 +12,7 @@ public static class ReviewResponseErrors
         "ReviewResponse.AlreadyRespondedTo",
         "This review has already received a response");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "ReviewResponse.NotAuthorized",
         "You can only respond to your own apartment's reviews"
     );

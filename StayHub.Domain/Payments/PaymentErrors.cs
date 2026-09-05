@@ -16,7 +16,7 @@ public static class PaymentErrors
         "Payment.NotSucceeded",
         "The payment has not succeeded");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "Payment.NotAuthorized",
         "Only the guest who made this booking can pay for it");
 

@@ -8,7 +8,8 @@ public static class ResultExtensions
     {
         if (result.IsSuccess)
         {
-            throw new InvalidOperationException("Cannot convert a successful result to a problem.");
+            throw new InvalidOperationException(
+                "Cannot convert a successful result to a problem.");
         }
 
         return Results.Problem(
@@ -18,7 +19,7 @@ public static class ResultExtensions
             statusCode: GetStatusCode(result.Error.Type),
             extensions: new Dictionary<string, object?>
             {
-                { "errorCode", result.Error.Code }
+                ["errorCode"] = result.Error.Code
             });
     }
 
@@ -28,7 +29,8 @@ public static class ResultExtensions
         {
             ErrorType.NotFound => StatusCodes.Status404NotFound,
             ErrorType.Conflict => StatusCodes.Status409Conflict,
-            ErrorType.Unauthorized => StatusCodes.Status403Forbidden,
+            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status400BadRequest
         };
@@ -40,7 +42,8 @@ public static class ResultExtensions
         {
             ErrorType.NotFound => "Resource not found",
             ErrorType.Conflict => "Conflict",
-            ErrorType.Unauthorized => "Forbidden",
+            ErrorType.Unauthorized => "Unauthorized",
+            ErrorType.Forbidden => "Forbidden",
             ErrorType.Validation => "Validation error",
             _ => "Bad request"
         };
@@ -50,11 +53,20 @@ public static class ResultExtensions
     {
         return errorType switch
         {
-            ErrorType.NotFound => "https://tools.ietf.org/html/rfc7231#section-6.5.4",
-            ErrorType.Conflict => "https://tools.ietf.org/html/rfc7231#section-6.5.8",
-            ErrorType.Unauthorized => "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-            ErrorType.Validation => "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            _ => "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+            ErrorType.NotFound =>
+                "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+
+            ErrorType.Conflict =>
+                "https://tools.ietf.org/html/rfc7231#section-6.5.8",
+
+            ErrorType.Unauthorized =>
+                "https://tools.ietf.org/html/rfc7235#section-3.1",
+
+            ErrorType.Validation =>
+                "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+
+            _ =>
+                "https://tools.ietf.org/html/rfc7231#section-6.5.1"
         };
     }
 }

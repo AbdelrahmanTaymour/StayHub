@@ -16,7 +16,7 @@ public static class ConversationErrors
         "Conversation:CannotMessageSelf",
         "You cannot message yourself");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "Conversation.NotAuthorized",
         "You are not authorized to perform this action");
 }

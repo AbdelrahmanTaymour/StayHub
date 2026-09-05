@@ -6,7 +6,8 @@ public enum ErrorType
     Validation = 1,
     NotFound = 2,
     Conflict = 3,
-    Unauthorized = 4
+    Unauthorized = 4,
+    Forbidden = 5
 }
 
 public sealed record Error(string Code, string Message, ErrorType Type = ErrorType.Failure)
@@ -30,6 +31,11 @@ public sealed record Error(string Code, string Message, ErrorType Type = ErrorTy
     public static Error Unauthorized(string code, string message)
     {
         return new Error(code, message, ErrorType.Unauthorized);
+    }
+
+    public static Error Forbidden(string code, string message)
+    {
+        return new Error(code, message, ErrorType.Forbidden);
     }
 
     public static Error Validation(string code, string message)

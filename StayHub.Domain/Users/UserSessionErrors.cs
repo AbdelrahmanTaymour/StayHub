@@ -12,7 +12,7 @@ public static class UserSessionErrors
         "UserSession.AlreadyRevoked",
         "The session has already been revoked");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "UserSession.NotAuthorized",
         "You can only revoke your own sessions");
 

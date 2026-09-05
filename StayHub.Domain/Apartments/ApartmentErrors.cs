@@ -24,7 +24,7 @@ public static class ApartmentErrors
         "Apartment.AlreadyInactive",
         "The apartment is already inactive");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "Apartment.NotAuthorized",
         "Only the apartment owner can perform this action");
 }

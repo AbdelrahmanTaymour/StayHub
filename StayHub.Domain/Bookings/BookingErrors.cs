@@ -28,7 +28,7 @@ public static class BookingErrors
         "Booking.NotCancellable",
         "The booking cannot be cancelled in its current status");
 
-    public static readonly Error NotAuthorized = Error.Unauthorized(
+    public static readonly Error NotAuthorized = Error.Forbidden(
         "Booking.NotAuthorized",
         "You're not authorized to perform this action");
 
