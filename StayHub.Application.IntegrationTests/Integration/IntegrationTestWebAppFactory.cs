@@ -46,7 +46,6 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
     private readonly RedisContainer _redisContainer = new RedisBuilder("redis:latest")
         .Build();
 
-    // Discovered (not configured) — see DiscoverKeycloakClientSecretsAsync.
     private string _adminClientSecret = string.Empty;
     private string _authClientSecret = string.Empty;
     private IConnectionMultiplexer _redisMultiplexer = null!;
@@ -63,27 +62,13 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             _redisContainer.StartAsync(),
             _keycloakContainer.StartAsync());
 
-        // Must happen before the first access to Services/Server below —
-        // that access is what triggers ConfigureWebHost to actually run, and
-        // it reads _adminClientSecret/_authClientSecret, which need to be
-        // populated by then.
         await DiscoverKeycloakClientSecretsAsync();
 
-        // Force Server to build now so migrations run before Respawn snapshots
-        // the schema (Program.cs only calls ApplyMigrations() in Development).
         using (var scope = Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await dbContext.Database.MigrateAsync();
 
-            // Seed reference/lookup data that migrations don't create.
-            // User.Create() always inserts a user_roles row for Role.Guest,
-            // so any User seeded by a test fails its FK constraint against an
-            // empty roles table unless this exists first.
-            // ASSUMPTION (flagged): table/column names for the Role entity's
-            // EF mapping — I don't have RoleConfiguration.cs, so this assumes
-            // the same snake_case convention as every other entity here
-            // ("roles" table, "id"/"name" columns). Adjust if that's wrong.
             await dbContext.Database.ExecuteSqlRawAsync("""
                                                         INSERT INTO roles (id, name)
                                                         VALUES (1, 'Guest'), (2, 'Admin')
@@ -98,21 +83,10 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         {
             DbAdapter = DbAdapter.Postgres,
             SchemasToInclude = ["public"],
-            // "roles" excluded alongside migrations history: it's reference
-            // data seeded once above, not per-test state. Respawn would
-            // otherwise TRUNCATE it on the very first test's reset and break
-            // every User.Create() call in every test after that.
             TablesToIgnore = ["__ef_migrations_history", "roles"]
         });
 
-        // Separate admin connection for FLUSHDB between tests — several
-        // Apartment queries (SearchApartmentsQuery, GetApartmentsByOwnerQuery)
-        // implement ICachedQuery and are cached in this same Redis instance
-        // via a real QueryCachingBehavior, so this needs resetting exactly
-        // like Postgres does. AllowAdmin must be set explicitly — FLUSHDB is
-        // rejected otherwise. This is a separate connection from the app's
-        // own Redis cache connection, so admin mode is scoped to test-reset
-        // use only, not the production wiring.
+
         var redisConfiguration = ConfigurationOptions.Parse(_redisContainer.GetConnectionString());
         redisConfiguration.AllowAdmin = true;
 
@@ -143,8 +117,6 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         {
             services.RemoveAll(typeof(DbContextOptions<ApplicationDbContext>));
 
-            // Scoped so the same instance a test arms via SaveChangesInterceptor
-            // is the one actually used by the DbContext resolved in that scope.
             services.AddScoped<TestFailingSaveChangesInterceptor>();
 
             services.AddDbContext<ApplicationDbContext>((sp, options) =>
@@ -168,21 +140,15 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
                 options.TokenUrl = $"{keycloakAddress}/realms/StayHub/protocol/openid-connect/token";
             });
 
-            // Email — real SMTP is a true external boundary, so this stays mocked.
             services.RemoveAll<IEmailService>();
             services.AddScoped<IEmailService, TestEmailService>();
 
-            // Direct-call background scheduling (outside the Outbox path) stays
-            // mocked/recording; Outbox-driven flows go through the real
-            // HangfireBackgroundJobScheduler registered by AddInfrastructure.
             services.RemoveAll<IBackgroundJobScheduler>();
             services.AddScoped<IBackgroundJobScheduler, TestBackgroundJobScheduler>();
 
-            // Payment gateway — true external boundary (Stripe).
             services.RemoveAll<IPaymentGatewayService>();
             services.AddScoped<IPaymentGatewayService, TestPaymentGatewayService>();
 
-            // File storage — true external boundary (S3-compatible object storage).
             services.RemoveAll<IFileStorageService>();
             services.AddScoped<IFileStorageService, TestFileStorageService>();
 
@@ -197,12 +163,6 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
             services.AddScoped<IUserContext>(sp => sp.GetRequiredService<TestUserContext>());
 
-            // Prevent Hangfire's own server from ever dequeuing/executing jobs
-            // in the test host. Storage, job classes, and the scheduler stay
-            // real and DI-resolvable; ProcessOutboxMessagesJobSetup.Start /
-            // CompleteExpiredBookingsJobSetup.Start still enqueue real rows
-            // into Postgres, they just sit there unconsumed. Tests trigger
-            // ProcessOutboxMessagesJob.ProcessAsync explicitly instead.
             var hangfireHostedServiceDescriptors = services
                 .Where(descriptor =>
                     descriptor.ServiceType == typeof(IHostedService) &&
@@ -229,21 +189,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         await _respawner.ResetAsync(_respawnConnection);
     }
 
-    /// <summary>
-    /// Authenticates against Keycloak's master realm as the container's
-    /// bootstrap admin, then reads each client's ACTUAL secret via the Admin
-    /// REST API — the same call the "regenerate secret" button in the admin
-    /// console makes under the hood — rather than trusting any secret value
-    /// baked into the realm export file, which Keycloak's Admin Console
-    /// masks as the literal string "**********" on export. This makes the
-    /// real secret discoverable at test-run time instead of needing to be
-    /// kept in sync by hand between the JSON file and app config.
-    ///
-    /// ASSUMPTION (flagged): "admin"/"admin" is Testcontainers.Keycloak's
-    /// documented default bootstrap admin for the master realm. If this
-    /// container image/module version differs, override via
-    /// KeycloakBuilder.WithUsername/WithPassword and adjust here.
-    /// </summary>
+
     private async Task DiscoverKeycloakClientSecretsAsync()
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(_keycloakContainer.GetBaseAddress()) };
