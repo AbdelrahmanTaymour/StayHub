@@ -8,7 +8,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Bookings.GetBookingsByApartment;
 
-public class GetBookingsByApartmentQueryHandler(
+sealed class GetBookingsByApartmentQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext)
     : IQueryHandler<GetBookingsByApartmentQuery, IReadOnlyList<BookingSummaryResponse>>

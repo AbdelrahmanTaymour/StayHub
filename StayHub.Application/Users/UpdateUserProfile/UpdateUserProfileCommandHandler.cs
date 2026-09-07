@@ -6,7 +6,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.UpdateUserProfile;
 
-internal sealed class UpdateUserProfile(
+internal sealed class UpdateUserProfileCommandHandler(
     IUserProfileRepository userProfileRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,

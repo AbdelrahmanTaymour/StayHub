@@ -4,7 +4,7 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Users.RefreshAccessToken;
 
-internal sealed class RefreshAccessToken(IJwtService jwtService)
+internal sealed class RefreshAccessTokenCommandHandler(IJwtService jwtService)
     : ICommandHandler<RefreshAccessTokenCommand, AccessTokenResponse>
 {
     public Task<Result<AccessTokenResponse>> Handle(RefreshAccessTokenCommand request,

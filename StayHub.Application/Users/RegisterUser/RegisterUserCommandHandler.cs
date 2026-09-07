@@ -6,7 +6,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.RegisterUser;
 
-internal sealed class RegisterUser(
+internal sealed class RegisterUserCommandHandler(
     IUserRepository userRepository,
     IUserProfileRepository userProfileRepository,
     IAuthenticationService authenticationService,

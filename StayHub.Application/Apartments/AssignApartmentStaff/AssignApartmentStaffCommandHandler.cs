@@ -7,7 +7,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Apartments.AssignApartmentStaff;
 
-public class AssignApartmentStaffCommandHandler(
+internal sealed class AssignApartmentStaffCommandHandler(
     IApartmentRepository apartmentRepository,
     IUserRepository userRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,

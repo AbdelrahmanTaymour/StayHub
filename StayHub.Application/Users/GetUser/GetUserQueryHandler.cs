@@ -2,19 +2,22 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
-using StayHub.Application.Users.GetUser;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Users;
 
-namespace StayHub.Application.Users.GetLoggedInUser;
+namespace StayHub.Application.Users.GetUser;
 
-internal sealed class GetLoggedInUserHandler(
+internal sealed class GetUserQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext) : IQueryHandler<GetLoggedInUserQuery, UserResponse>
+    IUserContext userContext) : IQueryHandler<GetUserQuery, UserResponse>
 {
-    public async Task<Result<UserResponse>> Handle(GetLoggedInUserQuery request, CancellationToken cancellationToken)
+    public async Task<Result<UserResponse>> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
-        var userId = userContext.UserId;
+        if (userContext.UserId != request.UserId &&
+            !userContext.Roles.Contains(Role.Admin.Name))
+        {
+            return Result.Failure<UserResponse>(UserErrors.NotAuthorized);
+        }
 
         using var connection = sqlConnectionFactory.CreateConnection();
 
@@ -32,8 +35,7 @@ internal sealed class GetLoggedInUserHandler(
                            WHERE u.id = @UserId
                            """;
 
-        var user = await connection.QueryFirstOrDefaultAsync<UserResponse>(sql,
-            new { UserId = userId });
+        var user = await connection.QueryFirstOrDefaultAsync<UserResponse>(sql, new { request.UserId });
 
         return user ?? Result.Failure<UserResponse>(UserErrors.NotFound);
     }

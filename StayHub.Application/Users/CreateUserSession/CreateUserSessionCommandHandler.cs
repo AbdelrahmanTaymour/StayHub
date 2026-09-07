@@ -5,7 +5,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.CreateUserSession;
 
-internal sealed class CreateUserSession(
+internal sealed class CreateUserSessionCommandHandler(
     IUserRepository userRepository,
     IUserSessionRepository userSessionRepository,
     IUnitOfWork unitOfWork,

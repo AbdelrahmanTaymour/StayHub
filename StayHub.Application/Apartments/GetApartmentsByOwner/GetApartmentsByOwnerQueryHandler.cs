@@ -27,6 +27,7 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
                            LEFT JOIN apartment_images img
                                ON img.apartment_id = a.id AND img.is_primary = true
                            WHERE a.owner_id = @OwnerId
+                             AND a.is_active = true
                            ORDER BY a.created_on_utc DESC
                            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
                            """;
