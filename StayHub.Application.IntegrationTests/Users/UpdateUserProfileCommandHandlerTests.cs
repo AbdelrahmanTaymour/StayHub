@@ -7,7 +7,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.IntegrationTests.Users;
 
-public class UpdateUserProfileTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
+public class UpdateUserProfileCommandHandlerTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
     public async Task UpdateUserProfile_ShouldInvalidateBothCacheKeys_ViaOutboxPipeline()

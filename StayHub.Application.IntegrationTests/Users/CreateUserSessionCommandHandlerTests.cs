@@ -6,7 +6,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.IntegrationTests.Users;
 
-public class CreateUserSessionTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
+public class CreateUserSessionCommandHandlerTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
     public async Task CreateUserSession_ShouldPersistSessionAndSendAlertEmail_ViaOutboxPipeline()

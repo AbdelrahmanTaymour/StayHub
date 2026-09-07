@@ -5,7 +5,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.IntegrationTests.Users;
 
-public class GetUserSessionsTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
+public class GetUserSessionsQueryHandlerTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
     public async Task GetUserSessions_ShouldReturnNotAuthorized_WhenCallerIsNotOwnerOrAdmin()

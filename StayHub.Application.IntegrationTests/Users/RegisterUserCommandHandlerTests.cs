@@ -6,7 +6,7 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.IntegrationTests.Users;
 
-public class RegisterUserTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
+public class RegisterUserCommandHandlerTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
     public async Task RegisterUser_ShouldCreateLocalUserAndRealKeycloakIdentity_WhenEmailIsUnique()
