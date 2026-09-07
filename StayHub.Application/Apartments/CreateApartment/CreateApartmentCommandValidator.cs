@@ -3,7 +3,7 @@ using StayHub.Application.Shared;
 
 namespace StayHub.Application.Apartments.CreateApartment;
 
-public class CreateApartmentCommandValidator : AbstractValidator<CreateApartmentCommand>
+internal sealed class CreateApartmentCommandValidator : AbstractValidator<CreateApartmentCommand>
 {
     public CreateApartmentCommandValidator()
     {
@@ -12,6 +12,8 @@ public class CreateApartmentCommandValidator : AbstractValidator<CreateApartment
         RuleFor(x => x.Street).NotEmpty();
         RuleFor(x => x.City).NotEmpty();
         RuleFor(x => x.Country).NotEmpty();
+        RuleFor(x => x.State).NotEmpty();
+        RuleFor(x => x.ZipCode).NotEmpty();
 
         RuleFor(x => x.PriceAmount).GreaterThan(0);
         RuleFor(x => x.PriceCurrency)

@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Maintenance.CreateMaintenanceRequest;
 
-public class CreateMaintenanceRequestCommandValidator : AbstractValidator<CreateMaintenanceRequestCommand>
+internal sealed class CreateMaintenanceRequestCommandValidator : AbstractValidator<CreateMaintenanceRequestCommand>
 {
     public CreateMaintenanceRequestCommandValidator()
     {

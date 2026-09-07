@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.ReorderApartmentImages;
 
-public class ReorderApartmentImagesCommandValidator : AbstractValidator<ReorderApartmentImagesCommand>
+internal sealed class ReorderApartmentImagesCommandValidator : AbstractValidator<ReorderApartmentImagesCommand>
 {
     public ReorderApartmentImagesCommandValidator()
     {

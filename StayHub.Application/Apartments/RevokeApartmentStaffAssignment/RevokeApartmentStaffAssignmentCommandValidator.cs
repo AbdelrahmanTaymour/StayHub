@@ -2,7 +2,8 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 
-public class RevokeApartmentStaffAssignmentCommandValidator : AbstractValidator<RevokeApartmentStaffAssignmentCommand>
+internal sealed class
+    RevokeApartmentStaffAssignmentCommandValidator : AbstractValidator<RevokeApartmentStaffAssignmentCommand>
 {
     public RevokeApartmentStaffAssignmentCommandValidator()
     {

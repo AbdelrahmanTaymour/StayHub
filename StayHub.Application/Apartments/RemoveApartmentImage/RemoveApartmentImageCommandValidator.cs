@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.RemoveApartmentImage;
 
-public class RemoveApartmentImageCommandValidator : AbstractValidator<RemoveApartmentImageCommand>
+internal sealed class RemoveApartmentImageCommandValidator : AbstractValidator<RemoveApartmentImageCommand>
 {
     public RemoveApartmentImageCommandValidator()
     {

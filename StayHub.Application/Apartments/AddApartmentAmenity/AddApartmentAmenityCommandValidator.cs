@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.AddApartmentAmenity;
 
-public class AddApartmentAmenityCommandValidator : AbstractValidator<AddApartmentAmenityCommand>
+internal sealed class AddApartmentAmenityCommandValidator : AbstractValidator<AddApartmentAmenityCommand>
 {
     public AddApartmentAmenityCommandValidator()
     {

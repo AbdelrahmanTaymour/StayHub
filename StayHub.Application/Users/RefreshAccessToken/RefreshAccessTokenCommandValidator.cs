@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Users.RefreshAccessToken;
 
-public class RefreshAccessTokenCommandValidator : AbstractValidator<RefreshAccessTokenCommand>
+internal sealed class RefreshAccessTokenCommandValidator : AbstractValidator<RefreshAccessTokenCommand>
 {
     public RefreshAccessTokenCommandValidator()
     {

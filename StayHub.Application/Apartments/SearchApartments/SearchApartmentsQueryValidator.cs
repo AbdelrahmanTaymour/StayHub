@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.SearchApartments;
 
-public sealed class SearchApartmentsQueryValidator : AbstractValidator<SearchApartmentsQuery>
+internal sealed class SearchApartmentsQueryValidator : AbstractValidator<SearchApartmentsQuery>
 {
     public SearchApartmentsQueryValidator()
     {
@@ -30,8 +30,8 @@ public sealed class SearchApartmentsQueryValidator : AbstractValidator<SearchApa
         When(x => x.Start.HasValue && x.End.HasValue, () =>
         {
             RuleFor(x => x.End)
-                .GreaterThanOrEqualTo(x => x.Start!.Value)
-                .WithMessage("End date must be on or after the start date.");
+                .GreaterThan(x => x.Start!.Value)
+                .WithMessage("End date must be strictly after the start date.");
         });
 
         When(x => x.Start.HasValue, () =>

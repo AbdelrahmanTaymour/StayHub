@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Users.LogInUser;
 
-public class LogInUserCommandValidator : AbstractValidator<LogInUserCommand>
+internal sealed class LogInUserCommandValidator : AbstractValidator<LogInUserCommand>
 {
     public LogInUserCommandValidator()
     {

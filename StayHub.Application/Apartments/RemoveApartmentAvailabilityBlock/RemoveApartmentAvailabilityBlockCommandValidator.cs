@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.RemoveApartmentAvailabilityBlock;
 
-public class
+internal sealed class
     RemoveApartmentAvailabilityBlockCommandValidator : AbstractValidator<RemoveApartmentAvailabilityBlockCommand>
 {
     public RemoveApartmentAvailabilityBlockCommandValidator()

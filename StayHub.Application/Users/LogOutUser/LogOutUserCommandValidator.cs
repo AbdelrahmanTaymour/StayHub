@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Users.LogOutUser;
 
-public class LogOutUserCommandValidator : AbstractValidator<LogOutUserCommand>
+internal sealed class LogOutUserCommandValidator : AbstractValidator<LogOutUserCommand>
 {
     public LogOutUserCommandValidator()
     {

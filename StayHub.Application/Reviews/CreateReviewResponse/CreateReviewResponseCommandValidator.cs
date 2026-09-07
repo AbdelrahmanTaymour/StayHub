@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Reviews.CreateReviewResponse;
 
-public class CreateReviewResponseCommandValidator : AbstractValidator<CreateReviewResponseCommand>
+internal sealed class CreateReviewResponseCommandValidator : AbstractValidator<CreateReviewResponseCommand>
 {
     public CreateReviewResponseCommandValidator()
     {

@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Users.UpdateUserProfile;
 
-public class UpdateUserProfileCommandValidator : AbstractValidator<UpdateUserProfileCommand>
+internal sealed class UpdateUserProfileCommandValidator : AbstractValidator<UpdateUserProfileCommand>
 {
     public UpdateUserProfileCommandValidator()
     {

@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Users.UpdateUserName;
 
-public class UpdateUserNameCommandValidator : AbstractValidator<UpdateUserNameCommand>
+internal sealed class UpdateUserNameCommandValidator : AbstractValidator<UpdateUserNameCommand>
 {
     public UpdateUserNameCommandValidator()
     {

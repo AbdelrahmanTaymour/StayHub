@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace StayHub.Application.Apartments.AddApartmentImage;
 
-public class AddApartmentImageCommandValidator : AbstractValidator<AddApartmentImageCommand>
+internal sealed class AddApartmentImageCommandValidator : AbstractValidator<AddApartmentImageCommand>
 {
     private const long MaxFileSizeBytes = 5 * 1024 * 1024;
 

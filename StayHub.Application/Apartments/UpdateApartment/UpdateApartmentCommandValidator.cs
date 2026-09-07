@@ -3,7 +3,7 @@ using StayHub.Application.Shared;
 
 namespace StayHub.Application.Apartments.UpdateApartment;
 
-public class UpdateApartmentCommandValidator : AbstractValidator<UpdateApartmentCommand>
+internal sealed class UpdateApartmentCommandValidator : AbstractValidator<UpdateApartmentCommand>
 {
     public UpdateApartmentCommandValidator()
     {
