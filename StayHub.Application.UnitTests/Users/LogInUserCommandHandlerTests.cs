@@ -6,14 +6,14 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class LogInUserTests
+public class LogInUserCommandHandlerTests
 {
-    private readonly LogInUser _handler;
+    private readonly LogInUserCommandHandler _handler;
     private readonly IJwtService _jwtServiceMock = Substitute.For<IJwtService>();
 
-    public LogInUserTests()
+    public LogInUserCommandHandlerTests()
     {
-        _handler = new LogInUser(_jwtServiceMock);
+        _handler = new LogInUserCommandHandler(_jwtServiceMock);
     }
 
     [Fact]

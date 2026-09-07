@@ -7,22 +7,22 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class CreateUserSessionTests
+public class CreateUserSessionCommandHandlerTests
 {
     private static readonly DateTime UtcNow = DateTime.UtcNow;
     private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
-    private readonly CreateUserSession _handler;
+    private readonly CreateUserSessionCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWorkMock = Substitute.For<IUnitOfWork>();
 
     private readonly IUserRepository _userRepositoryMock = Substitute.For<IUserRepository>();
     private readonly IUserSessionRepository _userSessionRepositoryMock = Substitute.For<IUserSessionRepository>();
 
-    public CreateUserSessionTests()
+    public CreateUserSessionCommandHandlerTests()
     {
         _dateTimeProviderMock.UtcNow.Returns(UtcNow);
 
-        _handler = new CreateUserSession(
+        _handler = new CreateUserSessionCommandHandler(
             _userRepositoryMock,
             _userSessionRepositoryMock,
             _unitOfWorkMock,

@@ -8,23 +8,23 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class RegisterUserTests
+public class RegisterUserCommandHandlerTests
 {
     private static readonly DateTime UtcNow = DateTime.UtcNow;
     private readonly IAuthenticationService _authenticationServiceMock = Substitute.For<IAuthenticationService>();
     private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
-    private readonly RegisterUser _handler;
+    private readonly RegisterUserCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWorkMock = Substitute.For<IUnitOfWork>();
     private readonly IUserProfileRepository _userProfileRepositoryMock = Substitute.For<IUserProfileRepository>();
 
     private readonly IUserRepository _userRepositoryMock = Substitute.For<IUserRepository>();
 
-    public RegisterUserTests()
+    public RegisterUserCommandHandlerTests()
     {
         _dateTimeProviderMock.UtcNow.Returns(UtcNow);
 
-        _handler = new RegisterUser(
+        _handler = new RegisterUserCommandHandler(
             _userRepositoryMock,
             _userProfileRepositoryMock,
             _authenticationServiceMock,

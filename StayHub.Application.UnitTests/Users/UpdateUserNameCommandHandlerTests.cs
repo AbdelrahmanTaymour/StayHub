@@ -7,16 +7,16 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class UpdateUserNameTests
+public class UpdateUserNameCommandHandlerTests
 {
-    private readonly UpdateUserName _handler;
+    private readonly UpdateUserNameCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWorkMock = Substitute.For<IUnitOfWork>();
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
     private readonly IUserRepository _userRepositoryMock = Substitute.For<IUserRepository>();
 
-    public UpdateUserNameTests()
+    public UpdateUserNameCommandHandlerTests()
     {
-        _handler = new UpdateUserName(_userRepositoryMock, _userContextMock, _unitOfWorkMock);
+        _handler = new UpdateUserNameCommandHandler(_userRepositoryMock, _userContextMock, _unitOfWorkMock);
     }
 
     private static UpdateUserNameCommand CommandFor(Guid userId) =>

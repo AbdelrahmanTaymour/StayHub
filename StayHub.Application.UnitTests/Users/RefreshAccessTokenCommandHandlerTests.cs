@@ -6,14 +6,14 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class RefreshAccessTokenTests
+public class RefreshAccessTokenCommandHandlerTests
 {
-    private readonly RefreshAccessToken _handler;
+    private readonly RefreshAccessTokenCommandHandler _handler;
     private readonly IJwtService _jwtServiceMock = Substitute.For<IJwtService>();
 
-    public RefreshAccessTokenTests()
+    public RefreshAccessTokenCommandHandlerTests()
     {
-        _handler = new RefreshAccessToken(_jwtServiceMock);
+        _handler = new RefreshAccessTokenCommandHandler(_jwtServiceMock);
     }
 
     [Fact]

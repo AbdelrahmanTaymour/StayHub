@@ -8,24 +8,24 @@ using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class RevokeUserSessionTests
+public class RevokeUserSessionCommandHandlerTests
 {
     private static readonly DateTime UtcNow = DateTime.UtcNow;
     private static readonly DeviceInfo DeviceInfo = new("Chrome on macOS");
     private static readonly IpAddress SessionIpAddress = IpAddress.Create("127.0.0.1").Value;
     private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
-    private readonly RevokeUserSession _handler;
+    private readonly RevokeUserSessionCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWorkMock = Substitute.For<IUnitOfWork>();
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
     private readonly IUserSessionRepository _userSessionRepositoryMock = Substitute.For<IUserSessionRepository>();
 
-    public RevokeUserSessionTests()
+    public RevokeUserSessionCommandHandlerTests()
     {
         _dateTimeProviderMock.UtcNow.Returns(UtcNow);
 
-        _handler = new RevokeUserSession(
+        _handler = new RevokeUserSessionCommandHandler(
             _userSessionRepositoryMock,
             _userContextMock,
             _unitOfWorkMock,

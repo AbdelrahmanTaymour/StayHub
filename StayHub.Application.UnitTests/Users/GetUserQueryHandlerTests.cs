@@ -2,20 +2,20 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
-using StayHub.Application.Users.GetUserSessions;
+using StayHub.Application.Users.GetUser;
 using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Users;
 
-public class GetUserSessionsTests
+public class GetUserQueryHandlerTests
 {
-    private readonly GetUserSessions _handler;
+    private readonly GetUserQueryHandler _handler;
     private readonly ISqlConnectionFactory _sqlConnectionFactoryMock = Substitute.For<ISqlConnectionFactory>();
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
-    public GetUserSessionsTests()
+    public GetUserQueryHandlerTests()
     {
-        _handler = new GetUserSessions(_sqlConnectionFactoryMock, _userContextMock);
+        _handler = new GetUserQueryHandler(_sqlConnectionFactoryMock, _userContextMock);
     }
 
     [Fact]
@@ -27,23 +27,24 @@ public class GetUserSessionsTests
         _userContextMock.Roles.Returns([]);
 
         // Act
-        var result = await _handler.Handle(new GetUserSessionsQuery(targetUserId), default);
+        var result = await _handler.Handle(new GetUserQuery(targetUserId), default);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(UserSessionErrors.NotAuthorized);
+        result.Error.Should().Be(UserErrors.NotAuthorized);
     }
 
     [Fact]
     public async Task Handle_Should_NotOpenDatabaseConnection_WhenCallerIsNotSelfOrAdmin()
     {
-        // Arrange
+        // Arrange — confirms the guard genuinely short-circuits before any
+        // DB access is attempted, not just that it returns the right error.
         var targetUserId = Guid.CreateVersion7();
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
         _userContextMock.Roles.Returns([]);
 
         // Act
-        await _handler.Handle(new GetUserSessionsQuery(targetUserId), default);
+        await _handler.Handle(new GetUserQuery(targetUserId), default);
 
         // Assert
         _sqlConnectionFactoryMock.DidNotReceive().CreateConnection();
