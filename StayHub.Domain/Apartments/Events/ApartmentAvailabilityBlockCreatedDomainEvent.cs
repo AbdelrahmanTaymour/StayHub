@@ -2,7 +2,7 @@ using StayHub.Domain.Abstractions;
 
 namespace StayHub.Domain.Apartments.Events;
 
-public record ApartmentAvailabilityBlockCreatedDomainEvent(
+public sealed record ApartmentAvailabilityBlockCreatedDomainEvent(
     Guid Id,
     Guid ApartmentId,
     DateOnly Start,
