@@ -31,7 +31,7 @@ public class UserProfileTests : BaseTest
     {
         // Arrange
         var profile = UserProfile.Create(UserData.OwnerId, DateTime.UtcNow);
-        var avatar = new Avatar("https://cdn.stayhub.dev/avatars/test.png");
+        var avatar = new AvatarUrl("https://cdn.stayhub.dev/avatars/test.png");
         var utcNow = DateTime.UtcNow;
 
         // Act
@@ -50,7 +50,7 @@ public class UserProfileTests : BaseTest
         var profile = UserProfile.Create(UserData.OwnerId, DateTime.UtcNow);
 
         // Act
-        profile.UpdateAvatar(new Avatar("https://cdn.stayhub.dev/avatars/test.png"), DateTime.UtcNow);
+        profile.UpdateAvatar(new AvatarUrl("https://cdn.stayhub.dev/avatars/test.png"), DateTime.UtcNow);
 
         // Assert
         var domainEvent = AssertDomainEventWasPublished<UserProfileUpdatedDomainEvent>(profile);

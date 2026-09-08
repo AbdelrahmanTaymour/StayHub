@@ -191,4 +191,19 @@ public class PaymentTests : BaseTest
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(PaymentErrors.NotSucceeded);
     }
+
+    [Fact]
+    public void Refund_Should_ReturnFailure_WhenPaymentAlreadyRefunded()
+    {
+        // Arrange
+        var payment = PaymentData.InitiateAndSucceed();
+        payment.Refund(DateTime.UtcNow);
+
+        // Act
+        var result = payment.Refund(DateTime.UtcNow);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PaymentErrors.AlreadyRefunded);
+    }
 }

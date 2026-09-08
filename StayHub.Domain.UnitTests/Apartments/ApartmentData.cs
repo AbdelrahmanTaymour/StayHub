@@ -28,7 +28,7 @@ internal static class ApartmentData
     {
         return ApartmentImage.Create(
             apartmentId ?? Guid.CreateVersion7(),
-            new ImageUrl("https://cdn.stayhub.dev/images/test.png"),
+            new ApartmentImageUrl("https://cdn.stayhub.dev/images/test.png"),
             displayOrder,
             DateTime.UtcNow,
             isPrimary);

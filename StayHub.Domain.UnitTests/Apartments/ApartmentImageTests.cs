@@ -13,7 +13,7 @@ public class ApartmentImageTests : BaseTest
         // Arrange
         DateTime utcNow = DateTime.UtcNow;
         var apartmentId = Guid.CreateVersion7();
-        var url = new ImageUrl("https://cdn.stayhub.dev/images/test.png");
+        var url = new ApartmentImageUrl("https://cdn.stayhub.dev/images/test.png");
 
         // Act
         var image = ApartmentImage.Create(apartmentId, url, displayOrder: 2, utcNow);
