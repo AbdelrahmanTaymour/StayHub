@@ -14,7 +14,7 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
 
         builder.Property(profile => profile.AvatarUrl)
             .HasMaxLength(2000)
-            .HasConversion(avatar => avatar.Url, value => new Avatar(value));
+            .HasConversion(avatar => avatar.Url, value => new AvatarUrl(value));
 
         builder.Property(profile => profile.Bio)
             .HasMaxLength(1000)
