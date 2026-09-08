@@ -7,7 +7,7 @@ using StayHub.Application.Abstractions.Authentication;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
-public class LogInUserTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
+public class LogInUserCommandHandlerTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
     public async Task LogIn_ShouldReturnAccessToken_WhenCredentialsAreValid()

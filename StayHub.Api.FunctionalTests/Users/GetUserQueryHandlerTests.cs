@@ -6,7 +6,7 @@ using StayHub.Application.Users.GetUser;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
-public class GetUserTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
+public class GetUserQueryHandlerTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
     public async Task GetUser_ShouldReturnOwnDetails_WhenCallerIsTheUser()

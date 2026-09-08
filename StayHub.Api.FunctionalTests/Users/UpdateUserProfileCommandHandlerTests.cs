@@ -6,7 +6,7 @@ using StayHub.Api.FunctionalTests.Infrastructure;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
-public class UpdateUserProfileTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
+public class UpdateUserProfileCommandHandlerTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
     public async Task UpdateProfile_ShouldReturnNoContent_WhenRequestIsValid()

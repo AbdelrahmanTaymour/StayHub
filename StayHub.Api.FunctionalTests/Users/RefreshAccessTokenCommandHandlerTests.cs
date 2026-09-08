@@ -7,10 +7,10 @@ using StayHub.Application.Abstractions.Authentication;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
-public class LogOutUserTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
+public class RefreshAccessTokenCommandHandlerTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
-    public async Task LogOut_ShouldReturnNoContent_WhenAuthenticatedAndTokenIsValid()
+    public async Task RefreshToken_ShouldReturnNewAccessToken_WhenRefreshTokenIsValid()
     {
         // Arrange
         var (_, request, _) = await RegisterAndAuthenticateAsync();
@@ -20,40 +20,37 @@ public class LogOutUserTests(FunctionalTestWebAppFactory factory) : BaseFunction
             new LogInUserRequest(request.Email, request.Password));
         var loginBody = await loginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>();
 
-        AuthenticateAs(loginBody!.AccessToken);
-
         // Act
         var response = await HttpClient.PostAsJsonAsync(
-            "api/v1/users/logout",
-            new LogOutUserRequest(loginBody.RefreshToken));
+            "api/v1/users/refresh-token",
+            new RefreshAccessTokenRequest(loginBody!.RefreshToken));
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<AccessTokenResponse>();
+        body!.AccessToken.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
-    public async Task LogOut_ShouldReturnUnauthorized_WhenNoTokenIsProvided()
+    public async Task RefreshToken_ShouldReturnUnauthorized_WhenRefreshTokenIsInvalid()
     {
         // Act
         var response = await HttpClient.PostAsJsonAsync(
-            "api/v1/users/logout",
-            new LogOutUserRequest("some-refresh-token"));
+            "api/v1/users/refresh-token",
+            new RefreshAccessTokenRequest("completely-invalid-refresh-token"));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task LogOut_ShouldReturnBadRequest_WhenRefreshTokenIsEmpty()
+    public async Task RefreshToken_ShouldReturnBadRequest_WhenTokenIsEmpty()
     {
-        // Arrange
-        var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
-        AuthenticateAs(accessToken);
-
         // Act
         var response = await HttpClient.PostAsJsonAsync(
-            "api/v1/users/logout",
-            new LogOutUserRequest(string.Empty));
+            "api/v1/users/refresh-token",
+            new RefreshAccessTokenRequest(string.Empty));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

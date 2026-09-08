@@ -6,7 +6,7 @@ using StayHub.Api.FunctionalTests.Infrastructure;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
-public class RegisterUserTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
+public class RegisterUserCommandHandlerTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
     public async Task Register_ShouldReturnCreatedWithLocationHeader_WhenRequestIsValid()

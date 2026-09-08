@@ -7,7 +7,7 @@ using StayHub.Application.Users.GetUser;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
-public class UpdateUserNameTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
+public class UpdateUserNameCommandHandlerTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
     public async Task UpdateName_ShouldReturnNoContent_WhenCallerIsTheUser()
