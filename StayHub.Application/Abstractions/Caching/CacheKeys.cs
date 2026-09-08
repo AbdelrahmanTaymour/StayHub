@@ -21,6 +21,11 @@ public static class CacheKeys
         return $"apartments:owner:{ownerId}:{page}:{pageSize}";
     }
 
+    public static string MaintenancesByApartment(Guid apartmentId, int page, int pageSize)
+    {
+        return $"maintenance:apartment:{apartmentId}:{page}:{pageSize}";
+    }
+
     public static string ReviewsByApartment(Guid apartmentId, int page, int pageSize)
     {
         return $"reviews:apartment:{apartmentId}:{page}:{pageSize}";
