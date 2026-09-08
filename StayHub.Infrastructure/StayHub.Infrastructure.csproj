@@ -30,6 +30,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="StayHub.Application.IntegrationTests"/>
+        <InternalsVisibleTo Include="StayHub.Api.FunctionalTests"/>
     </ItemGroup>
 
 </Project>
