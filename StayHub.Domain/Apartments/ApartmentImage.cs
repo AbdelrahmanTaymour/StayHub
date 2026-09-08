@@ -8,7 +8,7 @@ public sealed class ApartmentImage : Entity
     private ApartmentImage(
         Guid id,
         Guid apartmentId,
-        ImageUrl url,
+        ApartmentImageUrl url,
         int displayOrder,
         bool isPrimary,
         DateTime createdOnUtc) : base(id)
@@ -25,14 +25,14 @@ public sealed class ApartmentImage : Entity
     }
 
     public Guid ApartmentId { get; }
-    public ImageUrl Url { get; }
+    public ApartmentImageUrl Url { get; }
     public int DisplayOrder { get; private set; }
     public bool IsPrimary { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
     public static ApartmentImage Create(
         Guid apartmentId,
-        ImageUrl url,
+        ApartmentImageUrl url,
         int displayOrder,
         DateTime utcNow,
         bool isPrimary = false)
