@@ -39,7 +39,7 @@ internal sealed class AddApartmentImageCommandHandler(
 
         var image = ApartmentImage.Create(
             request.ApartmentId,
-            new ImageUrl(url),
+            new ApartmentImageUrl(url),
             countExistingImages,
             dateTimeProvider.UtcNow,
             request.IsPrimary);
