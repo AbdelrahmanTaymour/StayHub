@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using StayHub.Api.Extensions;
@@ -90,6 +91,7 @@ public static class ApartmentEndpoints
             .HasPermission(Permissions.ApartmentManage)
             .DisableAntiforgery()
             .Produces<Guid>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -150,17 +152,17 @@ public static class ApartmentEndpoints
     }
 
     private static async Task<IResult> Search(
+        [AsParameters] SearchApartmentsQuery query,
         ISender sender,
-        CancellationToken cancellationToken,
-        string? city = null,
-        decimal? minPrice = null,
-        decimal? maxPrice = null,
-        DateOnly? start = null,
-        DateOnly? end = null,
-        int page = 1,
-        int pageSize = 20)
+        [FromServices] IValidator<SearchApartmentsQuery> validator,
+        CancellationToken cancellationToken)
     {
-        var query = new SearchApartmentsQuery(city, minPrice, maxPrice, start, end, page, pageSize);
+        var validationResult = await validator.ValidateAsync(query, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return Results.ValidationProblem(validationResult.ToDictionary());
+        }
 
         var result = await sender.Send(query, cancellationToken);
 
