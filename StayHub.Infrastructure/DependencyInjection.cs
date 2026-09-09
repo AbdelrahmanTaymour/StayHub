@@ -85,6 +85,10 @@ public static class DependencyInjection
 
         SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
         SqlMapper.AddTypeHandler(new AmenityListTypeHandler());
+        SqlMapper.AddTypeHandler(new EnumTypeHandler<BookingStatus>());
+        SqlMapper.AddTypeHandler(new EnumTypeHandler<PaymentStatus>());
+        SqlMapper.AddTypeHandler(new EnumTypeHandler<MaintenanceRequestStatus>());
+        SqlMapper.AddTypeHandler(new EnumTypeHandler<NotificationType>());
     }
 
     private static void AddRepositories(IServiceCollection services)
