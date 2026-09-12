@@ -13,7 +13,7 @@ public sealed class CreateReviewTests(FunctionalTestWebAppFactory factory) : Bas
     {
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -26,7 +26,7 @@ public sealed class CreateReviewTests(FunctionalTestWebAppFactory factory) : Bas
         var confirmResponse = await HttpClient.PostAsync(BookingRoutes.Confirm(bookingId), null);
         confirmResponse.EnsureSuccessStatusCode();
 
-        await ReviewTestData.CompleteBookingDirectlyAsync(Factory, bookingId);
+        await ReviewTestFixtures.CompleteBookingDirectlyAsync(Factory, bookingId);
 
         return (ownerToken, guestToken, bookingId);
     }
@@ -101,7 +101,7 @@ public sealed class CreateReviewTests(FunctionalTestWebAppFactory factory) : Bas
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);

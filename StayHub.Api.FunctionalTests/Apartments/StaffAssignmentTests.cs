@@ -17,8 +17,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken); // switch back to owner for the assignment call
@@ -41,8 +40,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
 
@@ -80,8 +78,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(
@@ -101,8 +98,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
@@ -131,8 +127,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
@@ -154,8 +149,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
@@ -180,8 +174,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
@@ -224,8 +217,7 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        ;
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);

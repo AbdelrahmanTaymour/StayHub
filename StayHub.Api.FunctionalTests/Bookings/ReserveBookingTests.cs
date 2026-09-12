@@ -14,7 +14,7 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -81,7 +81,7 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -102,7 +102,7 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -124,7 +124,7 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestAToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestAToken);
@@ -153,7 +153,7 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestAToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestAToken);
@@ -180,7 +180,7 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(

@@ -16,7 +16,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(
@@ -33,7 +33,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -53,7 +53,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var first = await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.Amenities(apartmentId),
@@ -79,7 +79,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(
@@ -114,7 +114,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.Amenities(apartmentId),
@@ -134,7 +134,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.Amenities(apartmentId),
@@ -157,7 +157,7 @@ public sealed class ApartmentAmenityTests(FunctionalTestWebAppFactory factory)
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.DeleteAsync(

@@ -14,7 +14,7 @@ public sealed class StartMaintenanceRequestTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (_, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsync(MaintenanceRoutes.Start(requestId), null);
@@ -29,7 +29,7 @@ public sealed class StartMaintenanceRequestTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (_, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         var (adminToken, _, adminUserId) = await RegisterAndAuthenticateAsync();
         await Factory.PromoteToAdminAsync(adminUserId);
@@ -48,7 +48,7 @@ public sealed class StartMaintenanceRequestTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (_, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -68,7 +68,7 @@ public sealed class StartMaintenanceRequestTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (apartmentId, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (apartmentId, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -103,7 +103,7 @@ public sealed class StartMaintenanceRequestTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (_, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
         var firstStart = await HttpClient.PostAsync(MaintenanceRoutes.Start(requestId), null);
         firstStart.EnsureSuccessStatusCode();
 

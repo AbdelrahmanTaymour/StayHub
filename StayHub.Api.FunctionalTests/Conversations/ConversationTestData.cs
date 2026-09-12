@@ -2,7 +2,7 @@ namespace StayHub.Api.FunctionalTests.Conversations;
 
 internal static class ConversationTestData
 {
-    public static object ValidStartRequest(Guid apartmentId, string? initialMessage = null)
+    internal static object ValidStartRequest(Guid apartmentId, string? initialMessage = null)
     {
         return new
         {
@@ -11,7 +11,7 @@ internal static class ConversationTestData
         };
     }
 
-    public static object ValidSendMessageRequest(string? body = null)
+    internal static object ValidSendMessageRequest(string? body = null)
     {
         return new { Body = body ?? "Just following up on my earlier question." };
     }

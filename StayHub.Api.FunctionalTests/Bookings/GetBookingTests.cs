@@ -15,11 +15,11 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
-        var bookingId = await BookingTestData.ReserveAsync(HttpClient, apartmentId);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
 
         // Act
         var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));
@@ -34,11 +34,11 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
-        var bookingId = await BookingTestData.ReserveAsync(HttpClient, apartmentId);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
 
         AuthenticateAs(ownerToken);
 
@@ -55,11 +55,11 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
-        var bookingId = await BookingTestData.ReserveAsync(HttpClient, apartmentId);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
 
         var (adminToken, _, adminUserId) = await RegisterAndAuthenticateAsync();
         await Factory.PromoteToAdminAsync(adminUserId);
@@ -82,11 +82,11 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
-        var bookingId = await BookingTestData.ReserveAsync(HttpClient, apartmentId);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
 
         var (unrelatedToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(unrelatedToken);
@@ -131,11 +131,11 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, guestUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
-        var bookingId = await BookingTestData.ReserveAsync(HttpClient, apartmentId);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
 
         // Act
         var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));

@@ -17,7 +17,7 @@ public sealed class InitiatePaymentTests(FunctionalTestWebAppFactory factory) : 
     {
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -100,7 +100,7 @@ public sealed class InitiatePaymentTests(FunctionalTestWebAppFactory factory) : 
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);

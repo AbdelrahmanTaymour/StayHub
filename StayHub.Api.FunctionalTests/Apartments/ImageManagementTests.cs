@@ -16,8 +16,8 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        var imageId = await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+        var imageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
 
         // Act
         var response = await HttpClient.DeleteAsync(
@@ -34,8 +34,8 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        var imageId = await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+        var imageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -72,10 +72,10 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
-        var firstImageId = await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
-        var secondImageId = await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
+        var firstImageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
+        var secondImageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -100,8 +100,8 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        var imageId = await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+        var imageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -128,8 +128,8 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+        await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -153,7 +153,7 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -174,8 +174,8 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
-        var imageId = await ApartmentTestData.AddImageAsync(HttpClient, apartmentId);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+        var imageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(

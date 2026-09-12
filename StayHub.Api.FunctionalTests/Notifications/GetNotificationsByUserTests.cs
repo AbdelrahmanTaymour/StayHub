@@ -40,7 +40,7 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
     {
         // Arrange
         var (accessToken, _, userId) = await RegisterAndAuthenticateAsync();
-        await NotificationTestData.SeedNotificationAsync(Factory, userId);
+        await NotificationTestFixtures.SeedNotificationAsync(Factory, userId);
         AuthenticateAs(accessToken);
 
         // Act
@@ -57,7 +57,7 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
     {
         // Arrange
         var (_, _, otherUserId) = await RegisterAndAuthenticateAsync();
-        await NotificationTestData.SeedNotificationAsync(Factory, otherUserId);
+        await NotificationTestFixtures.SeedNotificationAsync(Factory, otherUserId);
 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
@@ -76,8 +76,8 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
     {
         // Arrange
         var (accessToken, _, userId) = await RegisterAndAuthenticateAsync();
-        var readNotificationId = await NotificationTestData.SeedNotificationAsync(Factory, userId);
-        await NotificationTestData.SeedNotificationAsync(Factory, userId, NotificationType.NewMessage);
+        var readNotificationId = await NotificationTestFixtures.SeedNotificationAsync(Factory, userId);
+        await NotificationTestFixtures.SeedNotificationAsync(Factory, userId, NotificationType.NewMessage);
         AuthenticateAs(accessToken);
         var markReadResponse = await HttpClient.PostAsync(NotificationRoutes.MarkAsRead(readNotificationId), null);
         markReadResponse.EnsureSuccessStatusCode();

@@ -15,7 +15,7 @@ public sealed class RemoveFavoriteApartmentTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (userToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(userToken);
@@ -35,7 +35,7 @@ public sealed class RemoveFavoriteApartmentTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (userToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(userToken);
@@ -69,7 +69,7 @@ public sealed class RemoveFavoriteApartmentTests(FunctionalTestWebAppFactory fac
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (userAToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(userAToken);

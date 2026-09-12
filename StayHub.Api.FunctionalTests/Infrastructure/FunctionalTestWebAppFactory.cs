@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Networks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -19,6 +21,7 @@ using StayHub.Infrastructure;
 using StayHub.Infrastructure.Authentication;
 using StayHub.Infrastructure.Data;
 using Testcontainers.Keycloak;
+using Testcontainers.Mailpit;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 
@@ -26,22 +29,11 @@ namespace StayHub.Api.FunctionalTests.Infrastructure;
 
 public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder("postgres:latest")
-        .WithDatabase("StayHub")
-        .WithUsername("postgres")
-        .WithPassword("postgres")
-        .Build();
-
-    private readonly KeycloakContainer _keycloakContainer = new KeycloakBuilder("quay.io/keycloak/keycloak:26.7")
-        .WithResourceMapping(
-            new FileInfo(Path.Combine(AppContext.BaseDirectory, ".files", "stayhub-realm-export.json")),
-            new FileInfo("/opt/keycloak/data/import/realm.json"))
-        .WithCommand("--import-realm")
-        .Build();
-
-    private readonly RedisContainer _redisContainer = new RedisBuilder("redis:latest")
-        .Build();
-
+    private readonly PostgreSqlContainer _dbContainer;
+    private readonly KeycloakContainer _keycloakContainer;
+    private readonly MailpitContainer _mailpitContainer;
+    private readonly INetwork _network;
+    private readonly RedisContainer _redisContainer;
     private string _adminClientSecret = string.Empty;
     private string _authClientSecret = string.Empty;
     private IConnectionMultiplexer _redisMultiplexer = null!;
@@ -49,21 +41,59 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
 
     private Respawner _respawner = null!;
 
+    public FunctionalTestWebAppFactory()
+    {
+        _network = new NetworkBuilder().Build();
+
+        _dbContainer = new PostgreSqlBuilder("postgres:latest")
+            .WithDatabase("StayHub")
+            .WithUsername("postgres")
+            .WithPassword("postgres")
+            .Build();
+
+        _redisContainer = new RedisBuilder("redis:latest")
+            .Build();
+
+        _mailpitContainer = new MailpitBuilder("axllent/mailpit:latest")
+            .WithNetwork(_network)
+            .WithNetworkAliases("mailpit")
+            .Build();
+
+        _keycloakContainer = new KeycloakBuilder("quay.io/keycloak/keycloak:26.7")
+            .WithNetwork(_network)
+            .WithResourceMapping(
+                new FileInfo(Path.Combine(AppContext.BaseDirectory, ".files", "stayhub-realm-export.json")),
+                new FileInfo("/opt/keycloak/data/import/realm.json"))
+            .WithCommand("--import-realm")
+            .Build();
+    }
+
+    /// <summary>Base address for querying Mailpit's REST API (GET /api/v2/search, /api/v2/message/{id}).</summary>
+    public Uri MailpitApiBaseAddress => new(_mailpitContainer.GetWebAddress());
+
     public async Task InitializeAsync()
     {
+        // 1. Create network first
+        await _network.CreateAsync();
+
+        // 2. Start all containers in parallel
         await Task.WhenAll(
             _dbContainer.StartAsync(),
             _redisContainer.StartAsync(),
+            _mailpitContainer.StartAsync(),
             _keycloakContainer.StartAsync());
 
+        // 3. Discover Keycloak secrets after container startup
         await DiscoverKeycloakClientSecretsAsync();
 
+        // 4. Run database migrations
         using (var scope = Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await dbContext.Database.MigrateAsync();
         }
 
+        // 5. Initialize Respawner
         _respawnConnection = new NpgsqlConnection(_dbContainer.GetConnectionString());
         await _respawnConnection.OpenAsync();
 
@@ -74,6 +104,7 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
             TablesToIgnore = ["__ef_migrations_history", "roles", "permissions", "role_permissions"]
         });
 
+        // 6. Connect Redis Multiplexer
         var redisConfiguration = ConfigurationOptions.Parse(_redisContainer.GetConnectionString());
         redisConfiguration.AllowAdmin = true;
 
@@ -87,9 +118,13 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
         await _redisMultiplexer.DisposeAsync();
         await _respawnConnection.DisposeAsync();
 
-        await _dbContainer.StopAsync();
-        await _redisContainer.StopAsync();
-        await _keycloakContainer.StopAsync();
+        await Task.WhenAll(
+            _dbContainer.StopAsync(),
+            _redisContainer.StopAsync(),
+            _mailpitContainer.StopAsync(),
+            _keycloakContainer.StopAsync());
+
+        await _network.DeleteAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -157,6 +192,14 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
         {
             await _redisMultiplexer.GetServer(endpoint).FlushDatabaseAsync();
         }
+    }
+
+    /// <summary>Clears Mailpit's inbox. Call per-test (e.g. in BaseFunctionalTest.InitializeAsync)
+    /// so one test's reset email doesn't leak into another's assertions.</summary>
+    public async Task ResetMailpitAsync()
+    {
+        using var client = new HttpClient { BaseAddress = MailpitApiBaseAddress };
+        await client.DeleteAsync("api/v1/messages");
     }
 
     public async Task PromoteToAdminAsync(Guid userId)

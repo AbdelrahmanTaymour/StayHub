@@ -15,7 +15,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(
@@ -35,7 +35,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -70,7 +70,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(
@@ -87,7 +87,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var start = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
 
@@ -113,7 +113,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var start = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
 
@@ -138,7 +138,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var first = await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.AvailabilityBlocks(apartmentId), ApartmentTestData.BlockRequest(10, 5));
@@ -164,7 +164,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var first = await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.AvailabilityBlocks(apartmentId), ApartmentTestData.BlockRequest(10, 5));
@@ -189,7 +189,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var createResponse = await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.AvailabilityBlocks(apartmentId),
@@ -211,7 +211,7 @@ public sealed class AvailabilityBlockTests(FunctionalTestWebAppFactory factory) 
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var createResponse = await HttpClient.PostAsJsonAsync(
             ApartmentRoutes.AvailabilityBlocks(apartmentId), ApartmentTestData.BlockRequest());

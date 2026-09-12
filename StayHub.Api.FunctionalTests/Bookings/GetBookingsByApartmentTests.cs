@@ -28,7 +28,7 @@ public sealed class GetBookingsByApartmentTests(FunctionalTestWebAppFactory fact
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.GetAsync(BookingRoutes.ByApartment(apartmentId));
@@ -47,7 +47,7 @@ public sealed class GetBookingsByApartmentTests(FunctionalTestWebAppFactory fact
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -67,7 +67,7 @@ public sealed class GetBookingsByApartmentTests(FunctionalTestWebAppFactory fact
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (adminToken, _, adminUserId) = await RegisterAndAuthenticateAsync();
         await Factory.PromoteToAdminAsync(adminUserId);
@@ -86,7 +86,7 @@ public sealed class GetBookingsByApartmentTests(FunctionalTestWebAppFactory fact
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);

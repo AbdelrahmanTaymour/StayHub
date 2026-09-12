@@ -15,7 +15,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsync(
@@ -35,7 +35,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -83,7 +83,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var content = ApartmentTestData.BuildImageContent(fileName: "document.pdf", contentType: "application/pdf");
 
@@ -102,7 +102,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Extension is allowed, but the declared content type is not.
         var content =
@@ -122,7 +122,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var content = ApartmentTestData.BuildImageContent(bytes: []);
 
@@ -140,7 +140,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var oversizedFile = new byte[5 * 1024 * 1024 + 1];
         var content = ApartmentTestData.BuildImageContent(bytes: oversizedFile);
@@ -159,7 +159,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var content = ApartmentTestData.BuildImageContent(fileName: "photo.png", contentType: "image/png");
 

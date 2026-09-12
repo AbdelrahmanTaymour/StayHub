@@ -10,7 +10,7 @@ public sealed class ResolveMaintenanceRequestTests(FunctionalTestWebAppFactory f
     {
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (_, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
         var startResponse = await HttpClient.PostAsync(MaintenanceRoutes.Start(requestId), null);
         startResponse.EnsureSuccessStatusCode();
 
@@ -84,7 +84,7 @@ public sealed class ResolveMaintenanceRequestTests(FunctionalTestWebAppFactory f
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var (_, requestId) = await MaintenanceTestData.CreateOpenRequestAsOwnerAsync(HttpClient);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsync(MaintenanceRoutes.Resolve(requestId), null);

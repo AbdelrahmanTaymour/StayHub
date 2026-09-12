@@ -41,7 +41,7 @@ public sealed class GetFavoriteApartmentsTests(FunctionalTestWebAppFactory facto
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (userAToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(userAToken);

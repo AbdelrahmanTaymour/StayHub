@@ -15,7 +15,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsJsonAsync(
@@ -34,7 +34,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (adminToken, _, adminUserId) = await RegisterAndAuthenticateAsync();
         await Factory.PromoteToAdminAsync(adminUserId);
@@ -54,7 +54,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -76,7 +76,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (unrelatedToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(unrelatedToken);
@@ -97,7 +97,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
@@ -149,7 +149,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var request = MaintenanceTestData.ValidCreateRequest(title: "");
 
@@ -166,7 +166,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var request = MaintenanceTestData.ValidCreateRequest(title: new string('a', 201));
 
@@ -183,7 +183,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var request = MaintenanceTestData.ValidCreateRequest(description: "");
 
@@ -200,7 +200,7 @@ public sealed class CreateMaintenanceRequestTests(FunctionalTestWebAppFactory fa
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var request = MaintenanceTestData.ValidCreateRequest(description: new string('a', 2001));
 

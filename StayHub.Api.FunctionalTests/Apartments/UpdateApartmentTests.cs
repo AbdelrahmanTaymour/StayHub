@@ -15,7 +15,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -33,7 +33,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
         var newName = $"Renamed {Guid.NewGuid():N}";
 
         // Act
@@ -65,7 +65,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         HttpClient.DefaultRequestHeaders.Authorization = null;
 
@@ -85,7 +85,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -109,7 +109,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (adminToken, _, adminUserId) = await RegisterAndAuthenticateAsync();
         await Factory.PromoteToAdminAsync(adminUserId);
@@ -164,7 +164,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -182,7 +182,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -200,7 +200,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
@@ -218,7 +218,7 @@ public sealed class UpdateApartmentTests(FunctionalTestWebAppFactory factory) : 
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(

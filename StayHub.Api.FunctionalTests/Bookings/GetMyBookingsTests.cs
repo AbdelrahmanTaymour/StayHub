@@ -43,7 +43,7 @@ public sealed class GetMyBookingsTests(FunctionalTestWebAppFactory factory) : Ba
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestAToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestAToken);

@@ -15,7 +15,7 @@ public sealed class ActivateDeactivateApartmentTests(FunctionalTestWebAppFactory
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsync(ApartmentRoutes.Deactivate(apartmentId), null);
@@ -30,7 +30,7 @@ public sealed class ActivateDeactivateApartmentTests(FunctionalTestWebAppFactory
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(otherToken);
@@ -62,7 +62,7 @@ public sealed class ActivateDeactivateApartmentTests(FunctionalTestWebAppFactory
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var firstDeactivate = await HttpClient.PostAsync(
             ApartmentRoutes.Deactivate(apartmentId), null);
@@ -97,7 +97,7 @@ public sealed class ActivateDeactivateApartmentTests(FunctionalTestWebAppFactory
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         await HttpClient.PostAsync(ApartmentRoutes.Deactivate(apartmentId), null);
 
@@ -114,7 +114,7 @@ public sealed class ActivateDeactivateApartmentTests(FunctionalTestWebAppFactory
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         await HttpClient.PostAsync(ApartmentRoutes.Deactivate(apartmentId), null);
 
@@ -135,7 +135,7 @@ public sealed class ActivateDeactivateApartmentTests(FunctionalTestWebAppFactory
         // Newly created apartments are active by default (Apartment.Create sets isActive: true).
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsOwnerAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PostAsync(ApartmentRoutes.Activate(apartmentId), null);

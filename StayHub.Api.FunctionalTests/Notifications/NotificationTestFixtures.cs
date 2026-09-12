@@ -5,9 +5,9 @@ using StayHub.Infrastructure;
 
 namespace StayHub.Api.FunctionalTests.Notifications;
 
-internal static class NotificationTestData
+internal static class NotificationTestFixtures
 {
-    public static async Task<Guid> SeedNotificationAsync(
+    internal static async Task<Guid> SeedNotificationAsync(
         FunctionalTestWebAppFactory factory,
         Guid userId,
         NotificationType type = NotificationType.BookingConfirmed,

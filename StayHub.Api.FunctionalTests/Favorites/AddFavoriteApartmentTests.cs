@@ -13,7 +13,7 @@ public sealed class AddFavoriteApartmentTests(FunctionalTestWebAppFactory factor
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (userToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(userToken);
@@ -45,7 +45,7 @@ public sealed class AddFavoriteApartmentTests(FunctionalTestWebAppFactory factor
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (userToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(userToken);
@@ -80,7 +80,7 @@ public sealed class AddFavoriteApartmentTests(FunctionalTestWebAppFactory factor
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestData.CreateApartmentAsCurrentUserAsync(HttpClient);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.PutAsync(FavoriteRoutes.ById(apartmentId), null);
