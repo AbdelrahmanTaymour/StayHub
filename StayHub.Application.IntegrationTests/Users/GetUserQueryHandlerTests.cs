@@ -51,7 +51,7 @@ public class GetUserQueryHandlerTests(IntegrationTestWebAppFactory factory) : Ba
         // Arrange
         var user = UserTestData.CreateUser(firstName: "Amina", lastName: "Farouk");
         var profile = UserTestData.CreateProfile(user.Id);
-        profile.UpdateAvatar(new Avatar("https://test-storage.local/avatar.png"), DateTime.UtcNow);
+        profile.UpdateAvatar(new AvatarUrl("https://test-storage.local/avatar.png"), DateTime.UtcNow);
         profile.UpdateBio(new Bio("Loves long walks on the Nile Corniche."), DateTime.UtcNow);
 
         DbContext.AddRange(user, profile);

@@ -34,7 +34,7 @@ internal static class ApartmentTestData
         bool isPrimary = false,
         DateTime? utcNow = null)
     {
-        var url = new ImageUrl($"https://test-storage.local/{Guid.NewGuid():N}.jpg");
+        var url = new ApartmentImageUrl($"https://test-storage.local/{Guid.NewGuid():N}.jpg");
 
         return ApartmentImage.Create(apartmentId, url, displayOrder, utcNow ?? DateTime.UtcNow, isPrimary);
     }

@@ -11,7 +11,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
     public async Task GetApartmentsByOwner_ShouldReturnEmptyList_WhenOwnerHasNoApartments()
     {
         // Arrange
-        var query = new GetApartmentsByOwnerQuery(Guid.CreateVersion7(), Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(Guid.CreateVersion7(), IncludeInactive: false, Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -41,7 +41,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(owner, otherOwner, ownedApartment, otherOwnersApartment);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -73,19 +73,40 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(apartments);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 2);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 2);
 
         // Act
         var result = await Sender.Send(query);
 
-        // Assert — ORDER BY created_on_utc DESC, so most recently created first.
+        // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().HaveCount(2);
         result.Value[0].Id.Should().Be(apartments[2].Id);
         result.Value[1].Id.Should().Be(apartments[1].Id);
     }
 
-    // --- CACHE TESTS ---
+    [Fact]
+    public async Task GetApartmentsByOwner_ShouldExcludeInactiveApartments_ByDefault()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var activeApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Active");
+        var inactiveApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Inactive");
+        inactiveApartment.Deactivate();
+        DbContext.AddRange(owner, activeApartment, inactiveApartment);
+        await DbContext.SaveChangesAsync();
+
+        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
+
+        // Act
+        var result = await Sender.Send(query);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().ContainSingle();
+        result.Value[0].Id.Should().Be(activeApartment.Id);
+    }
+
 
     [Fact]
     public async Task GetApartmentsByOwner_ShouldServeSecondCallFromRealRedisCache_NotFromDatabase()
@@ -96,24 +117,22 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
 
-        // Act — first call: cache miss, hits the database, then populates Redis.
+        // Act: First call; cache miss, hits the database, then populates Redis.
         var firstResult = await Sender.Send(query);
         firstResult.IsSuccess.Should().BeTrue();
         firstResult.Value.Should().ContainSingle(a => a.Id == apartment.Id);
 
-        // Prove the value actually landed in real Redis
+        // Act: Prove the value actually landed in real Redis
         var cachedValue = await CacheService.GetAsync<IReadOnlyList<ApartmentSummaryResponse>>(query.CacheKey);
         cachedValue.Should().NotBeNull();
 
-        // Remove the apartment directly from Postgres, bypassing the
-        // repository/cache-invalidation path entirely — if the second Send
-        // still returns it, the result came from Redis, not a fresh query.
+        // Act: Remove the apartment directly from Postgres
         DbContext.Remove(apartment);
         await DbContext.SaveChangesAsync();
 
-        // Second call
+        // Act: Second call
         var secondResult = await Sender.Send(query);
 
         // Assert

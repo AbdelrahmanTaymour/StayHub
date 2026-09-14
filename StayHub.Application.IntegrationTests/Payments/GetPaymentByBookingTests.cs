@@ -64,7 +64,7 @@ public class GetPaymentByBookingTests(IntegrationTestWebAppFactory factory) : Ba
         result.IsSuccess.Should().BeTrue();
         result.Value.AmountValue.Should().Be(725.50m);
         result.Value.AmountCurrency.Should().Be("USD");
-        result.Value.Status.Should().Be((int)PaymentStatus.Pending);
+        result.Value.Status.Should().Be(PaymentStatus.Pending);
     }
 
     [Fact]
