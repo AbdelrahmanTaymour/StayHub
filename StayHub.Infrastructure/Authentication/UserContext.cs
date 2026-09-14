@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Domain.Users;
 
 namespace StayHub.Infrastructure.Authentication;
 
@@ -25,4 +26,10 @@ internal sealed class UserContext(IHttpContextAccessor httpContextAccessor) : IU
             .User
             .GetRoles() ??
         [];
+
+
+    public bool IsAdmin => Roles.Contains(Role.Admin.Name);
+
+    public bool IsOwner(Guid ownerId) =>
+        httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true && UserId == ownerId;
 }
