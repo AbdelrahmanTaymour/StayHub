@@ -1,3 +1,5 @@
+using StayHub.Domain.Payments;
+
 namespace StayHub.Application.Payments.GetPaymentByBooking;
 
 public sealed class PaymentResponse
@@ -10,7 +12,7 @@ public sealed class PaymentResponse
 
     public string AmountCurrency { get; init; }
 
-    public int Status { get; init; }
+    public PaymentStatus Status { get; init; }
 
     public DateTime CreatedOnUtc { get; init; }
 

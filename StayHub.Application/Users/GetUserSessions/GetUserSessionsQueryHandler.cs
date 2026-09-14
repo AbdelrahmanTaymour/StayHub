@@ -16,11 +16,8 @@ internal sealed class GetUserSessionsQueryHandler(
         GetUserSessionsQuery request,
         CancellationToken cancellationToken)
     {
-        if (userContext.UserId != request.UserId &&
-            !userContext.Roles.Contains(Role.Admin.Name))
-        {
+        if (!userContext.IsOwner(request.UserId) && !userContext.IsAdmin)
             return Result.Failure<IReadOnlyList<UserSessionResponse>>(UserSessionErrors.NotAuthorized);
-        }
 
         using var connection = sqlConnectionFactory.CreateConnection();
 

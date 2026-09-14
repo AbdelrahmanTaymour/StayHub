@@ -13,11 +13,8 @@ internal sealed class GetUserQueryHandler(
 {
     public async Task<Result<UserResponse>> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
-        if (userContext.UserId != request.UserId &&
-            !userContext.Roles.Contains(Role.Admin.Name))
-        {
+        if (!userContext.IsOwner(request.UserId) && !userContext.IsAdmin)
             return Result.Failure<UserResponse>(UserErrors.NotAuthorized);
-        }
 
         using var connection = sqlConnectionFactory.CreateConnection();
 

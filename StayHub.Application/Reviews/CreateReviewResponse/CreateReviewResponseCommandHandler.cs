@@ -4,7 +4,6 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Reviews;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.Reviews.CreateReviewResponse;
 
@@ -26,12 +25,8 @@ internal sealed class CreateReviewResponseCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        var isOwner = apartment.OwnerId == userContext.UserId;
-        var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
-        if (!isOwner && !isAdmin)
-        {
+        if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
             return Result.Failure<Guid>(ReviewResponseErrors.NotAuthorized);
-        }
 
         var existingResponse = await reviewResponseRepository.GetByReviewIdAsync(request.ReviewId, cancellationToken);
 

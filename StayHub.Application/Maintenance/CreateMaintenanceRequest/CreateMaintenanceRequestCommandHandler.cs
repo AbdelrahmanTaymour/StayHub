@@ -5,7 +5,6 @@ using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 using StayHub.Domain.Maintenance;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.Maintenance.CreateMaintenanceRequest;
 
@@ -23,11 +22,8 @@ internal sealed class CreateMaintenanceRequestCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        var isOwner = apartment.OwnerId == userContext.UserId;
-        var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
-
         // If user is not the owner or admin, verify they are a tenant with an active booking
-        if (!isOwner && !isAdmin)
+        if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
         {
             var hasActiveBooking = await bookingRepository.HasActiveBookingAsync(
                 request.ApartmentId,

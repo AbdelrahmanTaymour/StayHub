@@ -21,8 +21,7 @@ internal sealed class SendMessageCommandHandler(
 
         if (conversation is null) return Result.Failure<Guid>(ConversationErrors.NotFound);
 
-        if (conversation.GuestId != senderId &&
-            conversation.OwnerId != senderId)
+        if (conversation.GuestId != senderId && conversation.OwnerId != senderId)
             return Result.Failure<Guid>(MessageErrors.NotAuthorized);
 
         var now = dateTimeProvider.UtcNow;
