@@ -100,7 +100,7 @@ public class StartMaintenanceRequestTests
         var request = MaintenanceRequestData.Create(apartment.Id);
         _maintenanceRequestRepositoryMock.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(request);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new StartMaintenanceRequestCommand(request.Id), default);
@@ -144,7 +144,7 @@ public class StartMaintenanceRequestTests
         var request = MaintenanceRequestData.CreateAndStart(apartment.Id);
         _maintenanceRequestRepositoryMock.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(request);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new StartMaintenanceRequestCommand(request.Id), default);

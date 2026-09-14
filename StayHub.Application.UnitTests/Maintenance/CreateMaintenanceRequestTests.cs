@@ -8,7 +8,6 @@ using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 using StayHub.Domain.Maintenance;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Maintenance;
 
@@ -85,7 +84,7 @@ public class CreateMaintenanceRequestTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(CommandFor(apartment.Id), default);
@@ -102,7 +101,7 @@ public class CreateMaintenanceRequestTests
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsAdmin.Returns(true);
 
         // Act
         var result = await _handler.Handle(CommandFor(apartment.Id), default);

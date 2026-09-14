@@ -79,7 +79,7 @@ public class UpdateUserNameCommandHandlerTests
         // Arrange
         var user = UserData.Create();
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsAdmin.Returns(true);
         _userRepositoryMock.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
 
         // Act

@@ -96,7 +96,7 @@ public class RemoveApartmentAvailabilityBlockCommandHandlerTests
         var block = CreateBlock(apartment.Id);
         _blockRepositoryMock.GetByIdAsync(block.Id, Arg.Any<CancellationToken>()).Returns(block);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new RemoveApartmentAvailabilityBlockCommand(block.Id), default);

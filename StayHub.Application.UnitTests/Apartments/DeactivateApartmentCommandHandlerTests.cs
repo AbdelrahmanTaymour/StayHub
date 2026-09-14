@@ -59,7 +59,7 @@ public class DeactivateApartmentCommandHandlerTests
         var apartment = ApartmentData.Create();
         apartment.Deactivate();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new DeactivateApartmentCommand(apartment.Id), default);
@@ -76,7 +76,7 @@ public class DeactivateApartmentCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new DeactivateApartmentCommand(apartment.Id), default);

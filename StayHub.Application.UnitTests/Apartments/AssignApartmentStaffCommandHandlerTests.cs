@@ -81,7 +81,7 @@ public class AssignApartmentStaffCommandHandlerTests
         var apartment = ApartmentData.Create();
         var staffUserId = Guid.CreateVersion7();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _userRepositoryMock.GetByIdAsync(staffUserId, Arg.Any<CancellationToken>()).Returns((User?)null);
 
         // Act
@@ -101,7 +101,7 @@ public class AssignApartmentStaffCommandHandlerTests
         var existingAssignment = ApartmentStaffAssignment.Create(
             apartment.Id, staffUser.Id, ApartmentStaffRole.Manager, UtcNow);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _userRepositoryMock.GetByIdAsync(staffUser.Id, Arg.Any<CancellationToken>()).Returns(staffUser);
         _staffAssignmentRepositoryMock
             .GetActiveAsync(apartment.Id, staffUser.Id, Arg.Any<CancellationToken>())
@@ -123,7 +123,7 @@ public class AssignApartmentStaffCommandHandlerTests
         var apartment = ApartmentData.Create();
         var staffUser = UserData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _userRepositoryMock.GetByIdAsync(staffUser.Id, Arg.Any<CancellationToken>()).Returns(staffUser);
         _staffAssignmentRepositoryMock
             .GetActiveAsync(apartment.Id, staffUser.Id, Arg.Any<CancellationToken>())

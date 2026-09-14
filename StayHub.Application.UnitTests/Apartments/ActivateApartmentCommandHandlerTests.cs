@@ -59,7 +59,7 @@ public class ActivateApartmentCommandHandlerTests
         // Arrange — Create() leaves the apartment active by default.
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new ActivateApartmentCommand(apartment.Id), default);
@@ -77,7 +77,7 @@ public class ActivateApartmentCommandHandlerTests
         var apartment = ApartmentData.Create();
         apartment.Deactivate();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new ActivateApartmentCommand(apartment.Id), default);

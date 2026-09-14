@@ -8,7 +8,6 @@ using StayHub.Application.UnitTests.Bookings;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Reviews;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Reviews;
 
@@ -110,7 +109,7 @@ public class CreateReviewResponseTests
         var existingResponse = ReviewResponse.Create(review.Id, new Comment("Already responded"), UtcNow);
         _reviewRepositoryMock.GetByIdAsync(review.Id, Arg.Any<CancellationToken>()).Returns(review);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _reviewResponseRepositoryMock.GetByReviewIdAsync(review.Id, Arg.Any<CancellationToken>())
             .Returns(existingResponse);
 
@@ -131,7 +130,7 @@ public class CreateReviewResponseTests
         var review = CreateReview(apartment);
         _reviewRepositoryMock.GetByIdAsync(review.Id, Arg.Any<CancellationToken>()).Returns(review);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _reviewResponseRepositoryMock.GetByReviewIdAsync(review.Id, Arg.Any<CancellationToken>())
             .Returns((ReviewResponse?)null);
 
@@ -154,7 +153,7 @@ public class CreateReviewResponseTests
         _reviewRepositoryMock.GetByIdAsync(review.Id, Arg.Any<CancellationToken>()).Returns(review);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsAdmin.Returns(true);
         _reviewResponseRepositoryMock.GetByReviewIdAsync(review.Id, Arg.Any<CancellationToken>())
             .Returns((ReviewResponse?)null);
 

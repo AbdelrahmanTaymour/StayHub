@@ -6,7 +6,6 @@ using StayHub.Application.Bookings.CancelBooking;
 using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Bookings;
 
@@ -96,8 +95,8 @@ public class CancelBookingTests
         var apartment = ApartmentData.Create();
         var booking = BookingData.ReserveAndConfirm(apartment);
         _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
-        _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(false);
+        _userContextMock.IsAdmin.Returns(true);
         _dateTimeProviderMock.UtcNow.Returns(BeforeStart);
 
         // Act

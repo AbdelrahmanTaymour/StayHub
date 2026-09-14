@@ -81,7 +81,7 @@ public class CreateApartmentAvailabilityBlockCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _blockRepositoryMock.IsOverlappingAsync(apartment.Id, Start, End, Arg.Any<CancellationToken>()).Returns(true);
 
         // Act
@@ -100,7 +100,7 @@ public class CreateApartmentAvailabilityBlockCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _blockRepositoryMock.IsOverlappingAsync(apartment.Id, Start, End, Arg.Any<CancellationToken>()).Returns(false);
         _bookingRepositoryMock
             .IsOverlappingAsync(apartment, Arg.Any<DateRange>(), Arg.Any<CancellationToken>())
@@ -120,7 +120,7 @@ public class CreateApartmentAvailabilityBlockCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _blockRepositoryMock.IsOverlappingAsync(apartment.Id, Start, End, Arg.Any<CancellationToken>()).Returns(false);
         _bookingRepositoryMock
             .IsOverlappingAsync(apartment, Arg.Any<DateRange>(), Arg.Any<CancellationToken>())
@@ -142,7 +142,7 @@ public class CreateApartmentAvailabilityBlockCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _blockRepositoryMock
             .IsOverlappingAsync(apartment.Id, Arg.Any<DateOnly>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns(false);

@@ -59,7 +59,7 @@ public class AddApartmentAmenityCommandHandlerTests
         var apartment = ApartmentData.Create();
         apartment.AddAmenity(Amenity.WiFi);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new AddApartmentAmenityCommand(apartment.Id, Amenity.WiFi), default);
@@ -76,7 +76,7 @@ public class AddApartmentAmenityCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new AddApartmentAmenityCommand(apartment.Id, Amenity.WiFi), default);

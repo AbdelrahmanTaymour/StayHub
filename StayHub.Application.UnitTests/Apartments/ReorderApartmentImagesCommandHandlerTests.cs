@@ -4,7 +4,6 @@ using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Apartments.ReorderApartmentImages;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Apartments;
 
@@ -27,7 +26,8 @@ public class ReorderApartmentImagesCommandHandlerTests
     }
 
     private static ApartmentImage CreateImage(Guid apartmentId, int displayOrder) =>
-        ApartmentImage.Create(apartmentId, new ImageUrl($"https://cdn.stayhub.dev/{displayOrder}.png"), displayOrder,
+        ApartmentImage.Create(apartmentId, new ApartmentImageUrl($"https://cdn.stayhub.dev/{displayOrder}.png"),
+            displayOrder,
             DateTime.UtcNow);
 
     [Fact]
@@ -72,8 +72,8 @@ public class ReorderApartmentImagesCommandHandlerTests
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
         _imageRepositoryMock.GetByApartmentIdAsync(apartment.Id, Arg.Any<CancellationToken>())
             .Returns([image]);
-        _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(false);
+        _userContextMock.IsAdmin.Returns(true);
 
         // Act
         var result = await _handler.Handle(new ReorderApartmentImagesCommand(apartment.Id, [image.Id]), default);
@@ -91,7 +91,7 @@ public class ReorderApartmentImagesCommandHandlerTests
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
         _imageRepositoryMock.GetByApartmentIdAsync(apartment.Id, Arg.Any<CancellationToken>())
             .Returns([image]);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act — submitting two ids when only one image exists
         var result = await _handler.Handle(
@@ -112,7 +112,7 @@ public class ReorderApartmentImagesCommandHandlerTests
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
         _imageRepositoryMock.GetByApartmentIdAsync(apartment.Id, Arg.Any<CancellationToken>())
             .Returns([image]);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(
@@ -134,7 +134,7 @@ public class ReorderApartmentImagesCommandHandlerTests
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
         _imageRepositoryMock.GetByApartmentIdAsync(apartment.Id, Arg.Any<CancellationToken>())
             .Returns([first, second]);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act — reversed order: second should end up first
         var result = await _handler.Handle(

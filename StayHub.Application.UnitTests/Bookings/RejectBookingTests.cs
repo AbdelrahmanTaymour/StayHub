@@ -7,7 +7,6 @@ using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Bookings;
 
@@ -96,7 +95,7 @@ public class RejectBookingTests
         var booking = BookingData.ReserveAndConfirm(apartment);
         _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
         _apartmentRepositoryMock.GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new RejectBookingCommand(booking.Id), default);
@@ -117,7 +116,7 @@ public class RejectBookingTests
         var booking = BookingData.Reserve(apartment);
         _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
         _apartmentRepositoryMock.GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new RejectBookingCommand(booking.Id), default);
@@ -138,7 +137,7 @@ public class RejectBookingTests
         _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
         _apartmentRepositoryMock.GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>()).Returns(apartment);
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsAdmin.Returns(true);
 
         // Act
         var result = await _handler.Handle(new RejectBookingCommand(booking.Id), default);

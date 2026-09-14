@@ -100,7 +100,7 @@ public class RevokeApartmentStaffAssignmentCommandHandlerTests
         assignment.Revoke(UtcNow);
         _staffAssignmentRepositoryMock.GetByIdAsync(assignment.Id, Arg.Any<CancellationToken>()).Returns(assignment);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new RevokeApartmentStaffAssignmentCommand(assignment.Id), default);
@@ -119,7 +119,7 @@ public class RevokeApartmentStaffAssignmentCommandHandlerTests
         var assignment = CreateAssignment(apartment.Id);
         _staffAssignmentRepositoryMock.GetByIdAsync(assignment.Id, Arg.Any<CancellationToken>()).Returns(assignment);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new RevokeApartmentStaffAssignmentCommand(assignment.Id), default);

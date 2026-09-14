@@ -10,7 +10,6 @@ using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 using StayHub.Domain.Payments;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.UnitTests.Payments;
 
@@ -55,6 +54,48 @@ public class RefundPaymentTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(PaymentErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task Handle_Should_ReturnFailure_WhenPaymentAlreadyRefunded()
+    {
+        // Arrange
+        var guestId = Guid.CreateVersion7();
+        var apartment = ApartmentData.Create();
+        var booking = BookingData.ReserveAndConfirm(apartment, guestId);
+        var payment = PaymentData.InitiateAndSucceed(booking.Id);
+
+        payment.Refund(UtcNow);
+
+        _paymentRepositoryMock
+            .GetByIdAsync(payment.Id, Arg.Any<CancellationToken>())
+            .Returns(payment);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _userContextMock.UserId.Returns(guestId);
+
+        // Act
+        var result = await _handler.Handle(
+            new RefundPaymentCommand(payment.Id),
+            default);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PaymentErrors.AlreadyRefunded);
+
+        await _paymentGatewayServiceMock.DidNotReceive().RefundAsync(
+            Arg.Any<ProviderReference>(),
+            Arg.Any<CancellationToken>());
+
+        await _unitOfWorkMock.DidNotReceive()
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -150,7 +191,7 @@ public class RefundPaymentTests
         _paymentRepositoryMock.GetByIdAsync(payment.Id, Arg.Any<CancellationToken>()).Returns(payment);
         _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
         _apartmentRepositoryMock.GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new RefundPaymentCommand(payment.Id), default);
@@ -171,7 +212,7 @@ public class RefundPaymentTests
         _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
         _apartmentRepositoryMock.GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>()).Returns(apartment);
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.Roles.Returns([Role.Admin.Name]);
+        _userContextMock.IsAdmin.Returns(true);
 
         // Act
         var result = await _handler.Handle(new RefundPaymentCommand(payment.Id), default);

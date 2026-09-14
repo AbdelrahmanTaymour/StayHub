@@ -69,7 +69,7 @@ public class UpdateApartmentCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(CommandFor(apartment.Id), default);
@@ -87,7 +87,8 @@ public class UpdateApartmentCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(Guid.CreateVersion7());
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(false);
+        _userContextMock.IsAdmin.Returns(true);
         _userContextMock.Roles.Returns([Role.Admin.Name]);
 
         // Act
@@ -104,7 +105,7 @@ public class UpdateApartmentCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         var command = CommandFor(apartment.Id) with { PriceCurrency = "XYZ" };
 
         // Act

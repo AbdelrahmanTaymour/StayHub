@@ -89,7 +89,7 @@ public class AddApartmentImageCommandHandlerTests
         // Arrange
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _imageRepositoryMock.CountByApartmentId(apartment.Id, Arg.Any<CancellationToken>()).Returns(2);
 
         // Act
@@ -110,7 +110,7 @@ public class AddApartmentImageCommandHandlerTests
         // the now-orphaned file rather than leaving it dangling.
         var apartment = ApartmentData.Create();
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
         _unitOfWorkMock.SaveChangesAsync(Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Database unavailable"));
 

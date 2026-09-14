@@ -103,7 +103,7 @@ public class CloseMaintenanceRequestTests
         var request = MaintenanceRequestData.CreateStartAndResolve(apartment.Id);
         _maintenanceRequestRepositoryMock.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(request);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new CloseMaintenanceRequestCommand(request.Id), default);
@@ -148,7 +148,7 @@ public class CloseMaintenanceRequestTests
         var request = MaintenanceRequestData.CreateAndStart(apartment.Id);
         _maintenanceRequestRepositoryMock.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(request);
         _apartmentRepositoryMock.GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>()).Returns(apartment);
-        _userContextMock.UserId.Returns(apartment.OwnerId);
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
         var result = await _handler.Handle(new CloseMaintenanceRequestCommand(request.Id), default);
