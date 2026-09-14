@@ -3,7 +3,6 @@ using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.Bookings.CancelBooking;
 
@@ -25,7 +24,7 @@ internal sealed class CancelBookingCommandHandler(
             return Result.Failure(BookingErrors.NotFound);
 
         var isGuest = booking.UserId == userContext.UserId;
-        var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
+        var isAdmin = userContext.IsAdmin;
 
         if (!isGuest && !isAdmin)
             return Result.Failure(BookingErrors.NotAuthorized);

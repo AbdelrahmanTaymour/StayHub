@@ -4,7 +4,6 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.Bookings.RejectBooking;
 
@@ -26,10 +25,8 @@ internal sealed class RejectBookingCommandHandler(
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
         // Reject is strictly a Host/Admin action. Guests should use Cancel.
-        var isOwner = apartment.OwnerId == userContext.UserId;
-        var isAdmin = userContext.Roles.Contains(Role.Admin.Name);
-
-        if (!isAdmin && !isOwner) return Result.Failure(BookingErrors.NotAuthorized);
+        if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
+            return Result.Failure(BookingErrors.NotAuthorized);
 
         var result = booking.Reject(userContext.UserId, dateTimeProvider.UtcNow);
 

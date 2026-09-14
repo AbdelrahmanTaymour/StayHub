@@ -2,7 +2,6 @@ using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.Apartments.ReorderApartmentImages;
 
@@ -18,8 +17,7 @@ internal sealed class ReorderApartmentImagesCommandHandler(
 
         if (apartment is null) return Result.Failure(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != userContext.UserId &&
-            !userContext.Roles.Contains(Role.Admin.Name))
+        if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
             return Result.Failure(ApartmentErrors.NotAuthorized);
 
         var images = await imageRepository.GetByApartmentIdAsync(request.ApartmentId, cancellationToken);

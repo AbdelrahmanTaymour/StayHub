@@ -4,7 +4,6 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
-using StayHub.Domain.Users;
 
 namespace StayHub.Application.Apartments.CreateApartmentAvailabilityBlock;
 
@@ -24,8 +23,7 @@ internal sealed class CreateApartmentAvailabilityBlockCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != userContext.UserId &&
-            !userContext.Roles.Contains(Role.Admin.Name))
+        if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
             return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var blockOverlap = await blockRepository.IsOverlappingAsync(

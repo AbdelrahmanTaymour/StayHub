@@ -21,8 +21,7 @@ internal sealed class AssignApartmentStaffCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
-        if (apartment.OwnerId != userContext.UserId &&
-            !userContext.Roles.Contains(Role.Admin.Name))
+        if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
             return Result.Failure<Guid>(ApartmentErrors.NotAuthorized);
 
         var staffUser = await userRepository.GetByIdAsync(request.StaffUserId, cancellationToken);
