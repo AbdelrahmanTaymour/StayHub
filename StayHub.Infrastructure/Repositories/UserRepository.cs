@@ -13,9 +13,23 @@ internal sealed class UserRepository(ApplicationDbContext dbContext)
             .FirstOrDefaultAsync(u => u.IdentityId == identityId, cancellationToken);
     }
 
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        return await DbContext
+            .Set<User>()
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+    }
+
     public async Task<bool> IsEmailUniqueAsync(Domain.Users.Email email, CancellationToken cancellationToken = default)
     {
         return !await DbContext
+            .Set<User>()
+            .AnyAsync(user => user.Email == email, cancellationToken);
+    }
+
+    public async Task<bool> IsEmailExistsAsync(Domain.Users.Email email, CancellationToken cancellationToken = default)
+    {
+        return await DbContext
             .Set<User>()
             .AnyAsync(user => user.Email == email, cancellationToken);
     }
