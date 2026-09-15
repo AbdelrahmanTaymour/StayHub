@@ -13,4 +13,12 @@ public interface IAuthenticationService
         User user,
         string password,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Triggers Keycloak's own password-reset email for the given identity id, via the Admin
+    ///     API's execute-actions-email endpoint with the UPDATE_PASSWORD required action.
+    /// </summary>
+    Task<Result> ForgotPasswordAsync(
+        string identityId,
+        CancellationToken cancellationToken = default);
 }

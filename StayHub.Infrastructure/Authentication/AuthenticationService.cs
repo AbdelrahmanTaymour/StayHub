@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Options;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Users;
@@ -7,8 +8,13 @@ using StayHub.Infrastructure.Authentication.Models;
 
 namespace StayHub.Infrastructure.Authentication;
 
-internal sealed class AuthenticationService(HttpClient httpClient) : IAuthenticationService
+internal sealed class AuthenticationService(
+    HttpClient httpClient,
+    IOptions<KeycloakOptions> keycloakOptions) : IAuthenticationService
 {
+    private static readonly TimeSpan ForgotPasswordTimeout = TimeSpan.FromSeconds(10);
+    private readonly KeycloakOptions _keycloakOptions = keycloakOptions.Value;
+
     public async Task<Result<string>> RegisterAsync(
         User user,
         string password,
@@ -63,5 +69,38 @@ internal sealed class AuthenticationService(HttpClient httpClient) : IAuthentica
         if (identityId is null) return Result.Failure<string>(AuthenticationErrors.RegistrationFailed);
 
         return identityId;
+    }
+
+    public async Task<Result> ForgotPasswordAsync(
+        string identityId,
+        CancellationToken cancellationToken = default)
+    {
+        var query =
+            $"client_id={Uri.EscapeDataString(_keycloakOptions.PasswordResetClientId)}" +
+            $"&redirect_uri={Uri.EscapeDataString(_keycloakOptions.PasswordResetRedirectUri)}" +
+            $"&lifespan={_keycloakOptions.PasswordResetLinkLifespanSeconds}";
+
+        using var timeoutCts = new CancellationTokenSource(ForgotPasswordTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync(
+                $"users/{identityId}/execute-actions-email?{query}",
+                new[] { "UPDATE_PASSWORD" },
+                linkedCts.Token);
+
+            response.EnsureSuccessStatusCode();
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Result.Failure(AuthenticationErrors.IdentityProviderUnavailable);
+        }
+        catch (HttpRequestException)
+        {
+            return Result.Failure(AuthenticationErrors.IdentityProviderUnavailable);
+        }
+
+        return Result.Success();
     }
 }
