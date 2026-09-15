@@ -82,6 +82,8 @@ public sealed class Payment : Entity
 
     public Result Refund(DateTime utcNow)
     {
+        if (Status == PaymentStatus.Refunded) return Result.Failure(PaymentErrors.AlreadyRefunded);
+
         if (Status != PaymentStatus.Succeeded) return Result.Failure(PaymentErrors.NotSucceeded);
 
         Status = PaymentStatus.Refunded;

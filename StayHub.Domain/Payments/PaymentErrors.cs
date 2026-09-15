@@ -27,4 +27,8 @@ public static class PaymentErrors
     public static readonly Error AlreadyInitiated = Error.Conflict(
         "Payment.AlreadyInitiated",
         "A payment has already been initiated for this booking");
+
+    public static readonly Error AlreadyRefunded = Error.Conflict(
+        "Payment.AlreadyRefunded",
+        "A payment has already been refunded for this booking");
 }
