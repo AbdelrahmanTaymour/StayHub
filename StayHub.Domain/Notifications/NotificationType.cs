@@ -7,5 +7,8 @@ public enum NotificationType
     BookingCancelled = 3,
     NewMessage = 4,
     ReviewReceived = 5,
-    MaintenanceUpdate = 6
+    ReviewResponseReceived = 6,
+    MaintenanceRequestCreated = 7,
+    MaintenanceRequestUpdate = 8,
+    ApartmentStaffAssignmentCreated = 9
 }

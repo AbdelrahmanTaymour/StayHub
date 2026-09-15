@@ -53,7 +53,7 @@ public sealed class MaintenanceRequest : Entity
             MaintenanceRequestStatus.Open,
             utcNow);
 
-        request.RaiseDomainEvent(new MaintenanceRequestCreatedDomainEvent(request.Id));
+        request.RaiseDomainEvent(new MaintenanceRequestCreatedDomainEvent(request.Id, reportedByUserId));
 
         return request;
     }
@@ -64,7 +64,7 @@ public sealed class MaintenanceRequest : Entity
 
         Status = MaintenanceRequestStatus.InProgress;
 
-        RaiseDomainEvent(new MaintenanceRequestStartedDomainEvent(Id));
+        RaiseDomainEvent(new MaintenanceRequestStartedDomainEvent(Id, ReportedByUserId));
 
         return Result.Success();
     }
@@ -77,7 +77,7 @@ public sealed class MaintenanceRequest : Entity
         Status = MaintenanceRequestStatus.Resolved;
         ResolvedOnUtc = utcNow;
 
-        RaiseDomainEvent(new MaintenanceRequestResolvedDomainEvent(Id));
+        RaiseDomainEvent(new MaintenanceRequestResolvedDomainEvent(Id, ReportedByUserId));
 
         return Result.Success();
     }
@@ -89,7 +89,7 @@ public sealed class MaintenanceRequest : Entity
         Status = MaintenanceRequestStatus.Closed;
         ClosedOnUtc = utcNow;
 
-        RaiseDomainEvent(new MaintenanceRequestClosedDomainEvent(Id));
+        RaiseDomainEvent(new MaintenanceRequestClosedDomainEvent(Id, ReportedByUserId));
 
         return Result.Success();
     }

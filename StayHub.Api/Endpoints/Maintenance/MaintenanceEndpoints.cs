@@ -2,6 +2,7 @@ using MediatR;
 using StayHub.Api.Extensions;
 using StayHub.Application.Maintenance.CloseMaintenanceRequest;
 using StayHub.Application.Maintenance.CreateMaintenanceRequest;
+using StayHub.Application.Maintenance.GetMaintenanceRequest;
 using StayHub.Application.Maintenance.ResolveMaintenanceRequest;
 using StayHub.Application.Maintenance.StartMaintenanceRequest;
 
@@ -12,6 +13,13 @@ public static class MaintenanceEndpoints
     public static IEndpointRouteBuilder MapMaintenanceEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("apartments").WithTags("Maintenance").RequireAuthorization();
+
+        group.MapGet("maintenance-requests/{requestId:guid}", GetMaintenanceRequest)
+            .HasPermission(Permissions.MaintenanceManage)
+            .WithName(nameof(GetMaintenanceRequest))
+            .Produces<MaintenanceRequestResponse>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("{id:guid}/maintenance-requests", CreateMaintenanceRequest)
             .HasPermission(Permissions.MaintenanceCreate)
@@ -43,6 +51,16 @@ public static class MaintenanceEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         return builder;
+    }
+
+    private static async Task<IResult> GetMaintenanceRequest(
+        Guid requestId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetMaintenanceRequestQuery(requestId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
     private static async Task<IResult> CreateMaintenanceRequest(
