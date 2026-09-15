@@ -1,18 +1,26 @@
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Apartments;
 
 namespace StayHub.Application.Apartments.GetApartmentsByOwner;
 
 internal sealed class GetApartmentsByOwnerQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext)
     : IQueryHandler<GetApartmentsByOwnerQuery, IReadOnlyList<ApartmentSummaryResponse>>
 {
     public async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> Handle(
         GetApartmentsByOwnerQuery request,
         CancellationToken cancellationToken)
     {
+        if (request.IncludeInactive && !userContext.IsAdmin && !userContext.IsOwner(request.OwnerId))
+        {
+            return Result.Failure<IReadOnlyList<ApartmentSummaryResponse>>(ApartmentErrors.NotAuthorized);
+        }
+
         using var connection = sqlConnectionFactory.CreateConnection();
 
         const string sql = """
@@ -25,11 +33,13 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
                                img.url AS PrimaryImageUrl
                            FROM apartments a
                            LEFT JOIN apartment_images img
-                               ON img.apartment_id = a.id AND img.is_primary = true
+                               ON img.apartment_id = a.id
+                               AND img.is_primary = true
                            WHERE a.owner_id = @OwnerId
-                             AND a.is_active = true
+                             AND (@IncludeInactive OR a.is_active = true)
                            ORDER BY a.created_on_utc DESC
-                           OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+                           OFFSET @Offset ROWS
+                           FETCH NEXT @PageSize ROWS ONLY
                            """;
 
         var apartments = await connection.QueryAsync<ApartmentSummaryResponse>(
@@ -37,6 +47,7 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
             new
             {
                 request.OwnerId,
+                request.IncludeInactive,
                 Offset = (request.Page - 1) * request.PageSize,
                 request.PageSize
             });

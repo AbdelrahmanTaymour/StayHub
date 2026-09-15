@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StayHub.Application.Integra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StayHub.Api.FunctionalTests", "StayHub.Api.FunctionalTests\StayHub.Api.FunctionalTests.csproj", "{3F4451F5-7908-4B84-BF8A-8F20FFF48DC0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StayHub.ArchitectureTests", "StayHub.ArchitectureTests\StayHub.ArchitectureTests.csproj", "{E48EE772-E60D-4621-AA2B-8EC84DC03059}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,7 @@ Global
 		{880D358D-CB14-4CF3-A5FE-378B6B18C7FB} = {9DA97E43-B8D1-4D1C-AC85-66B18501792C}
 		{FA31F03C-303B-45C0-B045-990D0D3C9189} = {9DA97E43-B8D1-4D1C-AC85-66B18501792C}
 		{3F4451F5-7908-4B84-BF8A-8F20FFF48DC0} = {9DA97E43-B8D1-4D1C-AC85-66B18501792C}
+		{E48EE772-E60D-4621-AA2B-8EC84DC03059} = {9DA97E43-B8D1-4D1C-AC85-66B18501792C}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{481EC421-58DC-4B46-BF57-8A39A2693144}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -68,5 +71,9 @@ Global
 		{3F4451F5-7908-4B84-BF8A-8F20FFF48DC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F4451F5-7908-4B84-BF8A-8F20FFF48DC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F4451F5-7908-4B84-BF8A-8F20FFF48DC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E48EE772-E60D-4621-AA2B-8EC84DC03059}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E48EE772-E60D-4621-AA2B-8EC84DC03059}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E48EE772-E60D-4621-AA2B-8EC84DC03059}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E48EE772-E60D-4621-AA2B-8EC84DC03059}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

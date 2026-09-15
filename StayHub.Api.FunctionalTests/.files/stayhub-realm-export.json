@@ -33,7 +33,7 @@
   "verifyEmail": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
@@ -919,6 +919,8 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:5173/*",
         "https://localhost:7232/*"
       ],
       "webOrigins": [],
@@ -1701,7 +1703,18 @@
     "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
-  "smtpServer": {},
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "noreply@stayhub.local",
+    "fromDisplayName": "StayHub",
+    "replyTo": "",
+    "replyToDisplayName": "",
+    "envelopeFrom": "",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
+  },
   "eventsEnabled": false,
   "eventsListeners": [
     "jboss-logging"

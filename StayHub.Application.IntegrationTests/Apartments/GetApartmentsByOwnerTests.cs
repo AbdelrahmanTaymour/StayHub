@@ -139,4 +139,28 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         secondResult.IsSuccess.Should().BeTrue();
         secondResult.Value.Should().ContainSingle(a => a.Id == apartment.Id);
     }
+
+    [Fact]
+    public async Task GetApartmentsByOwner_ShouldNotBeCacheable_WhenIncludeInactiveIsTrue()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var activeApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Active");
+        var inactiveApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Inactive");
+        inactiveApartment.Deactivate();
+        DbContext.AddRange(owner, activeApartment, inactiveApartment);
+        await DbContext.SaveChangesAsync();
+
+        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: true, Page: 1, PageSize: 10);
+
+        // Assert
+        query.IsCacheable.Should().BeFalse();
+
+        // Act
+        await Sender.Send(query);
+
+        // Assert
+        var cachedValue = await CacheService.GetAsync<IReadOnlyList<ApartmentSummaryResponse>>(query.CacheKey);
+        cachedValue.Should().BeNull();
+    }
 }
