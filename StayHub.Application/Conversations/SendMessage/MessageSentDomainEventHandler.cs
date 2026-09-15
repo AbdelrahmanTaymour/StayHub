@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Domain.Abstractions;
@@ -30,10 +31,15 @@ public class MessageSentDomainEventHandler(
             ? conversation.OwnerId
             : conversation.GuestId;
 
+        var payload = new NewMessageNotificationPayload(
+            ConversationId: conversation.Id,
+            MessageId: message.Id,
+            $"Message: {message.Body}");
+
         var systemNotification = Notification.Create(
             recipientId,
             NotificationType.NewMessage,
-            $"{{\"conversationId\":\"{conversation.Id}\",\"messageId\":\"{message.Id}\"}}",
+            JsonSerializer.Serialize(payload),
             dateTimeProvider.UtcNow);
 
         notificationRepository.Add(systemNotification);
