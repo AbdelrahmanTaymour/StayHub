@@ -18,6 +18,7 @@ using StayHub.Application.Apartments.ReorderApartmentImages;
 using StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 using StayHub.Application.Apartments.SearchApartments;
 using StayHub.Application.Apartments.UpdateApartment;
+using StayHub.Application.Users.InviteUser;
 using StayHub.Domain.Apartments;
 
 namespace StayHub.Api.Endpoints.Apartments;
@@ -139,6 +140,13 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapPost("{id:guid}/staff/invite", InviteStaff)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return group;
     }
 
@@ -174,10 +182,12 @@ public static class ApartmentEndpoints
         Guid ownerId,
         ISender sender,
         CancellationToken cancellationToken,
+        bool includeInactive = false,
         int page = 1,
         int pageSize = 20)
     {
-        var result = await sender.Send(new GetApartmentsByOwnerQuery(ownerId, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetApartmentsByOwnerQuery(ownerId, includeInactive, page, pageSize),
+            cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
@@ -347,6 +357,17 @@ public static class ApartmentEndpoints
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new RevokeApartmentStaffAssignmentCommand(assignmentId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> InviteStaff(
+        Guid id,
+        InviteStaffRequest request,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new InviteUserCommand(id, request.Email, request.Body), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
     }
