@@ -1,3 +1,5 @@
+using StayHub.Domain.Bookings;
+
 namespace StayHub.Application.Bookings.GetBooking;
 
 public sealed class BookingResponse
@@ -8,7 +10,7 @@ public sealed class BookingResponse
 
     public Guid ApartmentId { get; init; }
 
-    public int Status { get; init; }
+    public BookingStatus Status { get; init; }
 
     public decimal PriceAmount { get; init; }
 

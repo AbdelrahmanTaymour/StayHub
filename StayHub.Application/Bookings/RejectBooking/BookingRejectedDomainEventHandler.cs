@@ -1,8 +1,12 @@
+using System.Text.Json;
 using MediatR;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Email;
+using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 using StayHub.Domain.Bookings.Events;
+using StayHub.Domain.Notifications;
 using StayHub.Domain.Users;
 
 namespace StayHub.Application.Bookings.RejectBooking;
@@ -11,11 +15,14 @@ public class BookingRejectedDomainEventHandler(
     IBookingRepository bookingRepository,
     IApartmentRepository apartmentRepository,
     IUserRepository userRepository,
-    IEmailService emailService) : INotificationHandler<BookingRejectedDomainEvent>
+    INotificationRepository notificationRepository,
+    IUnitOfWork unitOfWork,
+    IEmailService emailService,
+    IDateTimeProvider dateTimeProvider) : INotificationHandler<BookingRejectedDomainEvent>
 {
-    public async Task Handle(BookingRejectedDomainEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(BookingRejectedDomainEvent domainEvent, CancellationToken cancellationToken)
     {
-        var booking = await bookingRepository.GetByIdAsync(notification.BookingId, cancellationToken);
+        var booking = await bookingRepository.GetByIdAsync(domainEvent.BookingId, cancellationToken);
 
         if (booking is null) return;
 
@@ -23,7 +30,7 @@ public class BookingRejectedDomainEventHandler(
 
         if (apartment is null) return;
 
-        var guestRejected = notification.RejectedByUserId == booking.UserId;
+        var guestRejected = domainEvent.RejectedByUserId == booking.UserId;
 
         var recipientId = guestRejected ? apartment.OwnerId : booking.UserId;
 
@@ -34,6 +41,21 @@ public class BookingRejectedDomainEventHandler(
         var message = guestRejected
             ? "The guest has withdrawn their booking request."
             : "The owner has declined your booking request.";
+
+        var payload = new BookingRejectedNotificationPayload(
+            BookingId: booking.Id,
+            ApartmentId: booking.ApartmentId,
+            Message: message);
+
+        var notification = Notification.Create(
+            recipientId,
+            NotificationType.BookingRejected,
+            JsonSerializer.Serialize(payload),
+            dateTimeProvider.UtcNow);
+
+        notificationRepository.Add(notification);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await emailService.SendAsync(recipient.Email, "Booking request rejected", message);
     }
