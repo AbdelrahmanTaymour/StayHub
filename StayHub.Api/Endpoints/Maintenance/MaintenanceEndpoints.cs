@@ -3,8 +3,10 @@ using StayHub.Api.Extensions;
 using StayHub.Application.Maintenance.CloseMaintenanceRequest;
 using StayHub.Application.Maintenance.CreateMaintenanceRequest;
 using StayHub.Application.Maintenance.GetMaintenanceRequest;
+using StayHub.Application.Maintenance.GetMaintenanceRequestsByApartment;
 using StayHub.Application.Maintenance.ResolveMaintenanceRequest;
 using StayHub.Application.Maintenance.StartMaintenanceRequest;
+using StayHub.Domain.Maintenance;
 
 namespace StayHub.Api.Endpoints.Maintenance;
 
@@ -13,6 +15,12 @@ public static class MaintenanceEndpoints
     public static IEndpointRouteBuilder MapMaintenanceEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("apartments").WithTags("Maintenance").RequireAuthorization();
+
+        group.MapGet("{id:guid}/maintenance-requests", GetMaintenanceRequestsByApartment)
+            .HasPermission(Permissions.MaintenanceManage)
+            .Produces<IReadOnlyList<MaintenanceRequestsSummaryResponse>>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("maintenance-requests/{requestId:guid}", GetMaintenanceRequest)
             .HasPermission(Permissions.MaintenanceManage)
@@ -51,6 +59,21 @@ public static class MaintenanceEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         return builder;
+    }
+
+    private static async Task<IResult> GetMaintenanceRequestsByApartment(
+        Guid id,
+        ISender sender,
+        CancellationToken cancellationToken,
+        MaintenanceRequestStatus? status = null,
+        int page = 1,
+        int pageSize = 20)
+    {
+        var query = new GetMaintenanceRequestsByApartmentQuery(id, status, page, pageSize);
+
+        var result = await sender.Send(query, cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
     private static async Task<IResult> GetMaintenanceRequest(
