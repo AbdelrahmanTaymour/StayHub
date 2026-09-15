@@ -1,6 +1,7 @@
 using MediatR;
 using StayHub.Api.Extensions;
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Users.ForgotPassword;
 using StayHub.Application.Users.GetLoggedInUser;
 using StayHub.Application.Users.GetUser;
 using StayHub.Application.Users.GetUserSessions;
@@ -52,6 +53,11 @@ public static class UserEndpoints
         group.MapPost("logout", LogOut)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        group.MapPost("forgot-password", ForgotPassword)
+            .AllowAnonymous()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem();
 
         group.MapPut("{id:guid}/name", UpdateName)
             .HasPermission(Permissions.UserUpdate)
@@ -134,6 +140,16 @@ public static class UserEndpoints
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new LogOutUserCommand(request.RefreshToken), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> ForgotPassword(
+        ForgotPasswordRequest request,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ForgotPasswordCommand(request.Email), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
     }
