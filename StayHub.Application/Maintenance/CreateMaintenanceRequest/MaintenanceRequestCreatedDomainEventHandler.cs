@@ -1,8 +1,12 @@
+using System.Text.Json;
 using MediatR;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Email;
+using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Maintenance;
 using StayHub.Domain.Maintenance.Events;
+using StayHub.Domain.Notifications;
 using StayHub.Domain.Users;
 
 namespace StayHub.Application.Maintenance.CreateMaintenanceRequest;
@@ -12,12 +16,15 @@ public class MaintenanceRequestCreatedDomainEventHandler(
     IApartmentRepository apartmentRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
     IUserRepository userRepository,
-    IEmailService emailService) : INotificationHandler<MaintenanceRequestCreatedDomainEvent>
+    INotificationRepository notificationRepository,
+    IUnitOfWork unitOfWork,
+    IEmailService emailService,
+    IDateTimeProvider dateTimeProvider) : INotificationHandler<MaintenanceRequestCreatedDomainEvent>
 {
-    public async Task Handle(MaintenanceRequestCreatedDomainEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(MaintenanceRequestCreatedDomainEvent domainEvent, CancellationToken cancellationToken)
     {
         var maintenanceRequest = await maintenanceRequestRepository.GetByIdAsync(
-            notification.MaintenanceRequestId,
+            domainEvent.MaintenanceRequestId,
             cancellationToken);
 
         if (maintenanceRequest is null) return;
@@ -32,16 +39,33 @@ public class MaintenanceRequestCreatedDomainEventHandler(
 
         recipientIds.AddRange(activeStaff.Select(s => s.UserId));
 
+        var payload = new MaintenanceRequestCreatedNotificationPayload(
+            MaintenanceRequestId: maintenanceRequest.Id,
+            ApartmentId: maintenanceRequest.ApartmentId,
+            Comment: maintenanceRequest.Title.Value);
+
+        var serializedPayload = JsonSerializer.Serialize(payload);
+
         foreach (var recipientId in recipientIds.Distinct())
         {
             var recipient = await userRepository.GetByIdAsync(recipientId, cancellationToken);
 
             if (recipient is null) continue;
 
+            var notification = Notification.Create(
+                recipientId,
+                NotificationType.MaintenanceRequestCreated,
+                serializedPayload,
+                dateTimeProvider.UtcNow);
+
+            notificationRepository.Add(notification);
+
             await emailService.SendAsync(
                 recipient.Email,
                 "New maintenance request",
                 $"A new issue has been reported: {maintenanceRequest.Title}");
         }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }
