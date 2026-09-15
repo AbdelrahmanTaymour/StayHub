@@ -7,12 +7,9 @@ namespace StayHub.Api.Endpoints.Notifications;
 
 public static class NotificationEndpoints
 {
-    // No .HasPermission — GetNotificationsByUserQuery doesn't take the
-    // route's userId at all, so caller identity is already resolved
-    // server-side. Self-scoped by construction.
     public static IEndpointRouteBuilder MapNotificationEndpoints(this IEndpointRouteBuilder builder)
     {
-        var group = builder.MapGroup("users/{userId:guid}/notifications")
+        var group = builder.MapGroup("notifications")
             .WithTags("Notifications")
             .RequireAuthorization();
 

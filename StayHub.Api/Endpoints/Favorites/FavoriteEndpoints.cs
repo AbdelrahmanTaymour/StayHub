@@ -9,14 +9,9 @@ namespace StayHub.Api.Endpoints.Favorites;
 
 public static class FavoriteEndpoints
 {
-    // No .HasPermission anywhere — every endpoint operates on the caller's
-    // own favorites list, self-scoped by construction (same reasoning as the
-    // controller version).
     public static IEndpointRouteBuilder MapFavoriteEndpoints(this IEndpointRouteBuilder builder)
     {
-        var group = builder.MapGroup("users/{userId:guid}/favorites")
-            .WithTags("Favorites")
-            .RequireAuthorization();
+        var group = builder.MapGroup("favorites").WithTags("Favorites").RequireAuthorization();
 
         group.MapGet("", Get)
             .Produces<IReadOnlyList<ApartmentSummaryResponse>>();

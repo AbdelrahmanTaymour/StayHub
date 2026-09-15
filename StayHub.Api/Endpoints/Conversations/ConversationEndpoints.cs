@@ -20,13 +20,12 @@ public static class ConversationEndpoints
         group.MapGet("{id:guid}/messages", GetMessages)
             .WithName(nameof(GetMessages))
             .Produces<IReadOnlyList<MessageResponse>>()
-            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("", Start)
             .Produces<Guid>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesValidationProblem();
 
         group.MapPost("{id:guid}/messages", SendMessage)
             .Produces<Guid>(StatusCodes.Status201Created)

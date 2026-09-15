@@ -1,7 +1,6 @@
 using MediatR;
 using StayHub.Api.Extensions;
 using StayHub.Application.Bookings.CancelBooking;
-using StayHub.Application.Bookings.CompleteBooking;
 using StayHub.Application.Bookings.ConfirmBooking;
 using StayHub.Application.Bookings.GetBooking;
 using StayHub.Application.Bookings.GetBookingsByApartment;
@@ -45,6 +44,7 @@ public static class BookingEndpoints
             .HasPermission(Permissions.BookingManage)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapPost("{id:guid}/reject", Reject)
@@ -60,6 +60,7 @@ public static class BookingEndpoints
         group.MapPost("{id:guid}/cancel", Cancel)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         return builder;
@@ -138,13 +139,6 @@ public static class BookingEndpoints
     private static async Task<IResult> Cancel(Guid id, ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CancelBookingCommand(id), cancellationToken);
-
-        return result.IsFailure ? result.ToProblemDetails() : TypedResults.NoContent();
-    }
-
-    private static async Task<IResult> Complete(Guid id, ISender sender, CancellationToken cancellationToken)
-    {
-        var result = await sender.Send(new CompleteBookingCommand(id), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : TypedResults.NoContent();
     }
