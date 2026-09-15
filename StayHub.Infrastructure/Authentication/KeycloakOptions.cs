@@ -13,4 +13,10 @@ public sealed class KeycloakOptions
     public string AuthClientId { get; init; } = string.Empty;
 
     public string AuthClientSecret { get; init; } = string.Empty;
+
+    public string PasswordResetClientId { get; init; } = string.Empty;
+
+    public string PasswordResetRedirectUri { get; init; } = string.Empty;
+
+    public int PasswordResetLinkLifespanSeconds { get; init; } = 900;
 }
