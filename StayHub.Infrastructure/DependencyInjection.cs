@@ -132,7 +132,7 @@ public static class DependencyInjection
         services.AddSingleton<IAmazonS3>(sp =>
             ObjectStorageClientFactory.Create(sp.GetRequiredService<IOptions<StorageSettings>>()));
 
-        //services.AddSingleton<IImageProcessor, ImageProcessor>();
+        services.AddSingleton<IImageProcessor, ImageProcessor>();
         services.AddScoped<IFileStorageService, ObjectStorageService>();
     }
 
