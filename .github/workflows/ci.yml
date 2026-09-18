@@ -1,0 +1,93 @@
+# Validate every pull request before it can be merged.
+on:
+  pull_request:
+
+# Grant only the permissions required by this workflow.
+permissions:
+  contents: read
+
+# Cancel stale PR runs when a newer commit is pushed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  BUILD_CONFIGURATION: Release
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  test-and-build:
+    name: test-and-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true # Cache NuGet packages based on project file changes.
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Restore dependencies
+        run: dotnet restore StayHub.sln
+
+      - name: Build solution
+        run: dotnet build StayHub.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      # Run fast, infrastructure-independent tests in the PR workflow.
+      # Integration and functional tests are handled separately.
+      - name: Run unit tests - StayHub.Domain.UnitTests
+        run: >
+          dotnet test StayHub.Domain.UnitTests/StayHub.Domain.UnitTests.csproj
+          --configuration ${{ env.BUILD_CONFIGURATION }}
+          --no-build
+          --no-restore
+          --logger "trx;LogFileName=domain-unit-tests.trx"
+          --results-directory ./test-results
+
+      - name: Run unit tests - StayHub.Application.UnitTests
+        run: >
+          dotnet test StayHub.Application.UnitTests/StayHub.Application.UnitTests.csproj
+          --configuration ${{ env.BUILD_CONFIGURATION }}
+          --no-build
+          --no-restore
+          --logger "trx;LogFileName=application-unit-tests.trx"
+          --results-directory ./test-results
+
+      - name: Run architecture tests - StayHub.ArchitectureTests
+        run: >
+          dotnet test StayHub.ArchitectureTests/StayHub.ArchitectureTests.csproj
+          --configuration ${{ env.BUILD_CONFIGURATION }}
+          --no-build
+          --no-restore
+          --logger "trx;LogFileName=architecture-tests.trx"
+          --results-directory ./test-results
+
+      # Preserve test results for troubleshooting failed CI runs.
+      - name: Upload a Build Artifact
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: test-results
+          path: ./test-results
+          retention-days: 14
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.4.1
+
+      # Validate the Docker image can be built without publishing it.
+      - name: Build Docker image (validation only, not pushed)
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: StayHub.Api/Dockerfile
+          push: false
+          tags: stayhub-backend:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
