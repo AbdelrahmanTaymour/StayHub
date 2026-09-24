@@ -13,4 +13,11 @@ internal static class ApartmentData
         new Money(100.0m, Currency.Usd),
         Money.Zero(),
         DateTime.UtcNow);
+
+    public static ApartmentImage CreateImage(Guid apartmentId, bool isPrimary = false) => ApartmentImage.Create(
+        apartmentId,
+        new ApartmentImageUrl("existing-primary.jpg"),
+        displayOrder: 0,
+        DateTime.UtcNow.AddMinutes(-5),
+        isPrimary);
 }

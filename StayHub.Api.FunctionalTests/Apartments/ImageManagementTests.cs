@@ -214,4 +214,118 @@ public sealed class ImageManagementTests(FunctionalTestWebAppFactory factory) : 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    // ---- Set Primary ----
+    [Fact]
+    public async Task SetAsPrimaryImage_ShouldReturnNoContent_WhenCallerIsApartmentOwner()
+    {
+        // Arrange
+        var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var firstImageId = await ApartmentTestFixtures.AddImageAsync(
+            HttpClient,
+            apartmentId);
+
+        var secondImageId = await ApartmentTestFixtures.AddImageAsync(
+            HttpClient,
+            apartmentId);
+
+        // Act
+        var response = await HttpClient.PutAsync(
+            ApartmentRoutes.ImageAsPrimary(apartmentId, secondImageId),
+            content: null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task SetAsPrimaryImage_ShouldReturnForbidden_WhenCallerIsNotApartmentOwner()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+        var imageId = await ApartmentTestFixtures.AddImageAsync(HttpClient, apartmentId);
+
+        var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(otherToken);
+
+        // Act
+        var response = await HttpClient.PutAsync(
+            ApartmentRoutes.ImageAsPrimary(apartmentId, imageId),
+            content: null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task SetAsPrimaryImage_ShouldReturnNotFound_WhenApartmentDoesNotExist()
+    {
+        // Arrange
+        var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        // Act
+        var response = await HttpClient.PutAsync(
+            ApartmentRoutes.ImageAsPrimary(
+                Guid.NewGuid(),
+                Guid.NewGuid()),
+            content: null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task SetAsPrimaryImage_ShouldReturnNotFound_WhenImageDoesNotExist()
+    {
+        // Arrange
+        var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        // Act
+        var response = await HttpClient.PutAsync(
+            ApartmentRoutes.ImageAsPrimary(
+                apartmentId,
+                Guid.NewGuid()),
+            content: null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task SetAsPrimaryImage_ShouldReturnNotFound_WhenImageBelongsToAnotherApartment()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var firstApartmentId =
+            await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var imageId =
+            await ApartmentTestFixtures.AddImageAsync(HttpClient, firstApartmentId);
+
+        var secondApartmentId =
+            await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        // Act
+        var response = await HttpClient.PutAsync(
+            ApartmentRoutes.ImageAsPrimary(
+                secondApartmentId,
+                imageId),
+            content: null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

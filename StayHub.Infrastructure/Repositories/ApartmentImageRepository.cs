@@ -17,6 +17,14 @@ internal sealed class ApartmentImageRepository(ApplicationDbContext dbContext)
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<ApartmentImage?> GetPrimaryByApartmentIdAsync(Guid apartmentId,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbContext
+            .Set<ApartmentImage>()
+            .FirstOrDefaultAsync(image => image.ApartmentId == apartmentId && image.IsPrimary, cancellationToken);
+    }
+
     public async Task<int> CountByApartmentId(Guid apartmentId, CancellationToken cancellationToken = default)
     {
         return await DbContext

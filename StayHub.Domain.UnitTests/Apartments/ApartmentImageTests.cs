@@ -79,6 +79,35 @@ public class ApartmentImageTests : BaseTest
     }
 
     [Fact]
+    public void UnsetAsPrimary_Should_SetIsPrimaryFalse()
+    {
+        // Arrange
+        var image = ApartmentData.CreateImage(isPrimary: true);
+
+        // Act
+        image.UnsetAsPrimary();
+
+        // Assert
+        image.IsPrimary.Should().BeFalse();
+    }
+
+    [Fact]
+    public void UnsetAsPrimary_Should_RaiseApartmentImageUpdatedDomainEvent()
+    {
+        // Arrange
+        var image = ApartmentData.CreateImage(isPrimary: true);
+        image.ClearDomainEvents();
+
+        // Act
+        image.UnsetAsPrimary();
+
+        // Assert
+        var domainEvent = AssertDomainEventWasPublished<ApartmentImageUpdatedDomainEvent>(image);
+        domainEvent.ImageId.Should().Be(image.Id);
+        domainEvent.ApartmentId.Should().Be(image.ApartmentId);
+    }
+
+    [Fact]
     public void Reorder_Should_SetDisplayOrder()
     {
         // Arrange

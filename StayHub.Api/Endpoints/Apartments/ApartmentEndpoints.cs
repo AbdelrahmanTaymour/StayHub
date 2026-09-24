@@ -17,6 +17,7 @@ using StayHub.Application.Apartments.RemoveApartmentImage;
 using StayHub.Application.Apartments.ReorderApartmentImages;
 using StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 using StayHub.Application.Apartments.SearchApartments;
+using StayHub.Application.Apartments.SetAsPrimaryImage;
 using StayHub.Application.Apartments.UpdateApartment;
 using StayHub.Application.Users.InviteUser;
 using StayHub.Domain.Apartments;
@@ -108,6 +109,12 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPut("{id:guid}/images/{imageId:guid}/primary", SetAsPrimaryImage)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         // ---- Availability blocks ----
 
@@ -313,6 +320,21 @@ public static class ApartmentEndpoints
             cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> SetAsPrimaryImage(
+        Guid id,
+        Guid imageId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new SetAsPrimaryImageCommand(id, imageId),
+            cancellationToken);
+
+        return result.IsFailure
+            ? result.ToProblemDetails()
+            : Results.NoContent();
     }
 
     private static async Task<IResult> CreateAvailabilityBlock(
