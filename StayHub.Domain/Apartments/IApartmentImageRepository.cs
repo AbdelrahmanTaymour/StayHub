@@ -7,6 +7,8 @@ public interface IApartmentImageRepository
     Task<IReadOnlyList<ApartmentImage>> GetByApartmentIdAsync(Guid apartmentId,
         CancellationToken cancellationToken = default);
 
+    Task<ApartmentImage?> GetPrimaryByApartmentIdAsync(Guid apartmentId, CancellationToken cancellationToken = default);
+
     void Add(ApartmentImage image);
 
     void Remove(ApartmentImage image);
