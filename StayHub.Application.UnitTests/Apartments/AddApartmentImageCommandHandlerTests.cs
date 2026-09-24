@@ -40,12 +40,14 @@ public class AddApartmentImageCommandHandlerTests
             _dateTimeProviderMock);
     }
 
-    private static AddApartmentImageCommand CommandFor(Guid apartmentId) => new(
+    private static AddApartmentImageCommand CommandFor(
+        Guid apartmentId,
+        bool isPrimary = false) => new(
         ApartmentId: apartmentId,
         FileContent: new MemoryStream([1, 2, 3]),
         FileName: "photo.png",
         ContentType: "image/png",
-        IsPrimary: false);
+        IsPrimary: isPrimary);
 
     [Fact]
     public async Task Handle_Should_ReturnFailure_WhenApartmentNotFound()
@@ -81,6 +83,62 @@ public class AddApartmentImageCommandHandlerTests
         result.Error.Should().Be(ApartmentErrors.NotAuthorized);
         await _fileStorageServiceMock.DidNotReceive().UploadAsync(
             Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_Should_UnsetExistingPrimaryImage_WhenAddingNewPrimaryImage()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var existingPrimaryImage = ApartmentImage.Create(
+            apartment.Id,
+            new ApartmentImageUrl("existing-primary.jpg"),
+            displayOrder: 0,
+            DateTime.UtcNow.AddMinutes(-5),
+            isPrimary: true);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _userContextMock
+            .IsOwner(apartment.OwnerId)
+            .Returns(true);
+
+        _imageRepositoryMock
+            .CountByApartmentId(apartment.Id, Arg.Any<CancellationToken>())
+            .Returns(2);
+
+        _imageRepositoryMock
+            .GetPrimaryByApartmentIdAsync(
+                apartment.Id,
+                Arg.Any<CancellationToken>())
+            .Returns(existingPrimaryImage);
+
+        // Act
+        var result = await _handler.Handle(
+            CommandFor(apartment.Id, isPrimary: true),
+            default);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        existingPrimaryImage.IsPrimary.Should().BeFalse();
+
+        await _imageRepositoryMock.Received(1).GetPrimaryByApartmentIdAsync(
+            apartment.Id,
+            Arg.Any<CancellationToken>());
+
+        _imageRepositoryMock.Received(1).Add(
+            Arg.Is<ApartmentImage>(image =>
+                image.Id == result.Value &&
+                image.ApartmentId == apartment.Id &&
+                image.Url.Value == UploadedUrl &&
+                image.DisplayOrder == 2 &&
+                image.IsPrimary));
+
+        await _unitOfWorkMock.Received(1)
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -28,6 +28,15 @@ internal sealed class AddApartmentImageCommandHandler(
             request.ApartmentId,
             cancellationToken);
 
+        if (request.IsPrimary)
+        {
+            var primaryImage =
+                await imageRepository.GetPrimaryByApartmentIdAsync(request.ApartmentId, cancellationToken);
+
+            primaryImage?.UnsetAsPrimary();
+        }
+
+
         // TODO: TO BACKGROUND JOB
         var url = await fileStorageService.UploadAsync(
             request.FileContent,
