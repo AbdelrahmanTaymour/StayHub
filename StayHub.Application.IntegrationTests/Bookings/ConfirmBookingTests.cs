@@ -103,4 +103,63 @@ public class ConfirmBookingTests(IntegrationTestWebAppFactory factory) : BaseInt
             e.To.Value == guest.Email.Value &&
             e.Subject == "Booking confirmed!");
     }
+
+    [Fact]
+    public async Task ConfirmBooking_ShouldPersistBookingAndAvailabilityBlockTogether_WhenCallerIsOwner()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+
+        var apartment = ApartmentTestData.CreateApartment(
+            ownerId: owner.Id);
+
+        DbContext.AddRange(owner, guest, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var booking = BookingTestData.Reserve(
+            apartment,
+            guest.Id,
+            new DateOnly(2026, 11, 1),
+            new DateOnly(2026, 11, 5),
+            PricingService);
+
+        DbContext.Add(booking);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        var command = new ConfirmBookingCommand(booking.Id);
+
+        // Act
+        var result = await Sender.Send(command);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        DbContext.ChangeTracker.Clear();
+
+        var persistedBooking = await DbContext
+            .Set<Booking>()
+            .SingleAsync(b => b.Id == booking.Id);
+
+        persistedBooking.Status.Should().Be(BookingStatus.Confirmed);
+
+        var persistedApartment = await DbContext
+            .Set<Apartment>()
+            .SingleAsync(a => a.Id == apartment.Id);
+
+        persistedApartment.LastBookedOnUtc.Should().NotBeNull();
+
+        var availabilityBlock = await DbContext
+            .Set<ApartmentAvailabilityBlock>()
+            .SingleAsync(b =>
+                b.ApartmentId == apartment.Id &&
+                b.Start == booking.Duration.Start &&
+                b.End == booking.Duration.End);
+
+        availabilityBlock.Reason
+            .Should()
+            .Be(ApartmentUnavailabilityReason.Booked);
+    }
 }

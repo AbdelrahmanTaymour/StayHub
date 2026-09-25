@@ -16,6 +16,16 @@ internal sealed class ApartmentAvailabilityBlockRepository(ApplicationDbContext 
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<ApartmentAvailabilityBlock?> GetByApartmentIdAndDateDurationAsync(Guid apartmentId,
+        DateOnly start, DateOnly end,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbContext
+            .Set<ApartmentAvailabilityBlock>()
+            .FirstOrDefaultAsync(block => block.ApartmentId == apartmentId && block.Start == start && block.End == end,
+                cancellationToken);
+    }
+
     public async Task<bool> IsOverlappingAsync(
         Guid apartmentId,
         DateOnly start,

@@ -10,6 +10,7 @@ namespace StayHub.Application.Bookings.ConfirmBooking;
 internal sealed class ConfirmBookingCommandHandler(
     IBookingRepository bookingRepository,
     IApartmentRepository apartmentRepository,
+    IApartmentAvailabilityBlockRepository availabilityBlockRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<ConfirmBookingCommand>
@@ -35,6 +36,11 @@ internal sealed class ConfirmBookingCommandHandler(
 
         if (result.IsFailure)
             return result;
+
+        var availabilityBlock = ApartmentAvailabilityBlock.Create(apartment.Id, booking.Duration.Start,
+            booking.Duration.End, ApartmentUnavailabilityReason.Booked, utcNow);
+
+        availabilityBlockRepository.Add(availabilityBlock);
 
         apartment.UpdateLastBooked(utcNow);
 

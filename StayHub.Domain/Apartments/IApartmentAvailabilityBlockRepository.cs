@@ -8,6 +8,9 @@ public interface IApartmentAvailabilityBlockRepository
         Guid apartmentId,
         CancellationToken cancellationToken = default);
 
+    Task<ApartmentAvailabilityBlock?> GetByApartmentIdAndDateDurationAsync(Guid apartmentId, DateOnly start,
+        DateOnly end, CancellationToken cancellationToken = default);
+
     Task<bool> IsOverlappingAsync(
         Guid apartmentId,
         DateOnly start,
