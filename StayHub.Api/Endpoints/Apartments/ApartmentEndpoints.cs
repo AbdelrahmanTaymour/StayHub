@@ -10,6 +10,7 @@ using StayHub.Application.Apartments.CreateApartment;
 using StayHub.Application.Apartments.CreateApartmentAvailabilityBlock;
 using StayHub.Application.Apartments.DeactivateApartment;
 using StayHub.Application.Apartments.GetApartment;
+using StayHub.Application.Apartments.GetApartmentAvailabilityBlocks;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Application.Apartments.RemoveApartmentAmenity;
 using StayHub.Application.Apartments.RemoveApartmentAvailabilityBlock;
@@ -117,6 +118,12 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
         // ---- Availability blocks ----
+        group.MapGet("{id:guid}/availability-blocks", GetApartmentAvailabilityBlocks)
+            .AllowAnonymous()
+            .WithName(nameof(GetApartmentAvailabilityBlocksQuery))
+            .Produces<ApartmentAvailabilityResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
 
         group.MapPost("{id:guid}/availability-blocks", CreateAvailabilityBlock)
             .HasPermission(Permissions.ApartmentManage)
@@ -157,7 +164,7 @@ public static class ApartmentEndpoints
         return group;
     }
 
-    public static async Task<IResult> GetApartment(Guid id, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> GetApartment(Guid id, ISender sender, CancellationToken cancellationToken)
     {
         var query = new GetApartmentQuery(id);
 
@@ -335,6 +342,20 @@ public static class ApartmentEndpoints
         return result.IsFailure
             ? result.ToProblemDetails()
             : Results.NoContent();
+    }
+
+    private static async Task<IResult> GetApartmentAvailabilityBlocks(
+        Guid id,
+        int? year,
+        int? month,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetApartmentAvailabilityBlocksQuery(id, year, month);
+
+        var result = await sender.Send(query, cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
     private static async Task<IResult> CreateAvailabilityBlock(

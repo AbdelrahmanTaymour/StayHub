@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using StayHub.Domain.Apartments;
 
 namespace StayHub.Api.FunctionalTests.Apartments;
 
@@ -37,6 +38,29 @@ internal static class ApartmentTestFixtures
         content.Add(new StringContent(isPrimary.ToString()), "IsPrimary");
 
         var response = await httpClient.PostAsync(ApartmentRoutes.Images(apartmentId), content);
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<Guid>();
+    }
+
+    internal static async Task<Guid> AddAvailabilityBlockAsync(
+        HttpClient httpClient,
+        Guid apartmentId,
+        DateOnly start,
+        DateOnly end,
+        ApartmentUnavailabilityReason reason)
+    {
+        var request = new
+        {
+            Start = start,
+            End = end,
+            Reason = reason.ToString() // Serializes as "UnderMaintenance", "OwnerBlocked", etc.
+        };
+
+        var response = await httpClient.PostAsJsonAsync(
+            ApartmentRoutes.AvailabilityBlocks(apartmentId),
+            request);
 
         response.EnsureSuccessStatusCode();
 
