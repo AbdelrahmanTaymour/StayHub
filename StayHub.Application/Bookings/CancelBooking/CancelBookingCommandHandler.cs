@@ -2,12 +2,14 @@ using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 
 namespace StayHub.Application.Bookings.CancelBooking;
 
 internal sealed class CancelBookingCommandHandler(
     IBookingRepository bookingRepository,
+    IApartmentAvailabilityBlockRepository availabilityBlockRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<CancelBookingCommand>
@@ -33,6 +35,13 @@ internal sealed class CancelBookingCommandHandler(
 
         if (result.IsFailure)
             return result;
+
+        var availabilityBlock = await availabilityBlockRepository.GetByApartmentIdAndDateDurationAsync(
+            booking.ApartmentId,
+            booking.Duration.Start, booking.Duration.End, cancellationToken);
+
+        if (availabilityBlock is not null)
+            availabilityBlockRepository.Remove(availabilityBlock);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

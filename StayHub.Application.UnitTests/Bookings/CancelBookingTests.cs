@@ -5,6 +5,7 @@ using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Bookings.CancelBooking;
 using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
 
 namespace StayHub.Application.UnitTests.Bookings;
@@ -17,6 +18,9 @@ public class CancelBookingTests
     // After Duration.Start — triggers the domain's AlreadyStarted guard.
     private static readonly DateTime AfterStart = new(2026, 1, 2);
 
+    private readonly IApartmentAvailabilityBlockRepository _availabilityBlockMock =
+        Substitute.For<IApartmentAvailabilityBlockRepository>();
+
     private readonly IBookingRepository _bookingRepositoryMock = Substitute.For<IBookingRepository>();
     private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
@@ -28,6 +32,7 @@ public class CancelBookingTests
     {
         _handler = new CancelBookingCommandHandler(
             _bookingRepositoryMock,
+            _availabilityBlockMock,
             _userContextMock,
             _unitOfWorkMock,
             _dateTimeProviderMock);
@@ -146,5 +151,86 @@ public class CancelBookingTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(BookingErrors.NotCancellable);
+    }
+
+    [Fact]
+    public async Task Handle_Should_RemoveAvailabilityBlock_WhenCallerIsGuest()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var guestId = Guid.CreateVersion7();
+
+        var booking = BookingData.ReserveAndConfirm(apartment, guestId);
+
+        var availabilityBlock = ApartmentAvailabilityBlock.Create(
+            apartment.Id,
+            booking.Duration.Start,
+            booking.Duration.End,
+            ApartmentUnavailabilityReason.Booked,
+            BeforeStart);
+
+        _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _availabilityBlockMock
+            .GetByApartmentIdAndDateDurationAsync(
+                booking.ApartmentId,
+                booking.Duration.Start,
+                booking.Duration.End,
+                Arg.Any<CancellationToken>())
+            .Returns(availabilityBlock);
+
+        _userContextMock.UserId.Returns(guestId);
+        _dateTimeProviderMock.UtcNow.Returns(BeforeStart);
+
+        // Act
+        var result = await _handler.Handle(new CancelBookingCommand(booking.Id), default);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        booking.Status.Should().Be(BookingStatus.Cancelled);
+
+        _availabilityBlockMock.Received(1).Remove(availabilityBlock);
+
+        await _unitOfWorkMock.Received(1)
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_Should_CancelWithoutRemovingBlock_WhenAvailabilityBlockDoesNotExist()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var guestId = Guid.CreateVersion7();
+
+        var booking = BookingData.ReserveAndConfirm(apartment, guestId);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _availabilityBlockMock
+            .GetByApartmentIdAndDateDurationAsync(
+                booking.ApartmentId,
+                booking.Duration.Start,
+                booking.Duration.End,
+                Arg.Any<CancellationToken>())
+            .Returns((ApartmentAvailabilityBlock?)null);
+
+        _userContextMock.UserId.Returns(guestId);
+        _dateTimeProviderMock.UtcNow.Returns(BeforeStart);
+
+        // Act
+        var result = await _handler.Handle(new CancelBookingCommand(booking.Id), default);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        booking.Status.Should().Be(BookingStatus.Cancelled);
+
+        _availabilityBlockMock.DidNotReceive()
+            .Remove(Arg.Any<ApartmentAvailabilityBlock>());
+
+        await _unitOfWorkMock.Received(1)
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

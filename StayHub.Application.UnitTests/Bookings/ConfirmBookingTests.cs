@@ -15,6 +15,9 @@ public class ConfirmBookingTests
     private static readonly DateTime UtcNow = DateTime.UtcNow;
     private readonly IApartmentRepository _apartmentRepositoryMock = Substitute.For<IApartmentRepository>();
 
+    private readonly IApartmentAvailabilityBlockRepository _availabilityBlockMock =
+        Substitute.For<IApartmentAvailabilityBlockRepository>();
+
     private readonly IBookingRepository _bookingRepositoryMock = Substitute.For<IBookingRepository>();
     private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
@@ -29,6 +32,7 @@ public class ConfirmBookingTests
         _handler = new ConfirmBookingCommandHandler(
             _bookingRepositoryMock,
             _apartmentRepositoryMock,
+            _availabilityBlockMock,
             _userContextMock,
             _unitOfWorkMock,
             _dateTimeProviderMock);
@@ -93,8 +97,15 @@ public class ConfirmBookingTests
         // Arrange
         var apartment = ApartmentData.Create();
         var booking = BookingData.ReserveAndConfirm(apartment);
-        _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
-        _apartmentRepositoryMock.GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>()).Returns(apartment);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
         _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
 
         // Act
@@ -103,7 +114,12 @@ public class ConfirmBookingTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(BookingErrors.NotReserved);
-        await _unitOfWorkMock.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+
+        _availabilityBlockMock.DidNotReceive()
+            .Add(Arg.Any<ApartmentAvailabilityBlock>());
+
+        await _unitOfWorkMock.DidNotReceive()
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -142,5 +158,36 @@ public class ConfirmBookingTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         booking.Status.Should().Be(BookingStatus.Confirmed);
+    }
+
+    [Fact]
+    public async Task Handle_Should_CreateBookedAvailabilityBlock_WhenBookingIsConfirmed()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var booking = BookingData.Reserve(apartment);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
+
+        // Act
+        var result = await _handler.Handle(new ConfirmBookingCommand(booking.Id), default);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        _availabilityBlockMock.Received(1).Add(
+            Arg.Is<ApartmentAvailabilityBlock>(block =>
+                block.ApartmentId == booking.ApartmentId &&
+                block.Start == booking.Duration.Start &&
+                block.End == booking.Duration.End &&
+                block.Reason == ApartmentUnavailabilityReason.Booked));
     }
 }

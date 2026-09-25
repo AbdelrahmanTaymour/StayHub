@@ -18,6 +18,10 @@ internal static class ApartmentRoutes
     public static string ImagesOrder(Guid id) => $"{BaseRoute}/{id}/images/order";
     public static string ImageAsPrimary(Guid id, Guid imageId) => $"{BaseRoute}/{id}/images/{imageId}/primary";
     public static string AvailabilityBlocks(Guid id) => $"{BaseRoute}/{id}/availability-blocks";
+
+    public static string AvailabilityBlocks(Guid id, int year, int month) =>
+        $"{BaseRoute}/{id}/availability-blocks?year={year}&month={month}";
+
     public static string AvailabilityBlockById(Guid blockId) => $"{BaseRoute}/availability-blocks/{blockId}";
     public static string Staff(Guid id) => $"{BaseRoute}/{id}/staff";
     public static string StaffById(Guid assignmentId) => $"{BaseRoute}/staff/{assignmentId}";
