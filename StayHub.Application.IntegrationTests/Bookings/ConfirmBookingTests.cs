@@ -162,4 +162,109 @@ public class ConfirmBookingTests(IntegrationTestWebAppFactory factory) : BaseInt
             .Should()
             .Be(ApartmentUnavailabilityReason.Booked);
     }
+
+    [Fact]
+    public async Task ConfirmBooking_ShouldReturnOverlap_WhenAnotherConfirmedBookingCoversTheSameDates()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var firstGuest = UserTestData.CreateUser();
+        var secondGuest = UserTestData.CreateUser();
+
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+
+        DbContext.AddRange(
+            owner,
+            firstGuest,
+            secondGuest,
+            apartment);
+
+        await DbContext.SaveChangesAsync();
+
+        var confirmedBooking = BookingTestData.ReserveAndConfirm(
+            apartment,
+            firstGuest.Id,
+            new DateOnly(2026, 11, 1),
+            new DateOnly(2026, 11, 10),
+            PricingService);
+
+        var pendingBooking = BookingTestData.Reserve(
+            apartment,
+            secondGuest.Id,
+            new DateOnly(2026, 11, 5),
+            new DateOnly(2026, 11, 8),
+            PricingService);
+
+        DbContext.AddRange(confirmedBooking, pendingBooking);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new ConfirmBookingCommand(pendingBooking.Id));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(BookingErrors.Overlap);
+
+        DbContext.ChangeTracker.Clear();
+
+        var persistedBooking = await DbContext
+            .Set<Booking>()
+            .SingleAsync(b => b.Id == pendingBooking.Id);
+
+        persistedBooking.Status.Should().Be(BookingStatus.Reserved);
+    }
+
+    [Fact]
+    public async Task ConfirmBooking_ShouldConfirm_WhenOtherOverlappingBookingIsStillReserved()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var firstGuest = UserTestData.CreateUser();
+        var secondGuest = UserTestData.CreateUser();
+
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+
+        DbContext.AddRange(owner, firstGuest, secondGuest, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var firstBooking = BookingTestData.Reserve(
+            apartment,
+            firstGuest.Id,
+            new DateOnly(2026, 11, 1),
+            new DateOnly(2026, 11, 10),
+            PricingService);
+
+        var secondBooking = BookingTestData.Reserve(
+            apartment,
+            secondGuest.Id,
+            new DateOnly(2026, 11, 5),
+            new DateOnly(2026, 11, 8),
+            PricingService);
+
+        DbContext.AddRange(firstBooking, secondBooking);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new ConfirmBookingCommand(secondBooking.Id));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        DbContext.ChangeTracker.Clear();
+
+        var persistedFirstBooking = await DbContext
+            .Set<Booking>()
+            .SingleAsync(b => b.Id == firstBooking.Id);
+
+        var persistedSecondBooking = await DbContext
+            .Set<Booking>()
+            .SingleAsync(b => b.Id == secondBooking.Id);
+
+        persistedFirstBooking.Status.Should().Be(BookingStatus.Reserved);
+        persistedSecondBooking.Status.Should().Be(BookingStatus.Confirmed);
+    }
 }

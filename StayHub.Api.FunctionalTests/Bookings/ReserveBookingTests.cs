@@ -119,18 +119,24 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
     }
 
     [Fact]
-    public async Task Reserve_ShouldReturnConflict_WhenOverlappingAnExistingBooking()
+    public async Task Reserve_ShouldReturnCreated_WhenOverlappingAnExistingReservation()
     {
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
+
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestAToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestAToken);
+
         var firstReserve = await HttpClient.PostAsJsonAsync(
             BookingRoutes.BaseRoute,
-            BookingTestData.ValidReserveRequest(apartmentId, startOffsetDays: 10, durationDays: 5));
+            BookingTestData.ValidReserveRequest(
+                apartmentId,
+                startOffsetDays: 10,
+                durationDays: 5));
+
         firstReserve.EnsureSuccessStatusCode();
 
         var (guestBToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -139,10 +145,61 @@ public sealed class ReserveBookingTests(FunctionalTestWebAppFactory factory) : B
         // Act
         var response = await HttpClient.PostAsJsonAsync(
             BookingRoutes.BaseRoute,
-            BookingTestData.ValidReserveRequest(apartmentId, startOffsetDays: 12, durationDays: 3));
+            BookingTestData.ValidReserveRequest(
+                apartmentId,
+                startOffsetDays: 12,
+                durationDays: 3));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task Reserve_ShouldReturnConflict_WhenOverlappingConfirmedBookingExists()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var apartmentId =
+            await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestAToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestAToken);
+
+        var firstReserve = await HttpClient.PostAsJsonAsync(
+            BookingRoutes.BaseRoute,
+            BookingTestData.ValidReserveRequest(
+                apartmentId,
+                startOffsetDays: 10,
+                durationDays: 5));
+
+        firstReserve.EnsureSuccessStatusCode();
+
+        var firstBookingId = await firstReserve.Content.ReadFromJsonAsync<Guid>();
+
+        AuthenticateAs(ownerToken);
+
+        var confirmResponse = await HttpClient.PostAsync(
+            BookingRoutes.Confirm(firstBookingId),
+            null);
+
+        confirmResponse.EnsureSuccessStatusCode();
+
+        var (guestBToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestBToken);
+
+        // Act
+        var response = await HttpClient.PostAsJsonAsync(
+            BookingRoutes.BaseRoute,
+            BookingTestData.ValidReserveRequest(
+                apartmentId,
+                startOffsetDays: 12,
+                durationDays: 3));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("Booking.Overlap");
     }

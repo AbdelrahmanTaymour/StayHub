@@ -190,4 +190,82 @@ public class ConfirmBookingTests
                 block.End == booking.Duration.End &&
                 block.Reason == ApartmentUnavailabilityReason.Booked));
     }
+
+    [Fact]
+    public async Task Handle_Should_ReturnOverlap_WhenAnotherBookingIsAlreadyConfirmed()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var booking = BookingData.Reserve(apartment);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
+
+        _bookingRepositoryMock
+            .IsOverlappingAsync(
+                apartment,
+                booking.Duration,
+                Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        var result = await _handler.Handle(new ConfirmBookingCommand(booking.Id), default);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(BookingErrors.Overlap);
+
+        booking.Status.Should().Be(BookingStatus.Reserved);
+
+        _availabilityBlockMock.DidNotReceive()
+            .Add(Arg.Any<ApartmentAvailabilityBlock>());
+
+        await _unitOfWorkMock.DidNotReceive()
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_Should_Confirm_WhenNoConfirmedBookingOverlaps()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var booking = BookingData.Reserve(apartment);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(booking.ApartmentId, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _userContextMock.IsOwner(apartment.OwnerId).Returns(true);
+
+        _bookingRepositoryMock
+            .IsOverlappingAsync(
+                apartment,
+                booking.Duration,
+                Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        var result = await _handler.Handle(new ConfirmBookingCommand(booking.Id), default);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        booking.Status.Should().Be(BookingStatus.Confirmed);
+
+        _availabilityBlockMock.Received(1)
+            .Add(Arg.Any<ApartmentAvailabilityBlock>());
+
+        await _unitOfWorkMock.Received(1)
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
 }

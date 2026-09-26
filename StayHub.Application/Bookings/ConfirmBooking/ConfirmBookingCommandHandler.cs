@@ -13,7 +13,8 @@ internal sealed class ConfirmBookingCommandHandler(
     IApartmentAvailabilityBlockRepository availabilityBlockRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider) : ICommandHandler<ConfirmBookingCommand>
+    IDateTimeProvider dateTimeProvider)
+    : ICommandHandler<ConfirmBookingCommand>
 {
     public async Task<Result> Handle(ConfirmBookingCommand request, CancellationToken cancellationToken)
     {
@@ -32,13 +33,20 @@ internal sealed class ConfirmBookingCommandHandler(
         if (!userContext.IsOwner(apartment.OwnerId) && !userContext.IsAdmin)
             return Result.Failure(BookingErrors.NotAuthorized);
 
+        if (await bookingRepository.IsOverlappingAsync(apartment, booking.Duration, cancellationToken))
+            return Result.Failure(BookingErrors.Overlap);
+
         var result = booking.Confirm(utcNow);
 
         if (result.IsFailure)
             return result;
 
-        var availabilityBlock = ApartmentAvailabilityBlock.Create(apartment.Id, booking.Duration.Start,
-            booking.Duration.End, ApartmentUnavailabilityReason.Booked, utcNow);
+        var availabilityBlock = ApartmentAvailabilityBlock.Create(
+            apartment.Id,
+            booking.Duration.Start,
+            booking.Duration.End,
+            ApartmentUnavailabilityReason.Booked,
+            utcNow);
 
         availabilityBlockRepository.Add(availabilityBlock);
 
