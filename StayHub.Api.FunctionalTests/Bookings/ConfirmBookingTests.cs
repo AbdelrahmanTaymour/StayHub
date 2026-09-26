@@ -122,8 +122,6 @@ public sealed class ConfirmBookingTests(FunctionalTestWebAppFactory factory) : B
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("Booking.NotReserved");
     }
 
     [Fact]

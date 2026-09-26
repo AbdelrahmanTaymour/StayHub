@@ -80,14 +80,16 @@ public class ReserveBookingTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnFailure_WhenApartmentIsBooked()
+    public async Task Handle_Should_ReturnFailure_WhenApartmentHasConfirmedBooking()
     {
         // Arrange
         var user = UserData.Create();
         var apartment = ApartmentData.Create();
         var duration = DateRange.Create(Command.StartDate, Command.EndDate);
 
-        _userRepositoryMock.GetByIdAsync(_userContextMock.UserId, Arg.Any<CancellationToken>())
+        _userRepositoryMock.GetByIdAsync(
+                _userContextMock.UserId,
+                Arg.Any<CancellationToken>())
             .Returns(user);
 
         _apartmentRepositoryMock
@@ -103,6 +105,34 @@ public class ReserveBookingTests
 
         // Assert
         result.Error.Should().Be(BookingErrors.Overlap);
+    }
+
+    [Fact]
+    public async Task Handle_Should_ReturnSuccess_WhenExistingBookingIsReserved()
+    {
+        // Arrange
+        var user = UserData.Create();
+        var apartment = ApartmentData.Create();
+        var duration = DateRange.Create(Command.StartDate, Command.EndDate);
+
+        _userRepositoryMock.GetByIdAsync(
+                _userContextMock.UserId,
+                Arg.Any<CancellationToken>())
+            .Returns(user);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(Command.ApartmentId, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _bookingRepositoryMock
+            .IsOverlappingAsync(apartment, duration, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        var result = await _handler.Handle(Command, default);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
