@@ -1,9 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using FluentAssertions;
 using StayHub.Api.FunctionalTests.Apartments;
 using StayHub.Api.FunctionalTests.Infrastructure;
+using StayHub.Application.Favorites.GetFavoriteApartments;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.FunctionalTests.Favorites;
 
@@ -86,10 +87,16 @@ public sealed class RemoveFavoriteApartmentTests(FunctionalTestWebAppFactory fac
         response.StatusCode.Should().Be(HttpStatusCode.NotFound); // userB never favorited it
 
         AuthenticateAs(userAToken);
+
         var getResponse = await HttpClient.GetAsync(FavoriteRoutes.Get());
         getResponse.EnsureSuccessStatusCode();
-        var results = await getResponse.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().ContainSingle(); // userA's favorite is untouched
+
+        var results = await getResponse.Content
+            .ReadFromJsonAsync<PagedResponse<FavoriteApartmentResponse>>();
+
+        results.Should().NotBeNull();
+        results!.Items.Should().ContainSingle();
+        results.Items[0].ApartmentId.Should().Be(apartmentId);
     }
 
     [Fact]

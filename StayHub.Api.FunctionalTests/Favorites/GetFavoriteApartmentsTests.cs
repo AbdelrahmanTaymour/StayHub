@@ -20,7 +20,7 @@ public sealed class GetFavoriteApartmentsTests(FunctionalTestWebAppFactory facto
     }
 
     [Fact]
-    public async Task Get_ShouldReturnEmptyList_WhenCallerHasNoFavorites()
+    public async Task Get_ShouldReturnEmptyPagedEnvelope_WhenCallerHasNoFavorites()
     {
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -31,8 +31,9 @@ public sealed class GetFavoriteApartmentsTests(FunctionalTestWebAppFactory facto
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -56,7 +57,44 @@ public sealed class GetFavoriteApartmentsTests(FunctionalTestWebAppFactory facto
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Get_ShouldReturnFavoritedApartment_WithExpectedPropertyNames()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (userToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(userToken);
+        var addResponse = await HttpClient.PutAsync(FavoriteRoutes.ById(apartmentId), null);
+        addResponse.EnsureSuccessStatusCode();
+
+        // Act
+        var response = await HttpClient.GetAsync(FavoriteRoutes.Get());
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+
+        var item = result.Items[0];
+        item.GetProperty("apartmentId").GetGuid().Should().Be(apartmentId);
+        item.TryGetProperty("pricePerNight", out _).Should().BeTrue();
+        item.TryGetProperty("currency", out _).Should().BeTrue();
+        item.TryGetProperty("city", out _).Should().BeTrue();
+        item.GetProperty("rating").ValueKind.Should().Be(JsonValueKind.Null);
+        item.GetProperty("reviewCount").GetInt32().Should().Be(0);
+    }
+
+    private sealed record PagedResponseDto<T>(
+        List<T> Items,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages);
 }
