@@ -1,3 +1,4 @@
+using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Domain.Maintenance;
 
 namespace StayHub.Application.Abstractions.Caching;
@@ -18,9 +19,10 @@ public static class CacheKeys
         return $"apartments:search:{filtersAndPage}";
     }
 
-    public static string ApartmentsByOwner(Guid ownerId, bool includeInactive, int page, int pageSize)
+    public static string ApartmentsByOwner(Guid ownerId, bool includeInactive, OwnerApartmentsSort sort, int page,
+        int pageSize)
     {
-        return $"apartments:owner:{ownerId}:{page}:{includeInactive}:{pageSize}";
+        return $"apartments:owner:{ownerId}:{includeInactive}:{sort}:{page}:{pageSize}";
     }
 
     public static string MaintenancesByApartment(Guid apartmentId, MaintenanceRequestStatus? status, int page,
@@ -39,6 +41,11 @@ public static class CacheKeys
     public static string User(Guid userId)
     {
         return $"user:{userId}";
+    }
+
+    public static string OwnerProfile(Guid ownerId)
+    {
+        return $"user:owner:{ownerId}";
     }
 
     public static string LoggedInUser(Guid userId)

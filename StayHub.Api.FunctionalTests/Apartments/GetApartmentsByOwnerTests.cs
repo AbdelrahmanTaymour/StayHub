@@ -22,7 +22,7 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
     }
 
     [Fact]
-    public async Task GetByOwner_ShouldReturnEmptyList_WhenNoApartments()
+    public async Task GetByOwner_ShouldReturnEmptyPagedEnvelope_WhenNoApartments()
     {
         // Arrange
         var ownerId = Guid.NewGuid();
@@ -32,8 +32,9 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -53,8 +54,32 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().ContainSingle();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetByOwner_ShouldReturnCountryAndCityAndPricePerNight_WithExpectedPropertyNames()
+    {
+        // Arrange
+        var (accessToken, _, ownerId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        await HttpClient.PostAsJsonAsync(ApartmentRoutes.BaseRoute, ApartmentTestData.ValidCreateRequest());
+
+        // Act
+        var response = await HttpClient.GetAsync(ApartmentRoutes.ByOwner(ownerId));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+
+        var item = result.Items[0];
+        item.TryGetProperty("country", out _).Should().BeTrue();
+        item.TryGetProperty("city", out _).Should().BeTrue();
+        item.TryGetProperty("pricePerNight", out _).Should().BeTrue();
+        item.TryGetProperty("currency", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -78,9 +103,9 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().ContainSingle();
-        results![0].GetProperty("id").GetGuid().Should().Be(activeId);
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+        result.Items[0].GetProperty("id").GetGuid().Should().Be(activeId);
     }
 
     [Fact]
@@ -102,10 +127,9 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
     }
-
 
     [Fact]
     public async Task GetByOwner_ShouldReturnForbidden_WhenIncludeInactiveIsTrue_AndCallerIsAnonymous()
@@ -161,8 +185,8 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().HaveCount(2);
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().HaveCount(2);
     }
 
     [Fact]
@@ -188,8 +212,8 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().HaveCount(2);
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().HaveCount(2);
     }
 
     [Fact]
@@ -213,8 +237,40 @@ public sealed class GetApartmentsByOwnerTests(FunctionalTestWebAppFactory factor
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results!.Should().ContainSingle();
-        results![0].GetProperty("id").GetGuid().Should().Be(activeId);
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+        result.Items[0].GetProperty("id").GetGuid().Should().Be(activeId);
     }
+
+    [Fact]
+    public async Task GetByOwner_ShouldSortByPriceDescending_WhenSortQueryParamIsProvided()
+    {
+        // Arrange
+        var (accessToken, _, ownerId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        var cheapResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.BaseRoute, ApartmentTestData.ValidCreateRequest(priceAmount: 100m));
+        var cheapId = await cheapResponse.Content.ReadFromJsonAsync<Guid>();
+
+        var expensiveResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.BaseRoute, ApartmentTestData.ValidCreateRequest(priceAmount: 900m));
+        var expensiveId = await expensiveResponse.Content.ReadFromJsonAsync<Guid>();
+
+        // Act
+        var response = await HttpClient.GetAsync(ApartmentRoutes.ByOwner(ownerId, "sort=PriceDesc"));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items[0].GetProperty("id").GetGuid().Should().Be(expensiveId);
+        result.Items[1].GetProperty("id").GetGuid().Should().Be(cheapId);
+    }
+
+    private sealed record PagedResponseDto<T>(
+        List<T> Items,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages);
 }

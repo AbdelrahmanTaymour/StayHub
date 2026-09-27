@@ -192,16 +192,22 @@ public static class ApartmentEndpoints
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
-
     private static async Task<IResult> GetByOwner(
         Guid ownerId,
         ISender sender,
         CancellationToken cancellationToken,
         bool includeInactive = false,
+        OwnerApartmentsSort sort = OwnerApartmentsSort.PriceAsc,
         int page = 1,
-        int pageSize = 20)
+        int pageSize = 9)
     {
-        var result = await sender.Send(new GetApartmentsByOwnerQuery(ownerId, includeInactive, page, pageSize),
+        var result = await sender.Send(
+            new GetApartmentsByOwnerQuery(
+                OwnerId: ownerId,
+                IncludeInactive: includeInactive,
+                Sort: sort,
+                Page: page,
+                PageSize: pageSize),
             cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
