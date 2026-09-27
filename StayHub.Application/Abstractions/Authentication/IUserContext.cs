@@ -6,6 +6,7 @@ public interface IUserContext
     string IdentityId { get; }
     IReadOnlyCollection<string> Roles { get; }
 
+    bool IsAuthenticated { get; }
     bool IsAdmin { get; }
     public bool IsOwner(Guid ownerId);
 }

@@ -2,8 +2,9 @@ using MediatR;
 using StayHub.Api.Extensions;
 using StayHub.Application.Reviews.CreateReview;
 using StayHub.Application.Reviews.CreateReviewResponse;
+using StayHub.Application.Reviews.GetApartmentReviews;
 using StayHub.Application.Reviews.GetReview;
-using StayHub.Application.Reviews.GetReviewsByApartment;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Endpoints.Reviews;
 
@@ -21,7 +22,7 @@ public static class ReviewEndpoints
 
         group.MapGet("by-apartment/{apartmentId:guid}", GetByApartment)
             .AllowAnonymous()
-            .Produces<IReadOnlyList<ReviewListItemResponse>>();
+            .Produces<PagedResponse<ApartmentReviewResponse>>();
 
         group.MapPost("", Create)
             .HasPermission(Permissions.ReviewCreate)
@@ -56,7 +57,7 @@ public static class ReviewEndpoints
         int page = 1,
         int pageSize = 20)
     {
-        var result = await sender.Send(new GetReviewsByApartmentQuery(apartmentId, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetApartmentReviewsQuery(apartmentId, page, pageSize), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }

@@ -33,7 +33,7 @@ public static class CacheKeys
             : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}";
     }
 
-    public static string ReviewsByApartment(Guid apartmentId, int page, int pageSize)
+    public static string ApartmentReviews(Guid apartmentId, int page, int pageSize)
     {
         return $"reviews:apartment:{apartmentId}:{page}:{pageSize}";
     }

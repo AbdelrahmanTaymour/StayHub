@@ -87,5 +87,6 @@ public abstract class BaseIntegrationTest : IAsyncLifetime, IDisposable
         UserContext.UserId = userId;
         UserContext.IdentityId = userId.ToString();
         UserContext.Roles = roles;
+        UserContext.IsAuthenticated = true;
     }
 }

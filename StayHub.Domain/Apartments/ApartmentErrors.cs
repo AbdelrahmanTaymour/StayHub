@@ -27,4 +27,7 @@ public static class ApartmentErrors
     public static readonly Error NotAuthorized = Error.Forbidden(
         "Apartment.NotAuthorized",
         "Only the apartment owner can perform this action");
+
+    public static readonly Error InvalidDateRange = Error.Validation(
+        "Apartment.InvalidDateRange", "Start date must be before end date.");
 }

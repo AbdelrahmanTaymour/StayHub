@@ -16,8 +16,11 @@ public sealed class GetApartmentTests(FunctionalTestWebAppFactory factory)
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
 
-        var createResponse = await HttpClient.PostAsJsonAsync(ApartmentRoutes.BaseRoute,
+        var createResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.BaseRoute,
             ApartmentTestData.ValidCreateRequest());
+
+        createResponse.EnsureSuccessStatusCode();
 
         var apartmentId = await createResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -83,5 +86,58 @@ public sealed class GetApartmentTests(FunctionalTestWebAppFactory factory)
 
         body.TryGetProperty("images", out var images).Should().BeTrue();
         images.GetArrayLength().Should().Be(0);
+
+        body.TryGetProperty("host", out var host).Should().BeTrue();
+        host.GetProperty("id").GetGuid().Should().Be(userId);
+        host.GetProperty("fullName").GetString().Should().NotBeNullOrWhiteSpace();
+
+        body.GetProperty("rating").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("reviewCount").GetInt32().Should().Be(0);
+        body.GetProperty("isFavorited").GetBoolean().Should().BeFalse();
+
+        body.TryGetProperty("recentReviews", out var recentReviews).Should().BeTrue();
+        recentReviews.GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetApartment_ShouldReturnNotFound_WhenApartmentIsInactive_AndCallerIsAnonymous()
+    {
+        // Arrange
+        var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        var createResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.BaseRoute, ApartmentTestData.ValidCreateRequest());
+        var apartmentId = await createResponse.Content.ReadFromJsonAsync<Guid>();
+
+        await HttpClient.PostAsync(ApartmentRoutes.Deactivate(apartmentId), null);
+
+        HttpClient.DefaultRequestHeaders.Authorization = null;
+
+        // Act
+        var response = await HttpClient.GetAsync(ApartmentRoutes.ById(apartmentId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetApartment_ShouldReturnOk_WhenApartmentIsInactive_AndCallerIsTheOwner()
+    {
+        // Arrange
+        var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(accessToken);
+
+        var createResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.BaseRoute, ApartmentTestData.ValidCreateRequest());
+        var apartmentId = await createResponse.Content.ReadFromJsonAsync<Guid>();
+
+        await HttpClient.PostAsync(ApartmentRoutes.Deactivate(apartmentId), null);
+
+        // Act — still authenticated as the owner
+        var response = await HttpClient.GetAsync(ApartmentRoutes.ById(apartmentId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

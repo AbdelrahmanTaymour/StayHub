@@ -25,4 +25,7 @@ internal static class ApartmentRoutes
     public static string AvailabilityBlockById(Guid blockId) => $"{BaseRoute}/availability-blocks/{blockId}";
     public static string Staff(Guid id) => $"{BaseRoute}/{id}/staff";
     public static string StaffById(Guid assignmentId) => $"{BaseRoute}/staff/{assignmentId}";
+
+    public static string Pricing(Guid apartmentId, string? query = null) =>
+        $"{BaseRoute}/{apartmentId}/pricing" + (query is null ? "" : $"?{query}");
 }

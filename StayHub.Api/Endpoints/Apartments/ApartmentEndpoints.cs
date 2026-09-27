@@ -11,6 +11,7 @@ using StayHub.Application.Apartments.CreateApartmentAvailabilityBlock;
 using StayHub.Application.Apartments.DeactivateApartment;
 using StayHub.Application.Apartments.GetApartment;
 using StayHub.Application.Apartments.GetApartmentAvailabilityBlocks;
+using StayHub.Application.Apartments.GetApartmentPricing;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Application.Apartments.RemoveApartmentAmenity;
 using StayHub.Application.Apartments.RemoveApartmentAvailabilityBlock;
@@ -73,6 +74,12 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.Map("{apartmentId:guid}/pricing", GetPricing)
+            .AllowAnonymous()
+            .Produces<ApartmentPricingResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         // ---- Amenities ----
 
@@ -270,6 +277,20 @@ public static class ApartmentEndpoints
         var result = await sender.Send(new DeactivateApartmentCommand(id), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> GetPricing(
+        [FromRoute] Guid apartmentId,
+        [FromQuery] DateOnly start,
+        [FromQuery] DateOnly end,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new GetApartmentPricingQuery(apartmentId, start, end),
+            cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
     private static async Task<IResult> AddAmenity(

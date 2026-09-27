@@ -164,8 +164,8 @@ internal sealed class SearchApartmentsQueryHandler(
 
         // Favorites — only when authenticated, only for this page's ids, never cached
         // (the search result itself is cached and must stay user-agnostic).
-        HashSet<Guid> favoritedIds;
-        if (userContext.UserId is { } currentUserId)
+        HashSet<Guid> favoritedIds = [];
+        if (userContext.IsAuthenticated)
         {
             var apartmentIds = rows.Select(r => r.Id).ToArray();
 
@@ -176,7 +176,7 @@ internal sealed class SearchApartmentsQueryHandler(
                 WHERE user_id = @UserId
                   AND apartment_id = ANY(@ApartmentIds)
                 """,
-                new { UserId = currentUserId, ApartmentIds = apartmentIds });
+                new { userContext.UserId, ApartmentIds = apartmentIds });
 
             favoritedIds = favoriteRows.ToHashSet();
         }
@@ -251,7 +251,7 @@ internal sealed class SearchApartmentsQueryHandler(
         };
     }
 
-    // Dapper projection row — kept internal, never leaves the handler.
+    // Dapper projection row 
     private sealed class ApartmentSearchRow
     {
         public Guid Id { get; init; }
