@@ -33,7 +33,7 @@ public class GetConversationMessagesTests(IntegrationTestWebAppFactory factory) 
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty();
+        result.Value.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -64,9 +64,9 @@ public class GetConversationMessagesTests(IntegrationTestWebAppFactory factory) 
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().HaveCount(2);
-        result.Value[0].Id.Should().Be(secondMessage.Id);
-        result.Value[1].Id.Should().Be(firstMessage.Id);
+        result.Value.Items.Should().HaveCount(2);
+        result.Value.Items[0].Id.Should().Be(secondMessage.Id);
+        result.Value.Items[1].Id.Should().Be(firstMessage.Id);
     }
 
     [Fact]
@@ -97,6 +97,6 @@ public class GetConversationMessagesTests(IntegrationTestWebAppFactory factory) 
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(m => m.Id == message.Id);
+        result.Value.Items.Should().ContainSingle(m => m.Id == message.Id);
     }
 }

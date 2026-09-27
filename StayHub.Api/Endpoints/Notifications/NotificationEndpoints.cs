@@ -1,7 +1,8 @@
 using MediatR;
 using StayHub.Api.Extensions;
-using StayHub.Application.Notifications.GetNotificationsByUser;
+using StayHub.Application.Notifications.GetMyNotifications;
 using StayHub.Application.Notifications.MarkNotificationAsRead;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Endpoints.Notifications;
 
@@ -14,7 +15,7 @@ public static class NotificationEndpoints
             .RequireAuthorization();
 
         group.MapGet("", Get)
-            .Produces<IReadOnlyList<NotificationResponse>>();
+            .Produces<PagedResponse<MyNotificationsResponse>>();
 
         group.MapPost("{notificationId:guid}/read", MarkAsRead)
             .Produces(StatusCodes.Status204NoContent)
@@ -32,7 +33,7 @@ public static class NotificationEndpoints
         int page = 1,
         int pageSize = 20)
     {
-        var result = await sender.Send(new GetNotificationsByUserQuery(unreadOnly, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetMyNotificationsQuery(unreadOnly, page, pageSize), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }

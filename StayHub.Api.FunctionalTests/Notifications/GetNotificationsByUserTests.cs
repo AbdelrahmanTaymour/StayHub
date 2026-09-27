@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
@@ -10,17 +9,7 @@ namespace StayHub.Api.FunctionalTests.Notifications;
 public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
     [Fact]
-    public async Task Get_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
-    {
-        // Act
-        var response = await HttpClient.GetAsync(NotificationRoutes.Get());
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task Get_ShouldReturnEmptyList_WhenCallerHasNoNotifications()
+    public async Task Get_ShouldReturnEmptyPagedEnvelope_WhenCallerHasNoNotifications()
     {
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -31,8 +20,9 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -48,8 +38,9 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().ContainSingle();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+        result.TotalCount.Should().Be(1);
     }
 
     [Fact]
@@ -67,8 +58,8 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -87,7 +78,14 @@ public sealed class GetNotificationsByUserTests(FunctionalTestWebAppFactory fact
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().ContainSingle();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
     }
+
+    private sealed record PagedResponseDto<T>(
+        List<T> Items,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages);
 }

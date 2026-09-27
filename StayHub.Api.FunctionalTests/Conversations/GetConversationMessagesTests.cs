@@ -58,7 +58,7 @@ public sealed class GetConversationMessagesTests(FunctionalTestWebAppFactory fac
     }
 
     [Fact]
-    public async Task GetMessages_ShouldReturnEmptyList_WhenCallerIsNotAParticipant()
+    public async Task GetMessages_ShouldReturnEmptyPagedEnvelope_WhenCallerIsNotAParticipant()
     {
         var (_, _, conversationId) = await ArrangeConversationAsync();
 
@@ -68,12 +68,12 @@ public sealed class GetConversationMessagesTests(FunctionalTestWebAppFactory fac
         var response = await HttpClient.GetAsync(ConversationRoutes.Messages(conversationId));
         response.EnsureSuccessStatusCode();
 
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetMessages_ShouldReturnEmptyList_WhenConversationDoesNotExist()
+    public async Task GetMessages_ShouldReturnEmptyPagedEnvelope_WhenConversationDoesNotExist()
     {
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(accessToken);
@@ -81,8 +81,8 @@ public sealed class GetConversationMessagesTests(FunctionalTestWebAppFactory fac
         var response = await HttpClient.GetAsync(ConversationRoutes.Messages(Guid.NewGuid()));
         response.EnsureSuccessStatusCode();
 
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -100,8 +100,16 @@ public sealed class GetConversationMessagesTests(FunctionalTestWebAppFactory fac
         var response = await HttpClient.GetAsync(ConversationRoutes.Messages(conversationId));
         response.EnsureSuccessStatusCode();
 
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().HaveCount(2);
-        results![0].GetProperty("body").GetString().Should().Be("Second message");
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().HaveCount(2);
+        result.Items[0].GetProperty("body").GetString().Should().Be("Second message");
+        result.TotalCount.Should().Be(2);
     }
+
+    private sealed record PagedResponseDto<T>(
+        List<T> Items,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages);
 }

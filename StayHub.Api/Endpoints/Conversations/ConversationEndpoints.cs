@@ -5,6 +5,7 @@ using StayHub.Application.Conversations.GetMyConversations;
 using StayHub.Application.Conversations.MarkConversationAsRead;
 using StayHub.Application.Conversations.SendMessage;
 using StayHub.Application.Conversations.StartConversation;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Endpoints.Conversations;
 
@@ -19,7 +20,7 @@ public static class ConversationEndpoints
 
         group.MapGet("{id:guid}/messages", GetMessages)
             .WithName(nameof(GetMessages))
-            .Produces<IReadOnlyList<ConversationMessagesResponse>>()
+            .Produces<PagedResponse<ConversationMessagesResponse>>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("", Start)
