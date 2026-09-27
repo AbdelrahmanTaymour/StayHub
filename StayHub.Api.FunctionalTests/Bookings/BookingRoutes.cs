@@ -17,6 +17,8 @@ internal static class BookingRoutes
             ? $"{BaseRoute}/by-apartment/{apartmentId}"
             : $"{BaseRoute}/by-apartment/{apartmentId}?{query}";
 
+    public static string ByConversation(Guid conversationId) => $"{BaseRoute}/by-conversation/{conversationId}";
+
     public static string Confirm(Guid id) => $"{BaseRoute}/{id}/confirm";
     public static string Reject(Guid id) => $"{BaseRoute}/{id}/reject";
     public static string Cancel(Guid id) => $"{BaseRoute}/{id}/cancel";

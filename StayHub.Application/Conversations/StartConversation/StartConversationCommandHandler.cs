@@ -3,12 +3,14 @@ using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
+using StayHub.Domain.Bookings;
 using StayHub.Domain.Conversations;
 
 namespace StayHub.Application.Conversations.StartConversation;
 
 internal sealed class StartConversationCommandHandler(
     IApartmentRepository apartmentRepository,
+    IBookingRepository bookingRepository,
     IConversationRepository conversationRepository,
     IMessageRepository messageRepository,
     IUserContext userContext,
@@ -23,6 +25,20 @@ internal sealed class StartConversationCommandHandler(
 
         if (apartment is null) return Result.Failure<Guid>(ApartmentErrors.NotFound);
 
+        Guid? bookingId = null;
+
+        if (request.BookingId is { } requestedBookingId)
+        {
+            var booking = await bookingRepository.GetByIdAsync(requestedBookingId, cancellationToken);
+
+            if (booking is null || booking.ApartmentId != apartment.Id || booking.UserId != guestId)
+            {
+                return Result.Failure<Guid>(BookingErrors.NotFound);
+            }
+
+            bookingId = booking.Id;
+        }
+
         var now = dateTimeProvider.UtcNow;
 
         var conversation = await conversationRepository.GetBetweenParticipantsAsync(
@@ -35,7 +51,7 @@ internal sealed class StartConversationCommandHandler(
         {
             var newConversation = Conversation.Start(
                 apartment.Id,
-                null,
+                bookingId,
                 guestId,
                 apartment.OwnerId,
                 now);
@@ -48,6 +64,12 @@ internal sealed class StartConversationCommandHandler(
             conversation = newConversation.Value;
 
             conversationRepository.Add(conversation);
+        }
+        else if (bookingId is not null && conversation.BookingId is null)
+        {
+            // The conversation already existed (e.g. from an earlier inquiry) and now a booking
+            // was made — attach it so the reservation-details pane picks it up going forward.
+            conversation.AttachBooking(bookingId.Value);
         }
 
         var message = Message.Send(

@@ -1,6 +1,6 @@
-namespace StayHub.Application.Conversations.GetMessagesByConversation;
+namespace StayHub.Application.Conversations.GetConversationMessages;
 
-public sealed class MessageResponse
+public sealed class ConversationMessagesResponse
 {
     public Guid Id { get; init; }
 

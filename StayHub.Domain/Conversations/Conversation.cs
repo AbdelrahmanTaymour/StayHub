@@ -53,6 +53,16 @@ public sealed class Conversation : Entity
         return conversation;
     }
 
+    public void AttachBooking(Guid bookingId)
+    {
+        if (BookingId is not null)
+        {
+            return;
+        }
+
+        BookingId = bookingId;
+    }
+
     public void RegisterMessage(DateTime sentOnUtc)
     {
         LastMessageOnUtc = sentOnUtc;

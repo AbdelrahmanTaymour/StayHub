@@ -4,15 +4,15 @@ using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 
-namespace StayHub.Application.Conversations.GetMessagesByConversation;
+namespace StayHub.Application.Conversations.GetConversationMessages;
 
-internal sealed class GetMessagesByConversationQueryHandler(
+internal sealed class GetConversationMessagesQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext)
-    : IQueryHandler<GetMessagesByConversationQuery, IReadOnlyList<MessageResponse>>
+    : IQueryHandler<GetConversationMessagesQuery, IReadOnlyList<ConversationMessagesResponse>>
 {
-    public async Task<Result<IReadOnlyList<MessageResponse>>> Handle(
-        GetMessagesByConversationQuery request,
+    public async Task<Result<IReadOnlyList<ConversationMessagesResponse>>> Handle(
+        GetConversationMessagesQuery request,
         CancellationToken cancellationToken)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
@@ -33,7 +33,7 @@ internal sealed class GetMessagesByConversationQueryHandler(
                            LIMIT @PageSize OFFSET @Offset
                            """;
 
-        var messages = await connection.QueryAsync<MessageResponse>(
+        var messages = await connection.QueryAsync<ConversationMessagesResponse>(
             sql,
             new
             {

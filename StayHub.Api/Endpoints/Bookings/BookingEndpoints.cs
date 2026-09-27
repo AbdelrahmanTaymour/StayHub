@@ -5,6 +5,7 @@ using StayHub.Application.Bookings.ConfirmBooking;
 using StayHub.Application.Bookings.GetBooking;
 using StayHub.Application.Bookings.GetBookingsByApartment;
 using StayHub.Application.Bookings.GetBookingsByUser;
+using StayHub.Application.Bookings.GetConversationBookingDetails;
 using StayHub.Application.Bookings.GetMyBookings;
 using StayHub.Application.Bookings.RejectBooking;
 using StayHub.Application.Bookings.ReserveBooking;
@@ -33,6 +34,10 @@ public static class BookingEndpoints
         group.MapGet("by-apartment/{apartmentId:guid}", GetByApartment)
             .HasPermission(Permissions.BookingManage)
             .Produces<IReadOnlyList<BookingSummaryResponse>>();
+
+        group.MapGet("by-conversation/{conversationId:guid}", GetByConversation)
+            .Produces<ConversationBookingDetailsResponse>()
+            .Produces(StatusCodes.Status404NotFound);
 
         group.MapPost("", Reserve)
             .HasPermission(Permissions.BookingCreate)
@@ -106,6 +111,16 @@ public static class BookingEndpoints
         int pageSize = 20)
     {
         var result = await sender.Send(new GetBookingsByApartmentQuery(apartmentId, page, pageSize), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetByConversation(
+        Guid conversationId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetConversationBookingDetailsQuery(conversationId), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
