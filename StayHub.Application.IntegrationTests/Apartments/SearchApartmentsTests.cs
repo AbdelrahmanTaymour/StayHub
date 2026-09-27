@@ -10,7 +10,7 @@ namespace StayHub.Application.IntegrationTests.Apartments;
 public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
-    public async Task SearchApartments_ShouldReturnEmptyList_WhenDateRangeIsInvalid()
+    public async Task SearchApartments_ShouldReturnEmptyPage_WhenDateRangeIsInvalid()
     {
         // Arrange
         var query = new SearchApartmentsQuery(
@@ -27,7 +27,8 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty();
+        result.Value.Items.Should().BeEmpty();
+        result.Value.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -50,7 +51,8 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(a => a.Id == activeApartment.Id);
+        result.Value.Items.Should().ContainSingle(a => a.Id == activeApartment.Id);
+        result.Value.TotalCount.Should().Be(1);
     }
 
     [Fact]
@@ -73,7 +75,7 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(a => a.Id == cairoApartment.Id);
+        result.Value.Items.Should().ContainSingle(a => a.Id == cairoApartment.Id);
     }
 
     [Fact]
@@ -97,15 +99,56 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(a => a.Id == midApartment.Id);
+        result.Value.Items.Should().ContainSingle(a => a.Id == midApartment.Id);
     }
 
     [Fact]
-    public async Task SearchApartments_ShouldExcludeApartment_WhenActiveBookingOverlapsRequestedRange()
+    public async Task SearchApartments_ShouldExcludeApartment_WhenConfirmedBookingOverlapsRequestedRange()
     {
         // Arrange
         var owner = UserTestData.CreateUser();
         var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Booked Apartment");
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var booker = UserTestData.CreateUser();
+        DbContext.Add(booker);
+        await DbContext.SaveChangesAsync();
+
+        var duration = DateRange.Create(new DateOnly(2026, 6, 10), new DateOnly(2026, 6, 15));
+        var reserveResult = Booking.Reserve(apartment, booker.Id, duration, PricingService, DateTime.UtcNow);
+        reserveResult.IsSuccess.Should().BeTrue();
+
+        // Only a confirmed booking should block availability now — reserving alone no longer does.
+        reserveResult.Value.Confirm(DateTime.UtcNow);
+
+        DbContext.Add(reserveResult.Value);
+        await DbContext.SaveChangesAsync();
+
+        var query = new SearchApartmentsQuery(
+            City: null,
+            MinPrice: null,
+            MaxPrice: null,
+            Start: new DateOnly(2026, 6, 12),
+            End: new DateOnly(2026, 6, 18),
+            Page: 1,
+            PageSize: 10);
+
+        // Act
+        var result = await Sender.Send(query);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Items.Should().NotContain(a => a.Id == apartment.Id);
+    }
+
+    [Fact]
+    public async Task SearchApartments_ShouldIncludeApartment_WhenOnlyReservedBookingOverlapsRequestedRange()
+    {
+        // Arrange — a Reserved (not yet Confirmed) booking must not block other guests from finding
+        // the apartment, so the owner's calendar can't be overwhelmed by a single pending request.
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Pending Reservation Apartment");
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
 
@@ -134,7 +177,7 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotContain(a => a.Id == apartment.Id);
+        result.Value.Items.Should().Contain(a => a.Id == apartment.Id);
     }
 
     [Fact]
@@ -170,7 +213,7 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotContain(a => a.Id == apartment.Id);
+        result.Value.Items.Should().NotContain(a => a.Id == apartment.Id);
     }
 
     [Fact]
@@ -196,9 +239,12 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
         // Act
         var result = await Sender.Send(query);
 
-        // Assert — page 2 with page size 2, 3 total rows ordered DESC by
-        // created_on_utc, should return exactly the oldest one.
+        // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(a => a.Id == apartments[0].Id);
+        result.Value.Items.Should().ContainSingle(a => a.Id == apartments[0].Id);
+        result.Value.TotalCount.Should().Be(3);
+        result.Value.TotalPages.Should().Be(2);
+        result.Value.Page.Should().Be(2);
+        result.Value.PageSize.Should().Be(2);
     }
 }

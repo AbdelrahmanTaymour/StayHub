@@ -20,6 +20,25 @@ public sealed class SearchApartmentsTests(FunctionalTestWebAppFactory factory) :
     }
 
     [Fact]
+    public async Task Search_ShouldReturnPagedEnvelope_WithExpectedShape()
+    {
+        // Act
+        var response = await HttpClient.GetAsync(
+            ApartmentRoutes.Search());
+
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+
+        result.Should().NotBeNull();
+        result!.Page.Should().Be(1);
+        result.PageSize.Should().BeGreaterThan(0);
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(0);
+        result.TotalPages.Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
     public async Task Search_ShouldReturnOnlyActiveApartments_WhenResultsAreRetrieved()
     {
         // Arrange
@@ -53,10 +72,10 @@ public sealed class SearchApartmentsTests(FunctionalTestWebAppFactory factory) :
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results =
-            await response.Content.ReadFromJsonAsync<JsonElement[]>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
 
-        results.Should().BeEmpty();
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -205,15 +224,23 @@ public sealed class SearchApartmentsTests(FunctionalTestWebAppFactory factory) :
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results =
-            await response.Content.ReadFromJsonAsync<JsonElement[]>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
 
-        results.Should().ContainSingle();
+        result!.Items.Should().ContainSingle();
+        result.TotalCount.Should().Be(1);
 
-        results![0]
+        result.Items[0]
             .GetProperty("city")
             .GetString()
             .Should()
             .Be(targetCity);
     }
+
+    // Mirrors the shape of PagedResponse<T> as serialized over the wire.
+    private sealed record PagedResponseDto<T>(
+        List<T> Items,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages);
 }

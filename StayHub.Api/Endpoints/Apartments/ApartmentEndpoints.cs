@@ -21,6 +21,7 @@ using StayHub.Application.Apartments.SearchApartments;
 using StayHub.Application.Apartments.SetAsPrimaryImage;
 using StayHub.Application.Apartments.UpdateApartment;
 using StayHub.Application.Users.InviteUser;
+using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 
 namespace StayHub.Api.Endpoints.Apartments;
@@ -41,7 +42,7 @@ public static class ApartmentEndpoints
 
         group.MapGet("", Search)
             .AllowAnonymous()
-            .Produces<IReadOnlyList<ApartmentSummaryResponse>>();
+            .Produces<PagedResponse<SearchApartmentsResponse>>();
 
         group.MapGet("by-owner/{ownerId:guid}", GetByOwner)
             .AllowAnonymous()

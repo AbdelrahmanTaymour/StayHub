@@ -1,25 +1,31 @@
 using FluentAssertions;
 using NSubstitute;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Apartments.SearchApartments;
+using StayHub.Domain.Bookings;
 
 namespace StayHub.Application.UnitTests.Apartments;
 
 public class SearchApartmentsQueryHandlerTests
 {
     private readonly SearchApartmentsQueryHandler _handler;
+    private readonly PricingService _pricingService = new();
     private readonly ISqlConnectionFactory _sqlConnectionFactoryMock = Substitute.For<ISqlConnectionFactory>();
+    private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
     public SearchApartmentsQueryHandlerTests()
     {
-        _handler = new SearchApartmentsQueryHandler(_sqlConnectionFactoryMock);
+        _handler = new SearchApartmentsQueryHandler(
+            _sqlConnectionFactoryMock,
+            _userContextMock,
+            _pricingService);
     }
 
     [Theory]
-    [InlineData(2026, 1, 10, 2026, 1, 1)] // Start after End
-    [InlineData(2026, 1, 1, 2026, 1,
-        1)] // Start equals End — zero-night search is treated as invalid, not just "no results"
-    public async Task Handle_Should_ReturnEmptyList_WhenStartIsNotBeforeEnd(
+    [InlineData(2026, 1, 10, 2026, 1, 1)]
+    [InlineData(2026, 1, 1, 2026, 1, 1)]
+    public async Task Handle_Should_ReturnEmptyPage_WhenStartIsNotBeforeEnd(
         int startYear, int startMonth, int startDay,
         int endYear, int endMonth, int endDay)
     {
@@ -38,7 +44,11 @@ public class SearchApartmentsQueryHandlerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty();
+        result.Value.Items.Should().BeEmpty();
+        result.Value.TotalCount.Should().Be(0);
+        result.Value.TotalPages.Should().Be(0);
+        result.Value.Page.Should().Be(1);
+        result.Value.PageSize.Should().Be(20);
     }
 
     [Fact]
