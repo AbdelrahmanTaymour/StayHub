@@ -12,8 +12,6 @@ public sealed class GetMyBookingsTests(FunctionalTestWebAppFactory factory) : Ba
     [Fact]
     public async Task GetMine_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
-        // Arrange
-
         // Act
         var response = await HttpClient.GetAsync(BookingRoutes.Mine());
 
@@ -22,7 +20,7 @@ public sealed class GetMyBookingsTests(FunctionalTestWebAppFactory factory) : Ba
     }
 
     [Fact]
-    public async Task GetMine_ShouldReturnEmptyList_WhenCallerHasNoBookings()
+    public async Task GetMine_ShouldReturnEmptyPagedEnvelope_WhenCallerHasNoBookings()
     {
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -33,8 +31,9 @@ public sealed class GetMyBookingsTests(FunctionalTestWebAppFactory factory) : Ba
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
@@ -64,7 +63,91 @@ public sealed class GetMyBookingsTests(FunctionalTestWebAppFactory factory) : Ba
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        results.Should().ContainSingle();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
     }
+
+    [Fact]
+    public async Task GetMine_ShouldReturnApartmentAndCancelDetails_WithExpectedPropertyNames()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var reserve = await HttpClient.PostAsJsonAsync(
+            BookingRoutes.BaseRoute, BookingTestData.ValidReserveRequest(apartmentId, startOffsetDays: 30));
+        reserve.EnsureSuccessStatusCode();
+
+        // Act
+        var response = await HttpClient.GetAsync(BookingRoutes.Mine());
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+
+        var item = result.Items[0];
+        item.TryGetProperty("apartmentName", out _).Should().BeTrue();
+        item.TryGetProperty("apartmentCity", out _).Should().BeTrue();
+        item.TryGetProperty("pricePerNight", out _).Should().BeTrue();
+        item.TryGetProperty("nights", out _).Should().BeTrue();
+        item.TryGetProperty("canCancel", out _).Should().BeTrue();
+        item.GetProperty("canCancel").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetMine_ShouldFilterByUpcoming_WhenFilterQueryParamIsProvided()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var reserve = await HttpClient.PostAsJsonAsync(
+            BookingRoutes.BaseRoute, BookingTestData.ValidReserveRequest(apartmentId, startOffsetDays: 30));
+        reserve.EnsureSuccessStatusCode();
+
+        // Act
+        var response = await HttpClient.GetAsync(BookingRoutes.Mine("filter=Upcoming"));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetMine_ShouldReturnEmpty_WhenFilterIsCompleted_AndNoBookingsAreCompleted()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var reserve = await HttpClient.PostAsJsonAsync(
+            BookingRoutes.BaseRoute, BookingTestData.ValidReserveRequest(apartmentId, startOffsetDays: 30));
+        reserve.EnsureSuccessStatusCode();
+
+        // Act — the freshly reserved booking is upcoming, not completed.
+        var response = await HttpClient.GetAsync(BookingRoutes.Mine("filter=Completed"));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().BeEmpty();
+    }
+
+    private sealed record PagedResponseDto<T>(
+        List<T> Items,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages);
 }

@@ -8,6 +8,7 @@ using StayHub.Application.Bookings.GetBookingsByUser;
 using StayHub.Application.Bookings.GetMyBookings;
 using StayHub.Application.Bookings.RejectBooking;
 using StayHub.Application.Bookings.ReserveBooking;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Endpoints.Bookings;
 
@@ -23,7 +24,7 @@ public static class BookingEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("mine", GetMine)
-            .Produces<IReadOnlyList<BookingSummaryResponse>>();
+            .Produces<PagedResponse<MyBookingsResponse>>();
 
         group.MapGet("by-user/{userId:guid}", GetByUser)
             .HasPermission(Permissions.BookingManage)
@@ -76,10 +77,11 @@ public static class BookingEndpoints
     private static async Task<IResult> GetMine(
         ISender sender,
         CancellationToken cancellationToken,
+        MyBookingsFilter filter = MyBookingsFilter.All,
         int page = 1,
-        int pageSize = 20)
+        int pageSize = 10)
     {
-        var result = await sender.Send(new GetMyBookingsQuery(page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetMyBookingsQuery(filter, page, pageSize), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
