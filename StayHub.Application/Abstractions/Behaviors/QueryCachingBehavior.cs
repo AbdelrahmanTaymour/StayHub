@@ -21,7 +21,11 @@ internal sealed class QueryCachingBehavior<TRequest, TResponse>(
             return await next(cancellationToken);
         }
 
-        var cachedValue = await cacheService.GetAsync<TResponse>(request.CacheKey, cancellationToken);
+        var cacheKey = await GetCacheKeyAsync(request, cancellationToken);
+
+        var cachedValue = await cacheService.GetAsync<TResponse>(
+            cacheKey,
+            cancellationToken);
 
         var requestName = typeof(TRequest).Name;
 
@@ -38,9 +42,29 @@ internal sealed class QueryCachingBehavior<TRequest, TResponse>(
 
         if (result.IsSuccess)
         {
-            await cacheService.SetAsync(request.CacheKey, result.Value, request.Expiration, cancellationToken);
+            await cacheService.SetAsync(
+                cacheKey,
+                result.Value,
+                request.Expiration,
+                cancellationToken);
         }
 
         return result;
+    }
+
+    private async Task<string> GetCacheKeyAsync(
+        TRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request is not IVersionedCachedQuery<TResponse> versionedQuery)
+        {
+            return request.CacheKey;
+        }
+
+        var version = await cacheService.GetAsync<long?>(
+            versionedQuery.VersionKey,
+            cancellationToken) ?? 0;
+
+        return $"{request.CacheKey}:v{version}";
     }
 }

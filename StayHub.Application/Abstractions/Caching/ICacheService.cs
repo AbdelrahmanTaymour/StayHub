@@ -17,4 +17,8 @@ public interface ICacheService
         Func<CancellationToken, Task<T>> factory,
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default);
+
+    Task<long> IncrementAsync(
+        string key,
+        CancellationToken cancellationToken = default);
 }
