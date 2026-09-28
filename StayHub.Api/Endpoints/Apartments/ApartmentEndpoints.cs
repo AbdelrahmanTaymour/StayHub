@@ -165,11 +165,11 @@ public static class ApartmentEndpoints
 
         // ---- Availability blocks ----
 
-        group.MapGet("{id:guid}/availability-blocks", GetApartmentAvailabilityBlocks)
+        group.MapGet("{apartmentId:guid}/availability-blocks", GetAvailabilityBlocks)
             .AllowAnonymous()
-            .WithName(nameof(GetApartmentAvailabilityBlocksQuery))
+            .WithName(nameof(GetAvailabilityBlocks))
             .Produces<ApartmentAvailabilityResponse>()
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status404NotFound);
 
 
         group.MapPost("{id:guid}/availability-blocks", CreateAvailabilityBlock)
@@ -464,18 +464,17 @@ public static class ApartmentEndpoints
             : Results.NoContent();
     }
 
-    private static async Task<IResult> GetApartmentAvailabilityBlocks(
-        Guid id,
-        int? year,
-        int? month,
+    private static async Task<IResult> GetAvailabilityBlocks(
+        Guid apartmentId,
         ISender sender,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? year = null,
+        int? month = null)
     {
-        var query = new GetApartmentAvailabilityBlocksQuery(id, year, month);
+        var result = await sender.Send(
+            new GetApartmentAvailabilityBlocksQuery(apartmentId, year, month), cancellationToken);
 
-        var result = await sender.Send(query, cancellationToken);
-
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> CreateAvailabilityBlock(

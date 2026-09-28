@@ -24,7 +24,6 @@ using StayHub.Infrastructure.Data;
 using Testcontainers.Keycloak;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
-using Role = StayHub.Domain.Users.Role;
 
 namespace StayHub.Application.IntegrationTests.Integration;
 
@@ -157,12 +156,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
             services.RemoveAll<IUserContext>();
 
-            services.AddScoped<TestUserContext>(_ => new TestUserContext
-            {
-                UserId = Guid.CreateVersion7(),
-                IdentityId = Guid.CreateVersion7().ToString(),
-                Roles = [Role.Admin.Name]
-            });
+            services.AddScoped<TestUserContext>(_ => new TestUserContext());
 
             services.AddScoped<IUserContext>(sp => sp.GetRequiredService<TestUserContext>());
 

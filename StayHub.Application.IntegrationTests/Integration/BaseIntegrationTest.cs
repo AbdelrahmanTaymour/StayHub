@@ -61,6 +61,11 @@ public abstract class BaseIntegrationTest : IAsyncLifetime, IDisposable
     {
         await _factory.ResetDatabaseAsync();
         await _factory.ResetCacheAsync();
+
+        UserContext.UserId = Guid.Empty;
+        UserContext.IdentityId = string.Empty;
+        UserContext.Roles = [];
+        UserContext.IsAuthenticated = false;
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

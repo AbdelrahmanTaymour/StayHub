@@ -9,12 +9,11 @@ public sealed class TestUserContext : IUserContext
 
     public string IdentityId { get; set; } = string.Empty;
 
-    public IReadOnlyCollection<string> Roles { get; set; } =
-        Array.Empty<string>();
+    public IReadOnlyCollection<string> Roles { get; set; } = [];
 
     public bool IsAuthenticated { get; set; }
 
-
     public bool IsAdmin => Roles.Contains(Role.Admin.Name);
-    public bool IsOwner(Guid ownerId) => UserId == ownerId;
+
+    public bool IsOwner(Guid ownerId) => IsAuthenticated && UserId == ownerId;
 }
