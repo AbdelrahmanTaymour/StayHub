@@ -10,6 +10,14 @@ internal static class ApartmentRoutes
     public static string ByOwner(Guid ownerId, string query = "") =>
         string.IsNullOrEmpty(query) ? $"{BaseRoute}/by-owner/{ownerId}" : $"{BaseRoute}/by-owner/{ownerId}?{query}";
 
+    public static string Mine(string query = "") =>
+        string.IsNullOrEmpty(query)
+            ? $"{BaseRoute}/mine"
+            : $"{BaseRoute}/mine?{query}";
+
+    public static string MyDashboard(string? query = null) =>
+        $"{BaseRoute}/mine/dashboard" + (query is null ? "" : $"?{query}");
+
     public static string Activate(Guid id) => $"{BaseRoute}/{id}/activate";
     public static string Deactivate(Guid id) => $"{BaseRoute}/{id}/deactivate";
     public static string Amenities(Guid id) => $"{BaseRoute}/{id}/amenities";

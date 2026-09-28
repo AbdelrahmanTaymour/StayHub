@@ -2,9 +2,9 @@ using MediatR;
 using StayHub.Application.Abstractions.Caching;
 using StayHub.Domain.Users.Events;
 
-namespace StayHub.Application.Users;
+namespace StayHub.Application.Users.GetUser;
 
-public sealed class UserCacheInvalidationHandler(
+public sealed class GetUserCacheInvalidationHandler(
     ICacheService cacheService) :
     INotificationHandler<UserNameUpdatedDomainEvent>,
     INotificationHandler<UserProfileUpdatedDomainEvent>

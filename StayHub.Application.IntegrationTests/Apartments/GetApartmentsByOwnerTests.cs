@@ -12,7 +12,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
     public async Task GetApartmentsByOwner_ShouldReturnEmptyPage_WhenOwnerHasNoApartments()
     {
         // Arrange
-        var query = new GetApartmentsByOwnerQuery(Guid.CreateVersion7(), IncludeInactive: false, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(Guid.CreateVersion7(), Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -44,7 +44,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(owner, otherOwner, ownedApartment, otherOwnersApartment);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -78,7 +78,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         await DbContext.SaveChangesAsync();
 
         var query = new GetApartmentsByOwnerQuery(
-            owner.Id, IncludeInactive: false, Sort: OwnerApartmentsSort.PriceAsc, Page: 1, PageSize: 2);
+            owner.Id, Sort: OwnerApartmentsSort.PriceAsc, Page: 1, PageSize: 2);
 
         // Act
         var result = await Sender.Send(query);
@@ -111,7 +111,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         await DbContext.SaveChangesAsync();
 
         var query = new GetApartmentsByOwnerQuery(
-            owner.Id, IncludeInactive: false, Sort: OwnerApartmentsSort.PriceAsc, Page: 2, PageSize: 2);
+            owner.Id, Sort: OwnerApartmentsSort.PriceAsc, Page: 2, PageSize: 2);
 
         // Act
         var result = await Sender.Send(query);
@@ -134,7 +134,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(owner, activeApartment, inactiveApartment);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -156,7 +156,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(owner, cheap, expensive);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -180,7 +180,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         await DbContext.SaveChangesAsync();
 
         var query = new GetApartmentsByOwnerQuery(
-            owner.Id, IncludeInactive: false, Sort: OwnerApartmentsSort.PriceDesc, Page: 1, PageSize: 10);
+            owner.Id, Sort: OwnerApartmentsSort.PriceDesc, Page: 1, PageSize: 10);
 
         // Act
         var result = await Sender.Send(query);
@@ -200,7 +200,7 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: false, Page: 1, PageSize: 10);
+        var query = new GetApartmentsByOwnerQuery(owner.Id, Page: 1, PageSize: 10);
 
         // Act: First call; cache miss, hits the database, then populates Redis.
         var firstResult = await Sender.Send(query);
@@ -235,9 +235,9 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         await DbContext.SaveChangesAsync();
 
         var ascQuery = new GetApartmentsByOwnerQuery(
-            owner.Id, IncludeInactive: false, Sort: OwnerApartmentsSort.PriceAsc, Page: 1, PageSize: 10);
+            owner.Id, Sort: OwnerApartmentsSort.PriceAsc, Page: 1, PageSize: 10);
         var descQuery = new GetApartmentsByOwnerQuery(
-            owner.Id, IncludeInactive: false, Sort: OwnerApartmentsSort.PriceDesc, Page: 1, PageSize: 10);
+            owner.Id, Sort: OwnerApartmentsSort.PriceDesc, Page: 1, PageSize: 10);
 
         // Act
         var ascResult = await Sender.Send(ascQuery);
@@ -246,29 +246,5 @@ public class GetApartmentsByOwnerTests(IntegrationTestWebAppFactory factory) : B
         // Assert
         ascResult.Value.Items[0].Id.Should().Be(cheap.Id);
         descResult.Value.Items[0].Id.Should().Be(expensive.Id);
-    }
-
-    [Fact]
-    public async Task GetApartmentsByOwner_ShouldNotBeCacheable_WhenIncludeInactiveIsTrue()
-    {
-        // Arrange
-        var owner = UserTestData.CreateUser();
-        var activeApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Active");
-        var inactiveApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Inactive");
-        inactiveApartment.Deactivate();
-        DbContext.AddRange(owner, activeApartment, inactiveApartment);
-        await DbContext.SaveChangesAsync();
-
-        var query = new GetApartmentsByOwnerQuery(owner.Id, IncludeInactive: true, Page: 1, PageSize: 10);
-
-        // Assert
-        query.IsCacheable.Should().BeFalse();
-
-        // Act
-        await Sender.Send(query);
-
-        // Assert
-        var cachedValue = await CacheService.GetAsync<PagedResponse<OwnerApartmentsResponse>>(query.CacheKey);
-        cachedValue.Should().BeNull();
     }
 }

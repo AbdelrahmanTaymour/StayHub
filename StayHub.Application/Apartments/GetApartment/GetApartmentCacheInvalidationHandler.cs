@@ -2,9 +2,9 @@ using MediatR;
 using StayHub.Application.Abstractions.Caching;
 using StayHub.Domain.Apartments.Events;
 
-namespace StayHub.Application.Apartments;
+namespace StayHub.Application.Apartments.GetApartment;
 
-internal sealed class ApartmentCacheInvalidationHandler(ICacheService cacheService) :
+internal sealed class GetApartmentCacheInvalidationHandler(ICacheService cacheService) :
     INotificationHandler<ApartmentUpdatedDomainEvent>,
     INotificationHandler<ApartmentActivatedDomainEvent>,
     INotificationHandler<ApartmentDeactivatedDomainEvent>,

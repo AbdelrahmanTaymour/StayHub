@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using StayHub.Api.FunctionalTests.Apartments;
+using StayHub.Api.FunctionalTests.Conversations;
 using StayHub.Api.FunctionalTests.Infrastructure;
 
 namespace StayHub.Api.FunctionalTests.Bookings;
@@ -75,10 +76,6 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
     [Fact]
     public async Task GetBooking_ShouldReturnNotFound_WhenCallerIsUnrelatedUser()
     {
-        // GetBookingQueryHandler intentionally folds "exists but caller isn't guest/owner/admin"
-        // into the same 404 as "doesn't exist", to avoid leaking booking existence to callers
-        // who have no relationship to it.
-
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
@@ -129,11 +126,11 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
     public async Task GetBooking_ShouldReturnExpectedShape_WhenBookingExists()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
-        var (guestToken, _, guestUserId) = await RegisterAndAuthenticateAsync();
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
 
@@ -144,8 +141,127 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Assert
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("id").GetGuid().Should().Be(bookingId);
-        body.GetProperty("userId").GetGuid().Should().Be(guestUserId);
         body.GetProperty("apartmentId").GetGuid().Should().Be(apartmentId);
         body.GetProperty("status").GetString().Should().Be("Reserved");
+
+        body.GetProperty("apartmentName").GetString().Should().NotBeNullOrWhiteSpace();
+        body.TryGetProperty("apartmentImageUrl", out _).Should().BeTrue();
+
+        body.TryGetProperty("address", out var address).Should().BeTrue();
+        address.GetProperty("city").GetString().Should().NotBeNullOrWhiteSpace();
+        address.GetProperty("street").GetString().Should().NotBeNullOrWhiteSpace();
+
+        body.GetProperty("nights").GetInt32().Should().BeGreaterThan(0);
+        body.GetProperty("currency").GetString().Should().NotBeNullOrWhiteSpace();
+        body.GetProperty("pricePerNight").GetDecimal().Should().BeGreaterThan(0);
+        body.TryGetProperty("priceForPeriodAmount", out _).Should().BeTrue();
+        body.TryGetProperty("cleaningFeeAmount", out _).Should().BeTrue();
+        body.TryGetProperty("amenitiesUpChargeAmount", out _).Should().BeTrue();
+        body.TryGetProperty("totalPriceAmount", out _).Should().BeTrue();
+
+        body.TryGetProperty("createdOnUtc", out _).Should().BeTrue();
+        body.TryGetProperty("updatedOnUtc", out _).Should().BeTrue();
+
+        body.TryGetProperty("host", out var host).Should().BeTrue();
+        host.GetProperty("id").GetGuid().Should().Be(ownerUserId);
+        host.GetProperty("fullName").GetString().Should().NotBeNullOrWhiteSpace();
+
+        body.GetProperty("conversationId").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task GetBooking_ShouldNotExposeRemovedLegacyFields()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
+
+        // Act
+        var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.TryGetProperty("userId", out _).Should().BeFalse();
+        body.TryGetProperty("priceAmount", out _).Should().BeFalse();
+        body.TryGetProperty("priceCurrency", out _).Should().BeFalse();
+        body.TryGetProperty("cleaningFeeCurrency", out _).Should().BeFalse();
+        body.TryGetProperty("amenitiesUpChargeCurrency", out _).Should().BeFalse();
+        body.TryGetProperty("totalPriceCurrency", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetBooking_ShouldReturnCanCancelTrue_WhenCallerIsTheGuest()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
+
+        // Act
+        var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("canCancel").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetBooking_ShouldReturnCanCancelFalse_WhenCallerIsTheApartmentOwner()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
+
+        AuthenticateAs(ownerToken);
+
+        // Act
+        var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("canCancel").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetBooking_ShouldReturnConversationId_WhenGuestHasStartedAConversationWithTheHost()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
+
+        var startResponse = await HttpClient.PostAsJsonAsync(
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+        startResponse.EnsureSuccessStatusCode();
+        var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
+
+        // Act
+        var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("conversationId").GetGuid().Should().Be(conversationId);
     }
 }

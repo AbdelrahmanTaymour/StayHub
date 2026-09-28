@@ -3,7 +3,6 @@ using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
-using StayHub.Domain.Apartments;
 
 namespace StayHub.Application.Apartments.GetApartmentsByOwner;
 
@@ -16,11 +15,6 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
         GetApartmentsByOwnerQuery request,
         CancellationToken cancellationToken)
     {
-        if (request.IncludeInactive && !userContext.IsAdmin && !userContext.IsOwner(request.OwnerId))
-        {
-            return Result.Failure<PagedResponse<OwnerApartmentsResponse>>(ApartmentErrors.NotAuthorized);
-        }
-
         using var connection = sqlConnectionFactory.CreateConnection();
 
         // Sort comes from a closed enum switch, never from raw user input — safe to interpolate.
@@ -61,7 +55,7 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
                    ) rv ON true
 
                    WHERE a.owner_id = @OwnerId
-                     AND (@IncludeInactive OR a.is_active = true)
+                     AND a.is_active = true
 
                    ORDER BY {orderBy}
 
@@ -74,7 +68,6 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
             new
             {
                 request.OwnerId,
-                request.IncludeInactive,
                 Offset = (request.Page - 1) * request.PageSize,
                 request.PageSize
             })).ToList();

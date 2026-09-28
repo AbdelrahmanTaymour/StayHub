@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using StayHub.Api.Extensions;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Apartments.ActivateApartment;
 using StayHub.Application.Apartments.AddApartmentAmenity;
 using StayHub.Application.Apartments.AddApartmentImage;
@@ -13,6 +14,8 @@ using StayHub.Application.Apartments.GetApartment;
 using StayHub.Application.Apartments.GetApartmentAvailabilityBlocks;
 using StayHub.Application.Apartments.GetApartmentPricing;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
+using StayHub.Application.Apartments.GetMyApartments;
+using StayHub.Application.Apartments.GetMyApartmentsDashboard;
 using StayHub.Application.Apartments.RemoveApartmentAmenity;
 using StayHub.Application.Apartments.RemoveApartmentAvailabilityBlock;
 using StayHub.Application.Apartments.RemoveApartmentImage;
@@ -41,13 +44,23 @@ public static class ApartmentEndpoints
             .Produces<ApartmentResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapGet("mine", GetMine)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetMine))
+            .Produces<PagedResponse<MyApartmentsResponse>>();
+
+        group.MapGet("mine/dashboard", GetMineDashboard)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetMineDashboard))
+            .Produces<MyApartmentsDashboardResponse>();
+
         group.MapGet("", Search)
             .AllowAnonymous()
             .Produces<PagedResponse<SearchApartmentsResponse>>();
 
         group.MapGet("by-owner/{ownerId:guid}", GetByOwner)
             .AllowAnonymous()
-            .Produces<IReadOnlyList<ApartmentSummaryResponse>>();
+            .Produces<IReadOnlyList<OwnerApartmentsResponse>>();
 
         group.MapPost("", Create)
             .HasPermission(Permissions.ApartmentCreate)
@@ -181,6 +194,29 @@ public static class ApartmentEndpoints
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
+    private static async Task<IResult> GetMine(
+        ISender sender,
+        IUserContext userContext,
+        CancellationToken cancellationToken,
+        MyApartmentsFilter status = MyApartmentsFilter.All,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        var result = await sender.Send(new GetMyApartmentsQuery(userContext.UserId, status, search, page, pageSize),
+            cancellationToken);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetMineDashboard(
+        ISender sender,
+        IUserContext userContext,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetMyApartmentsDashboardQuery(userContext.UserId), cancellationToken);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
     private static async Task<IResult> Search(
         [AsParameters] SearchApartmentsQuery query,
         ISender sender,
@@ -203,7 +239,6 @@ public static class ApartmentEndpoints
         Guid ownerId,
         ISender sender,
         CancellationToken cancellationToken,
-        bool includeInactive = false,
         OwnerApartmentsSort sort = OwnerApartmentsSort.PriceAsc,
         int page = 1,
         int pageSize = 9)
@@ -211,7 +246,6 @@ public static class ApartmentEndpoints
         var result = await sender.Send(
             new GetApartmentsByOwnerQuery(
                 OwnerId: ownerId,
-                IncludeInactive: includeInactive,
                 Sort: sort,
                 Page: page,
                 PageSize: pageSize),

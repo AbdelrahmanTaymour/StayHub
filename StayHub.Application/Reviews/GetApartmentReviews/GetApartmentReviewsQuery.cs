@@ -9,5 +9,5 @@ public sealed record GetApartmentReviewsQuery(
     int PageSize = 10) : ICachedQuery<PagedResponse<ApartmentReviewResponse>>
 {
     public string CacheKey => CacheKeys.ApartmentReviews(ApartmentId, Page, PageSize);
-    public TimeSpan? Expiration => TimeSpan.FromMinutes(1);
+    public TimeSpan? Expiration => TimeSpan.FromMinutes(2);
 }
