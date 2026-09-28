@@ -19,7 +19,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
 
         // Act
         var response = await HttpClient.PostAsync(
-            ApartmentRoutes.Images(apartmentId), ApartmentTestData.BuildImageContent());
+            ApartmentRoutes.AddImages(apartmentId), ApartmentTestData.BuildImageContent());
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -42,7 +42,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
 
         // Act
         var response = await HttpClient.PostAsync(
-            ApartmentRoutes.Images(apartmentId), ApartmentTestData.BuildImageContent());
+            ApartmentRoutes.AddImages(apartmentId), ApartmentTestData.BuildImageContent());
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -57,7 +57,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
 
         // Act
         var response = await HttpClient.PostAsync(
-            ApartmentRoutes.Images(Guid.NewGuid()), ApartmentTestData.BuildImageContent());
+            ApartmentRoutes.AddImages(Guid.NewGuid()), ApartmentTestData.BuildImageContent());
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -70,7 +70,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
 
         // Act
         var response = await HttpClient.PostAsync(
-            ApartmentRoutes.Images(Guid.NewGuid()), ApartmentTestData.BuildImageContent());
+            ApartmentRoutes.AddImages(Guid.NewGuid()), ApartmentTestData.BuildImageContent());
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -89,7 +89,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
 
         // Act
         var response = await HttpClient.PostAsync(
-            ApartmentRoutes.Images(apartmentId), content);
+            ApartmentRoutes.AddImages(apartmentId), content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -109,7 +109,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
             ApartmentTestData.BuildImageContent(fileName: "photo.jpg", contentType: "application/octet-stream");
 
         // Act
-        var response = await HttpClient.PostAsync(ApartmentRoutes.Images(apartmentId), content);
+        var response = await HttpClient.PostAsync(ApartmentRoutes.AddImages(apartmentId), content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -127,7 +127,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var content = ApartmentTestData.BuildImageContent(bytes: []);
 
         // Act
-        var response = await HttpClient.PostAsync(ApartmentRoutes.Images(apartmentId), content);
+        var response = await HttpClient.PostAsync(ApartmentRoutes.AddImages(apartmentId), content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -146,7 +146,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var content = ApartmentTestData.BuildImageContent(bytes: oversizedFile);
 
         // Act
-        var response = await HttpClient.PostAsync(ApartmentRoutes.Images(apartmentId), content);
+        var response = await HttpClient.PostAsync(ApartmentRoutes.AddImages(apartmentId), content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -164,7 +164,7 @@ public sealed class AddApartmentImageTests(FunctionalTestWebAppFactory factory)
         var content = ApartmentTestData.BuildImageContent(fileName: "photo.png", contentType: "image/png");
 
         // Act
-        var response = await HttpClient.PostAsync(ApartmentRoutes.Images(apartmentId), content);
+        var response = await HttpClient.PostAsync(ApartmentRoutes.AddImages(apartmentId), content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);

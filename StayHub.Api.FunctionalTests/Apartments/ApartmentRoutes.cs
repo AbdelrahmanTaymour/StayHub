@@ -15,13 +15,16 @@ internal static class ApartmentRoutes
             ? $"{BaseRoute}/mine"
             : $"{BaseRoute}/mine?{query}";
 
+    public static string ForEdit(Guid apartmentId) => $"{BaseRoute}/{apartmentId}/edit";
+
     public static string MyDashboard(string? query = null) =>
         $"{BaseRoute}/mine/dashboard" + (query is null ? "" : $"?{query}");
 
     public static string Activate(Guid id) => $"{BaseRoute}/{id}/activate";
     public static string Deactivate(Guid id) => $"{BaseRoute}/{id}/deactivate";
     public static string Amenities(Guid id) => $"{BaseRoute}/{id}/amenities";
-    public static string Images(Guid id) => $"{BaseRoute}/{id}/images";
+    public static string AddImages(Guid apartmentId) => $"{BaseRoute}/{apartmentId}/images";
+    public static string ApartmentImages(Guid apartmentId) => $"{BaseRoute}/{apartmentId}/images";
     public static string ImageById(Guid imageId) => $"{BaseRoute}/images/{imageId}";
     public static string ImagesOrder(Guid id) => $"{BaseRoute}/{id}/images/order";
     public static string ImageAsPrimary(Guid id, Guid imageId) => $"{BaseRoute}/{id}/images/{imageId}/primary";
