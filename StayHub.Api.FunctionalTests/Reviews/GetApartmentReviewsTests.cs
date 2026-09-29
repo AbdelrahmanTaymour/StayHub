@@ -55,4 +55,35 @@ public sealed class GetApartmentReviewsTests(FunctionalTestWebAppFactory factory
         body.TryGetProperty("totalCount", out _).Should().BeTrue();
         body.TryGetProperty("totalPages", out _).Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData("responseStatus=NeedsResponse")]
+    [InlineData("responseStatus=Responded")]
+    [InlineData("responseStatus=All")]
+    [InlineData("rating=FiveStars")]
+    [InlineData("rating=FourStars")]
+    [InlineData("rating=ThreeStarsOrLess")]
+    [InlineData("sortOrder=Recent")]
+    [InlineData("sortOrder=Oldest")]
+    [InlineData("sortOrder=RatingDesc")]
+    [InlineData("sortOrder=RatingAsc")]
+    [InlineData("responseStatus=NeedsResponse&rating=FiveStars&sortOrder=Oldest&page=1&pageSize=5")]
+    public async Task GetByApartment_ShouldReturnOk_ForEachSupportedFilterAndSortCombination(string query)
+    {
+        // Act
+        var response = await HttpClient.GetAsync(ByApartment(Guid.NewGuid(), query));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetByApartment_ShouldReturnBadRequest_WhenFilterValueIsNotAValidEnumName()
+    {
+        // Act
+        var response = await HttpClient.GetAsync(ByApartment(Guid.NewGuid(), "rating=NotARealRating"));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

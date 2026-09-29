@@ -1,5 +1,6 @@
 using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Application.Apartments.GetMyApartments;
+using StayHub.Application.Reviews.GetApartmentReviews;
 using StayHub.Domain.Maintenance;
 
 namespace StayHub.Application.Abstractions.Caching;
@@ -54,9 +55,15 @@ public static class CacheKeys
             : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}";
     }
 
-    public static string ApartmentReviews(Guid apartmentId, int page, int pageSize)
+    public static string ApartmentReviews(
+        Guid apartmentId,
+        ReviewResponseStatusFilter responseStatus,
+        ReviewRatingFilter rating,
+        ReviewSortOrder sortOrder,
+        int page,
+        int pageSize)
     {
-        return $"reviews:apartment:{apartmentId}:{page}:{pageSize}";
+        return $"reviews:apartment:{apartmentId}:{responseStatus}:{rating}:{sortOrder}:{page}:{pageSize}";
     }
 
     public static string User(Guid userId)

@@ -54,10 +54,21 @@ public static class ReviewEndpoints
         Guid apartmentId,
         ISender sender,
         CancellationToken cancellationToken,
+        ReviewResponseStatusFilter responseStatus = ReviewResponseStatusFilter.All,
+        ReviewRatingFilter rating = ReviewRatingFilter.All,
+        ReviewSortOrder sortOrder = ReviewSortOrder.Recent,
         int page = 1,
         int pageSize = 20)
     {
-        var result = await sender.Send(new GetApartmentReviewsQuery(apartmentId, page, pageSize), cancellationToken);
+        var result = await sender.Send(
+            new GetApartmentReviewsQuery(
+                ApartmentId: apartmentId,
+                ResponseStatus: responseStatus,
+                Rating: rating,
+                SortOrder: sortOrder,
+                Page: page,
+                PageSize: pageSize),
+            cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
