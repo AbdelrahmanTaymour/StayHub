@@ -17,6 +17,7 @@ using StayHub.Application.Apartments.GetApartmentForEdit;
 using StayHub.Application.Apartments.GetApartmentImages;
 using StayHub.Application.Apartments.GetApartmentPricing;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
+using StayHub.Application.Apartments.GetApartmentStaff;
 using StayHub.Application.Apartments.GetMyApartments;
 using StayHub.Application.Apartments.GetMyApartmentsDashboard;
 using StayHub.Application.Apartments.RemoveApartmentAmenity;
@@ -25,6 +26,7 @@ using StayHub.Application.Apartments.RemoveApartmentImage;
 using StayHub.Application.Apartments.ReorderApartmentImages;
 using StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 using StayHub.Application.Apartments.SearchApartments;
+using StayHub.Application.Apartments.SearchStaffCandidate;
 using StayHub.Application.Apartments.SetAsPrimaryImage;
 using StayHub.Application.Apartments.UpdateApartment;
 using StayHub.Application.Users.InviteUser;
@@ -188,6 +190,11 @@ public static class ApartmentEndpoints
 
         // ---- Staff assignments ----
 
+        group.MapGet("{apartmentId:guid}/staff", GetStaff)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces<IReadOnlyList<ApartmentStaffResponse>>()
+            .Produces(StatusCodes.Status404NotFound);
+
         group.MapPost("{id:guid}/staff", AssignStaff)
             .HasPermission(Permissions.ApartmentManage)
             .Produces<Guid>(StatusCodes.Status201Created)
@@ -201,10 +208,15 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapGet("{apartmentId:guid}/staff/search", SearchStaffCandidate)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces<StaffCandidateResponse>()
+            .Produces(StatusCodes.Status404NotFound);
+
         group.MapPost("{id:guid}/staff/invite", InviteStaff)
             .HasPermission(Permissions.ApartmentManage)
-            .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
+            .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -500,6 +512,16 @@ public static class ApartmentEndpoints
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
     }
 
+    private static async Task<IResult> GetStaff(
+        Guid apartmentId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetApartmentStaffQuery(apartmentId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
     private static async Task<IResult> AssignStaff(
         Guid id,
         AssignApartmentStaffRequest request,
@@ -521,6 +543,17 @@ public static class ApartmentEndpoints
         var result = await sender.Send(new RevokeApartmentStaffAssignmentCommand(assignmentId), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> SearchStaffCandidate(
+        Guid apartmentId,
+        string email,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new SearchStaffCandidateQuery(apartmentId, email), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> InviteStaff(

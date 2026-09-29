@@ -1,3 +1,5 @@
+using System.Web;
+
 namespace StayHub.Api.FunctionalTests.Apartments;
 
 internal static class ApartmentRoutes
@@ -34,7 +36,11 @@ internal static class ApartmentRoutes
         $"{BaseRoute}/{id}/availability-blocks?year={year}&month={month}";
 
     public static string AvailabilityBlockById(Guid blockId) => $"{BaseRoute}/availability-blocks/{blockId}";
-    public static string Staff(Guid id) => $"{BaseRoute}/{id}/staff";
+
+    public static string StaffSearch(Guid apartmentId, string email) =>
+        $"{BaseRoute}/{apartmentId}/staff/search?email={HttpUtility.UrlEncode(email)}";
+
+    public static string Staff(Guid apartmentId) => $"{BaseRoute}/{apartmentId}/staff";
     public static string StaffById(Guid assignmentId) => $"{BaseRoute}/staff/{assignmentId}";
 
     public static string Pricing(Guid apartmentId, string? query = null) =>
