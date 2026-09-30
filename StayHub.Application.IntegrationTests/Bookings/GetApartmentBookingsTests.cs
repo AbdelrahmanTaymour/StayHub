@@ -103,7 +103,7 @@ public class GetApartmentBookingsTests(IntegrationTestWebAppFactory factory) : B
         var owner = UserTestData.CreateUser();
         var guest = UserTestData.CreateUser();
         var profile = UserTestData.CreateProfile(guest.Id);
-        profile.UpdateAvatar(new AvatarUrl("https://test-storage.local/guest-avatar.png"), DateTime.UtcNow);
+        profile.UpdateAvatar(new AvatarKey("https://test-storage.local/guest-avatar.png"), DateTime.UtcNow);
         var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
         DbContext.AddRange(owner, guest, profile, apartment);
         await DbContext.SaveChangesAsync();

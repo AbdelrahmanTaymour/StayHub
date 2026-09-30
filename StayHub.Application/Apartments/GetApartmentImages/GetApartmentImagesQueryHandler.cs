@@ -2,14 +2,16 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 
 namespace StayHub.Application.Apartments.GetApartmentImages;
 
-internal sealed class GetApartmentPhotosQueryHandler(
+internal sealed class GetApartmentImagesQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext) : IQueryHandler<GetApartmentImagesQuery, ApartmentImagesResponse>
+    IUserContext userContext,
+    IFileStorageService fileStorageService) : IQueryHandler<GetApartmentImagesQuery, ApartmentImagesResponse>
 {
     public async Task<Result<ApartmentImagesResponse>> Handle(
         GetApartmentImagesQuery request,
@@ -25,7 +27,7 @@ internal sealed class GetApartmentPhotosQueryHandler(
 
                            SELECT
                                ai.id AS Id,
-                               ai.url AS Url,
+                               ai.key AS Key,
                                ai.display_order AS DisplayOrder,
                                ai.is_primary AS IsPrimary
                            FROM apartment_images AS ai
@@ -55,7 +57,8 @@ internal sealed class GetApartmentPhotosQueryHandler(
             return Result.Failure<ApartmentImagesResponse>(ApartmentErrors.NotAuthorized);
         }
 
-        var photos = (await multi.ReadAsync<ApartmentImageResponse>()).ToList();
+        var imageRows = (await multi.ReadAsync<ApartmentImageRow>()).ToList();
+        var photos = await ToImageResponsesAsync(imageRows, cancellationToken);
 
         return new ApartmentImagesResponse
         {
@@ -63,9 +66,32 @@ internal sealed class GetApartmentPhotosQueryHandler(
         };
     }
 
+    internal async Task<IReadOnlyList<ApartmentImageResponse>> ToImageResponsesAsync(
+        IReadOnlyList<ApartmentImageRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async row => new ApartmentImageResponse
+        {
+            Id = row.Id,
+            Url = await fileStorageService.GeneratePresignedUrlAsync(row.Key, cancellationToken),
+            DisplayOrder = row.DisplayOrder,
+            IsPrimary = row.IsPrimary
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
     private sealed class ApartmentOwnershipRow
     {
         public Guid Id { get; init; }
         public Guid OwnerId { get; init; }
+    }
+
+    internal sealed class ApartmentImageRow
+    {
+        public Guid Id { get; init; }
+        public string Key { get; init; } = string.Empty;
+        public int DisplayOrder { get; init; }
+        public bool IsPrimary { get; init; }
     }
 }

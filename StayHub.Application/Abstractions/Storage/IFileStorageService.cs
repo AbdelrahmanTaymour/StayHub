@@ -6,7 +6,10 @@ public interface IFileStorageService
         Stream content,
         string fileName,
         string contentType,
+        ImageCategory category,
         CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(string url, CancellationToken cancellationToken = default);
+    Task<string> GeneratePresignedUrlAsync(string key, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(string key, CancellationToken cancellationToken = default);
 }

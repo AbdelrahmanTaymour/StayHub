@@ -51,7 +51,7 @@ public class AddApartmentImageTests(IntegrationTestWebAppFactory factory) : Base
 
         var existingPrimaryImage = ApartmentImage.Create(
             apartment.Id,
-            new ApartmentImageUrl("existing-primary.jpg"),
+            new ApartmentImageKey("existing-primary.jpg"),
             displayOrder: 0,
             DateTime.UtcNow.AddMinutes(-5),
             isPrimary: true);
@@ -119,7 +119,7 @@ public class AddApartmentImageTests(IntegrationTestWebAppFactory factory) : Base
         await act.Should().ThrowAsync<InvalidOperationException>();
 
         FileStorageService.UploadedFiles.Should().ContainSingle();
-        var uploadedUrl = FileStorageService.UploadedFiles.Single().Url;
+        var uploadedUrl = FileStorageService.UploadedFiles.Single().Key;
         FileStorageService.DeletedUrls.Should().ContainSingle(url => url == uploadedUrl);
     }
 }

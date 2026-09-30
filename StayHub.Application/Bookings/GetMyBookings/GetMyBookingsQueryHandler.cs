@@ -3,6 +3,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
 
@@ -10,7 +11,8 @@ namespace StayHub.Application.Bookings.GetMyBookings;
 
 internal sealed class GetMyBookingsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetMyBookingsQuery, PagedResponse<MyBookingsResponse>>
 {
     public async Task<Result<PagedResponse<MyBookingsResponse>>> Handle(
@@ -33,7 +35,7 @@ internal sealed class GetMyBookingsQueryHandler(
                                         b.apartment_id AS ApartmentId,
                                         a.name AS ApartmentName,
                                         a.address_city AS ApartmentCity,
-                                        img.url AS PrimaryImageUrl,
+                                        img.key AS PrimaryImageKey,
                                         b.status AS Status,
                                         a.price_amount AS PricePerNight,
                                         b.total_price_amount AS TotalPriceAmount,
@@ -113,28 +115,7 @@ internal sealed class GetMyBookingsQueryHandler(
             };
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var items = rows.Select(r => new MyBookingsResponse
-        {
-            Id = r.Id,
-            ApartmentId = r.ApartmentId,
-            ApartmentName = r.ApartmentName,
-            ApartmentCity = r.ApartmentCity,
-            PrimaryImageUrl = r.PrimaryImageUrl,
-            Status = r.Status,
-            PricePerNight = r.PricePerNight,
-            TotalPriceAmount = r.TotalPriceAmount,
-            TotalPriceCurrency = r.TotalPriceCurrency,
-            DurationStart = r.DurationStart,
-            DurationEnd = r.DurationEnd,
-            Nights = r.DurationEnd.DayNumber - r.DurationStart.DayNumber,
-            // Mirrors the same rule the Cancel command enforces: only Reserved/Confirmed
-            // bookings that haven't started yet are cancellable.
-            CanCancel = r.Status is BookingStatus.Reserved or BookingStatus.Confirmed
-                        && r.DurationStart > today
-        }).ToList();
-
+        var items = await ToMyBookingsResponsesAsync(rows, cancellationToken);
         var totalCount = rows[0].TotalCount;
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
@@ -148,13 +129,47 @@ internal sealed class GetMyBookingsQueryHandler(
         };
     }
 
-    private sealed class BookingRow
+    private async Task<IReadOnlyList<MyBookingsResponse>> ToMyBookingsResponsesAsync(
+        IReadOnlyList<BookingRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var tasks = rows.Select(async r =>
+        {
+            var primaryImageUrl = string.IsNullOrWhiteSpace(r.PrimaryImageKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.PrimaryImageKey, cancellationToken);
+
+            return new MyBookingsResponse
+            {
+                Id = r.Id,
+                ApartmentId = r.ApartmentId,
+                ApartmentName = r.ApartmentName,
+                ApartmentCity = r.ApartmentCity,
+                PrimaryImageUrl = primaryImageUrl,
+                Status = r.Status,
+                PricePerNight = r.PricePerNight,
+                TotalPriceAmount = r.TotalPriceAmount,
+                TotalPriceCurrency = r.TotalPriceCurrency,
+                DurationStart = r.DurationStart,
+                DurationEnd = r.DurationEnd,
+                Nights = r.DurationEnd.DayNumber - r.DurationStart.DayNumber,
+                CanCancel = r.Status is BookingStatus.Reserved or BookingStatus.Confirmed
+                            && r.DurationStart > today
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal sealed class BookingRow
     {
         public Guid Id { get; init; }
         public Guid ApartmentId { get; init; }
         public string ApartmentName { get; init; } = string.Empty;
         public string ApartmentCity { get; init; } = string.Empty;
-        public string? PrimaryImageUrl { get; init; }
+        public string? PrimaryImageKey { get; init; }
         public BookingStatus Status { get; init; }
         public decimal PricePerNight { get; init; }
         public decimal TotalPriceAmount { get; init; }

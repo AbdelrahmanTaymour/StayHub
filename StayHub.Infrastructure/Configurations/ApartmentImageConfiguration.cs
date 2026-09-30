@@ -12,9 +12,10 @@ internal sealed class ApartmentImageConfiguration : IEntityTypeConfiguration<Apa
 
         builder.HasKey(image => image.Id);
 
-        builder.Property(image => image.Url)
+        builder.Property(image => image.Key)
+            .HasColumnName("key")
             .HasMaxLength(2000)
-            .HasConversion(image => image.Value, value => new ApartmentImageUrl(value));
+            .HasConversion(image => image.Value, value => new ApartmentImageKey(value));
 
         builder.HasIndex(image => new { image.ApartmentId, image.DisplayOrder });
 

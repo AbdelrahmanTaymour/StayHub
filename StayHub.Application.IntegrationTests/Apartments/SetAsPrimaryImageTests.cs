@@ -20,14 +20,14 @@ public sealed class SetAsPrimaryImageTests(IntegrationTestWebAppFactory factory)
 
         var currentPrimaryImage = ApartmentImage.Create(
             apartment.Id,
-            new ApartmentImageUrl("primary.jpg"),
+            new ApartmentImageKey("primary.jpg"),
             displayOrder: 0,
             DateTime.UtcNow.AddMinutes(-2),
             isPrimary: true);
 
         var newImage = ApartmentImage.Create(
             apartment.Id,
-            new ApartmentImageUrl("secondary.jpg"),
+            new ApartmentImageKey("secondary.jpg"),
             displayOrder: 1,
             DateTime.UtcNow.AddMinutes(-1),
             isPrimary: false);
@@ -72,7 +72,7 @@ public sealed class SetAsPrimaryImageTests(IntegrationTestWebAppFactory factory)
 
         var image = ApartmentImage.Create(
             firstApartment.Id,
-            new ApartmentImageUrl("image.jpg"),
+            new ApartmentImageKey("image.jpg"),
             displayOrder: 0,
             DateTime.UtcNow,
             isPrimary: false);

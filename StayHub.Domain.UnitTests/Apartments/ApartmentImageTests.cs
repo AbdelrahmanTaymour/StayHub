@@ -13,7 +13,7 @@ public class ApartmentImageTests : BaseTest
         // Arrange
         DateTime utcNow = DateTime.UtcNow;
         var apartmentId = Guid.CreateVersion7();
-        var url = new ApartmentImageUrl("https://cdn.stayhub.dev/images/test.png");
+        var url = new ApartmentImageKey("https://cdn.stayhub.dev/images/test.png");
 
         // Act
         var image = ApartmentImage.Create(apartmentId, url, displayOrder: 2, utcNow);
@@ -21,7 +21,7 @@ public class ApartmentImageTests : BaseTest
         // Assert
         image.Id.Should().NotBeEmpty();
         image.ApartmentId.Should().Be(apartmentId);
-        image.Url.Should().Be(url);
+        image.Key.Should().Be(url);
         image.DisplayOrder.Should().Be(2);
         image.IsPrimary.Should().BeFalse();
         image.CreatedOnUtc.Should().Be(utcNow);
@@ -134,6 +134,6 @@ public class ApartmentImageTests : BaseTest
         var domainEvent = AssertDomainEventWasPublished<ApartmentImageRemovedDomainEvent>(image);
         domainEvent.ImageId.Should().Be(image.Id);
         domainEvent.ApartmentId.Should().Be(image.ApartmentId);
-        domainEvent.Url.Should().Be(image.Url);
+        domainEvent.Key.Should().Be(image.Key);
     }
 }

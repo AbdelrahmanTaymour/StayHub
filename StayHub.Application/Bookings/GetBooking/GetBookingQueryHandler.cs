@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Application.Apartments.GetApartment;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
@@ -10,7 +11,8 @@ namespace StayHub.Application.Bookings.GetBooking;
 
 internal sealed class GetBookingQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext) : IQueryHandler<GetBookingQuery, BookingResponse>
+    IUserContext userContext,
+    IFileStorageService fileStorageService) : IQueryHandler<GetBookingQuery, BookingResponse>
 {
     public async Task<Result<BookingResponse>> Handle(GetBookingQuery request, CancellationToken cancellationToken)
     {
@@ -32,7 +34,7 @@ internal sealed class GetBookingQueryHandler(
 
                                a.id AS ApartmentId,
                                a.name AS ApartmentName,
-                               img.url AS ApartmentImageUrl,
+                               img.key AS ApartmentImageKey,
                                a.address_country AS Country,
                                a.address_state AS State,
                                a.address_zip_code AS ZipCode,
@@ -50,7 +52,7 @@ internal sealed class GetBookingQueryHandler(
 
                                owner.id AS HostId,
                                owner.first_name || ' ' || owner.last_name AS HostFullName,
-                               owner_profile.avatar_url AS HostAvatarUrl,
+                               owner_profile.avatar_key AS HostAvatarKey,
 
                                c.id AS ConversationId
 
@@ -92,6 +94,23 @@ internal sealed class GetBookingQueryHandler(
             return Result.Failure<BookingResponse>(BookingErrors.NotFound);
         }
 
+        return await ToBookingResponseAsync(row, cancellationToken);
+    }
+
+    private async Task<BookingResponse> ToBookingResponseAsync(
+        BookingRow row,
+        CancellationToken cancellationToken)
+    {
+        var apartmentImageUrlTask = string.IsNullOrWhiteSpace(row.ApartmentImageKey)
+            ? Task.FromResult<string?>(null)!
+            : fileStorageService.GeneratePresignedUrlAsync(row.ApartmentImageKey, cancellationToken)!;
+
+        var hostAvatarUrlTask = string.IsNullOrWhiteSpace(row.HostAvatarKey)
+            ? Task.FromResult<string?>(null)!
+            : fileStorageService.GeneratePresignedUrlAsync(row.HostAvatarKey, cancellationToken)!;
+
+        await Task.WhenAll(apartmentImageUrlTask, hostAvatarUrlTask);
+
         var nights = row.DurationEnd.DayNumber - row.DurationStart.DayNumber;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -109,7 +128,7 @@ internal sealed class GetBookingQueryHandler(
 
             ApartmentId = row.ApartmentId,
             ApartmentName = row.ApartmentName,
-            ApartmentImageUrl = row.ApartmentImageUrl,
+            ApartmentImageUrl = await apartmentImageUrlTask,
             Address = new AddressResponse
             {
                 Country = row.Country,
@@ -134,14 +153,14 @@ internal sealed class GetBookingQueryHandler(
             {
                 Id = row.HostId,
                 FullName = row.HostFullName,
-                AvatarUrl = row.HostAvatarUrl
+                AvatarUrl = await hostAvatarUrlTask
             },
 
             ConversationId = row.ConversationId
         };
     }
 
-    private sealed class BookingRow
+    internal sealed class BookingRow
     {
         public Guid Id { get; init; }
         public Guid GuestId { get; init; }
@@ -151,7 +170,7 @@ internal sealed class GetBookingQueryHandler(
 
         public Guid ApartmentId { get; init; }
         public string ApartmentName { get; init; } = string.Empty;
-        public string? ApartmentImageUrl { get; init; }
+        public string? ApartmentImageKey { get; init; }
         public string Country { get; init; } = string.Empty;
         public string State { get; init; } = string.Empty;
         public string ZipCode { get; init; } = string.Empty;
@@ -169,7 +188,7 @@ internal sealed class GetBookingQueryHandler(
 
         public Guid HostId { get; init; }
         public string HostFullName { get; init; } = string.Empty;
-        public string? HostAvatarUrl { get; init; }
+        public string? HostAvatarKey { get; init; }
 
         public Guid? ConversationId { get; init; }
     }

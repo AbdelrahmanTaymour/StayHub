@@ -26,7 +26,7 @@ public class ReorderApartmentImagesCommandHandlerTests
     }
 
     private static ApartmentImage CreateImage(Guid apartmentId, int displayOrder) =>
-        ApartmentImage.Create(apartmentId, new ApartmentImageUrl($"https://cdn.stayhub.dev/{displayOrder}.png"),
+        ApartmentImage.Create(apartmentId, new ApartmentImageKey($"https://cdn.stayhub.dev/{displayOrder}.png"),
             displayOrder,
             DateTime.UtcNow);
 

@@ -2,12 +2,14 @@ using System.Text;
 using Dapper;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Reviews.GetApartmentReviews;
 
 internal sealed class GetApartmentReviewsQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetApartmentReviewsQuery, PagedResponse<ApartmentReviewResponse>>
 {
     public async Task<Result<PagedResponse<ApartmentReviewResponse>>> Handle(
@@ -72,7 +74,7 @@ internal sealed class GetApartmentReviewsQueryHandler(
                    SELECT
                        r.id AS Id,
                        u.first_name || ' ' || u.last_name AS ReviewerName,
-                       up.avatar_url AS ReviewerAvatarUrl,
+                       up.avatar_key AS ReviewerAvatarKey,
                        b.duration_start AS BookingStartDate,
                        b.duration_end AS BookingEndDate,
                        r.rating AS Rating,
@@ -106,19 +108,7 @@ internal sealed class GetApartmentReviewsQueryHandler(
             };
         }
 
-        var items = rows.Select(r => new ApartmentReviewResponse
-        {
-            Id = r.Id,
-            ReviewerName = r.ReviewerName,
-            ReviewerAvatarUrl = r.ReviewerAvatarUrl,
-            NightsStayed = r.BookingEndDate.DayNumber - r.BookingStartDate.DayNumber,
-            Rating = r.Rating,
-            Comment = r.Comment,
-            OwnerResponseComment = r.OwnerResponseComment,
-            OwnerResponseCreatedOnUtc = r.OwnerResponseCreatedOnUtc,
-            CreatedOnUtc = r.CreatedOnUtc
-        }).ToList();
-
+        var items = await ToApartmentReviewResponsesAsync(rows, cancellationToken);
         var totalCount = rows[0].TotalCount;
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
@@ -132,11 +122,38 @@ internal sealed class GetApartmentReviewsQueryHandler(
         };
     }
 
-    private sealed class ApartmentReviewRow
+    private async Task<IReadOnlyList<ApartmentReviewResponse>> ToApartmentReviewResponsesAsync(
+        IReadOnlyList<ApartmentReviewRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async r =>
+        {
+            var reviewerAvatarUrl = string.IsNullOrWhiteSpace(r.ReviewerAvatarKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.ReviewerAvatarKey, cancellationToken);
+
+            return new ApartmentReviewResponse
+            {
+                Id = r.Id,
+                ReviewerName = r.ReviewerName,
+                ReviewerAvatarUrl = reviewerAvatarUrl,
+                NightsStayed = r.BookingEndDate.DayNumber - r.BookingStartDate.DayNumber,
+                Rating = r.Rating,
+                Comment = r.Comment,
+                OwnerResponseComment = r.OwnerResponseComment,
+                OwnerResponseCreatedOnUtc = r.OwnerResponseCreatedOnUtc,
+                CreatedOnUtc = r.CreatedOnUtc
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal sealed class ApartmentReviewRow
     {
         public Guid Id { get; init; }
         public string ReviewerName { get; init; } = string.Empty;
-        public string? ReviewerAvatarUrl { get; init; }
+        public string? ReviewerAvatarKey { get; init; }
         public DateOnly BookingStartDate { get; init; }
         public DateOnly BookingEndDate { get; init; }
         public int Rating { get; init; }

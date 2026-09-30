@@ -16,41 +16,61 @@ internal sealed class ObjectStorageService(
         Stream content,
         string fileName,
         string contentType,
+        ImageCategory category,
         CancellationToken cancellationToken = default)
     {
-        var processed = await imageProcessor.ProcessAsync(content, cancellationToken);
+        var processed = await imageProcessor.ProcessAsync(content, category, cancellationToken);
 
-        var key = $"apartments/{Guid.NewGuid()}{processed.FileExtension}";
+        var key = $"{KeyPrefix(category)}/{Guid.NewGuid()}{processed.FileExtension}";
 
-        var request = new PutObjectRequest
+        await using (processed.Content)
+        {
+            var request = new PutObjectRequest
+            {
+                BucketName = _settings.BucketName,
+                Key = key,
+                InputStream = processed.Content,
+                ContentType = processed.ContentType,
+                AutoCloseStream = false, // Handled by async using block
+                DisablePayloadSigning = true
+            };
+
+            await s3Client.PutObjectAsync(request, cancellationToken);
+        }
+
+        return key;
+    }
+
+    public Task<string> GeneratePresignedUrlAsync(string key, CancellationToken cancellationToken = default)
+    {
+        var request = new GetPreSignedUrlRequest
         {
             BucketName = _settings.BucketName,
             Key = key,
-            InputStream = processed.Content,
-            ContentType = processed.ContentType,
-            AutoCloseStream = true,
-            // Many S3-compatible providers (Backblaze B2, some MinIO setups) don't support the AWS
-            // SDK's default chunked/streaming SigV4 signing for uploads. Disabling it falls back to a
-            // single upfront SHA256 hash instead, which is the broadly-compatible option across providers.
-            DisablePayloadSigning = true
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.AddMinutes(_settings.PresignedUrlExpirationMinutes)
         };
 
-        await s3Client.PutObjectAsync(request, cancellationToken);
+        var url = s3Client.GetPreSignedURL(request);
 
-        return $"{_settings.PublicBaseUrl.TrimEnd('/')}/{key}";
+        return Task.FromResult(url);
     }
 
-    public async Task DeleteAsync(string url, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
-        var key = ExtractKeyFromUrl(url);
+        var request = new DeleteObjectRequest
+        {
+            BucketName = _settings.BucketName,
+            Key = key
+        };
 
-        await s3Client.DeleteObjectAsync(_settings.BucketName, key, cancellationToken);
+        await s3Client.DeleteObjectAsync(request, cancellationToken);
     }
 
-    private static string ExtractKeyFromUrl(string url)
+    private static string KeyPrefix(ImageCategory category) => category switch
     {
-        // Reverses the URL format built in UploadAsync: everything after the public base host is the object key.
-        var uri = new Uri(url);
-        return uri.AbsolutePath.TrimStart('/');
-    }
+        ImageCategory.ApartmentPhoto => "apartments",
+        ImageCategory.UserAvatar => "avatars",
+        _ => throw new ArgumentOutOfRangeException(nameof(category), category, $"Unhandled image category: {category}")
+    };
 }

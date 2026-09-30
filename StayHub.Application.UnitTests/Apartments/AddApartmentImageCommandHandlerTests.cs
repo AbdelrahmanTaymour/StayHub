@@ -28,7 +28,8 @@ public class AddApartmentImageCommandHandlerTests
     {
         _dateTimeProviderMock.UtcNow.Returns(UtcNow);
         _fileStorageServiceMock
-            .UploadAsync(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .UploadAsync(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), ImageCategory.ApartmentPhoto,
+                Arg.Any<CancellationToken>())
             .Returns(UploadedUrl);
 
         _handler = new AddApartmentImageCommandHandler(
@@ -63,7 +64,8 @@ public class AddApartmentImageCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(ApartmentErrors.NotFound);
         await _fileStorageServiceMock.DidNotReceive().UploadAsync(
-            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), ImageCategory.ApartmentPhoto,
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -82,7 +84,8 @@ public class AddApartmentImageCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(ApartmentErrors.NotAuthorized);
         await _fileStorageServiceMock.DidNotReceive().UploadAsync(
-            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), ImageCategory.ApartmentPhoto,
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -92,7 +95,7 @@ public class AddApartmentImageCommandHandlerTests
         var apartment = ApartmentData.Create();
         var existingPrimaryImage = ApartmentImage.Create(
             apartment.Id,
-            new ApartmentImageUrl("existing-primary.jpg"),
+            new ApartmentImageKey("existing-primary.jpg"),
             displayOrder: 0,
             DateTime.UtcNow.AddMinutes(-5),
             isPrimary: true);
@@ -133,7 +136,7 @@ public class AddApartmentImageCommandHandlerTests
             Arg.Is<ApartmentImage>(image =>
                 image.Id == result.Value &&
                 image.ApartmentId == apartment.Id &&
-                image.Url.Value == UploadedUrl &&
+                image.Key.Value == UploadedUrl &&
                 image.DisplayOrder == 2 &&
                 image.IsPrimary));
 
@@ -156,7 +159,7 @@ public class AddApartmentImageCommandHandlerTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _imageRepositoryMock.Received(1).Add(Arg.Is<ApartmentImage>(i =>
-            i.Id == result.Value && i.Url.Value == UploadedUrl && i.DisplayOrder == 2));
+            i.Id == result.Value && i.Key.Value == UploadedUrl && i.DisplayOrder == 2));
         await _unitOfWorkMock.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 

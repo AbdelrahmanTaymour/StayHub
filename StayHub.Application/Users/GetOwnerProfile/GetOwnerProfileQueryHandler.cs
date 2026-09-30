@@ -1,13 +1,15 @@
 using Dapper;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Users;
 
 namespace StayHub.Application.Users.GetOwnerProfile;
 
 internal sealed class GetOwnerProfileQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
+    ISqlConnectionFactory sqlConnectionFactory,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetOwnerProfileQuery, UserProfileResponse>
 {
     public async Task<Result<UserProfileResponse>> Handle(
@@ -20,7 +22,7 @@ internal sealed class GetOwnerProfileQueryHandler(
                            SELECT
                                u.id AS Id,
                                u.first_name || ' ' || u.last_name AS FullName,
-                               p.avatar_url AS AvatarUrl,
+                               p.avatar_key AS AvatarKey,
                                p.bio AS Bio,
                                stats.rating AS Rating,
                                COALESCE(stats.review_count, 0) AS ReviewCount,
@@ -40,8 +42,44 @@ internal sealed class GetOwnerProfileQueryHandler(
                            WHERE u.id = @OwnerId
                            """;
 
-        var profile = await connection.QueryFirstOrDefaultAsync<UserProfileResponse>(sql, new { request.OwnerId });
+        var row = await connection.QueryFirstOrDefaultAsync<OwnerProfileRow>(sql, new { request.OwnerId });
 
-        return profile ?? Result.Failure<UserProfileResponse>(UserErrors.NotFound);
+        if (row is null)
+        {
+            return Result.Failure<UserProfileResponse>(UserErrors.NotFound);
+        }
+
+        return await ToUserProfileResponseAsync(row, cancellationToken);
+    }
+
+    private async Task<UserProfileResponse> ToUserProfileResponseAsync(
+        OwnerProfileRow row,
+        CancellationToken cancellationToken)
+    {
+        var avatarUrl = string.IsNullOrWhiteSpace(row.AvatarKey)
+            ? null
+            : await fileStorageService.GeneratePresignedUrlAsync(row.AvatarKey, cancellationToken);
+
+        return new UserProfileResponse
+        {
+            Id = row.Id,
+            FullName = row.FullName,
+            AvatarUrl = avatarUrl,
+            Bio = row.Bio,
+            Rating = row.Rating,
+            ReviewCount = row.ReviewCount,
+            ActiveListingsCount = row.ActiveListingsCount
+        };
+    }
+
+    internal sealed class OwnerProfileRow
+    {
+        public Guid Id { get; init; }
+        public string FullName { get; init; } = string.Empty;
+        public string? AvatarKey { get; init; }
+        public string? Bio { get; init; }
+        public double? Rating { get; init; }
+        public int ReviewCount { get; init; }
+        public int ActiveListingsCount { get; init; }
     }
 }

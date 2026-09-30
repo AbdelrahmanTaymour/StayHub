@@ -145,8 +145,7 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
     [Fact]
     public async Task SearchApartments_ShouldIncludeApartment_WhenOnlyReservedBookingOverlapsRequestedRange()
     {
-        // Arrange — a Reserved (not yet Confirmed) booking must not block other guests from finding
-        // the apartment, so the owner's calendar can't be overwhelmed by a single pending request.
+        // Arrange
         var owner = UserTestData.CreateUser();
         var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Pending Reservation Apartment");
         DbContext.AddRange(owner, apartment);

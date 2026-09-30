@@ -20,7 +20,7 @@ public class UserProfileTests : BaseTest
         profile.UserId.Should().Be(UserData.OwnerId);
         profile.CreatedOnUtc.Should().Be(utcNow);
         profile.UpdatedOnUtc.Should().BeNull();
-        profile.AvatarUrl.Should().BeNull();
+        profile.AvatarKey.Should().BeNull();
         profile.Bio.Should().BeNull();
         profile.PhoneNumber.Should().BeNull();
     }
@@ -31,7 +31,7 @@ public class UserProfileTests : BaseTest
     {
         // Arrange
         var profile = UserProfile.Create(UserData.OwnerId, DateTime.UtcNow);
-        var avatar = new AvatarUrl("https://cdn.stayhub.dev/avatars/test.png");
+        var avatar = new AvatarKey("https://cdn.stayhub.dev/avatars/test.png");
         var utcNow = DateTime.UtcNow;
 
         // Act
@@ -39,7 +39,7 @@ public class UserProfileTests : BaseTest
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        profile.AvatarUrl.Should().Be(avatar);
+        profile.AvatarKey.Should().Be(avatar);
         profile.UpdatedOnUtc.Should().Be(utcNow);
     }
 
@@ -50,7 +50,7 @@ public class UserProfileTests : BaseTest
         var profile = UserProfile.Create(UserData.OwnerId, DateTime.UtcNow);
 
         // Act
-        profile.UpdateAvatar(new AvatarUrl("https://cdn.stayhub.dev/avatars/test.png"), DateTime.UtcNow);
+        profile.UpdateAvatar(new AvatarKey("https://cdn.stayhub.dev/avatars/test.png"), DateTime.UtcNow);
 
         // Assert
         var domainEvent = AssertDomainEventWasPublished<UserProfileUpdatedDomainEvent>(profile);

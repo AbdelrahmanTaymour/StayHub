@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Users;
@@ -10,7 +11,8 @@ namespace StayHub.Application.Apartments.SearchStaffCandidate;
 
 internal sealed class SearchStaffCandidateQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<SearchStaffCandidateQuery, StaffCandidateResponse>
 {
     public async Task<Result<StaffCandidateResponse>> Handle(
@@ -42,7 +44,7 @@ internal sealed class SearchStaffCandidateQueryHandler(
                                    u.id AS UserId,
                                    u.first_name || ' ' || u.last_name AS FullName,
                                    u.email AS Email,
-                                   p.avatar_url AS AvatarUrl,
+                                   p.avatar_key AS AvatarKey,
                                    p.phone_number AS PhoneNumber,
                                    asa.role AS CurrentRole
                                FROM users u
@@ -64,25 +66,37 @@ internal sealed class SearchStaffCandidateQueryHandler(
             return Result.Failure<StaffCandidateResponse>(UserErrors.NotFound);
         }
 
+        return await ToCandidateResponseAsync(row, ownerId.Value, cancellationToken);
+    }
+
+    private async Task<StaffCandidateResponse> ToCandidateResponseAsync(
+        CandidateRow row,
+        Guid ownerId,
+        CancellationToken cancellationToken)
+    {
+        var avatarUrl = string.IsNullOrWhiteSpace(row.AvatarKey)
+            ? null
+            : await fileStorageService.GeneratePresignedUrlAsync(row.AvatarKey, cancellationToken);
+
         return new StaffCandidateResponse
         {
             UserId = row.UserId,
             FullName = row.FullName,
             Email = row.Email,
-            AvatarUrl = row.AvatarUrl,
+            AvatarUrl = avatarUrl,
             PhoneNumber = row.PhoneNumber,
-            IsApartmentOwner = row.UserId == ownerId.Value,
+            IsApartmentOwner = row.UserId == ownerId,
             IsAlreadyAssigned = row.CurrentRole is not null,
             CurrentRole = row.CurrentRole
         };
     }
 
-    private sealed class CandidateRow
+    internal sealed class CandidateRow
     {
         public Guid UserId { get; init; }
         public string FullName { get; init; } = string.Empty;
         public string Email { get; init; } = string.Empty;
-        public string? AvatarUrl { get; init; }
+        public string? AvatarKey { get; init; }
         public string? PhoneNumber { get; init; }
         public ApartmentStaffRole? CurrentRole { get; init; }
     }

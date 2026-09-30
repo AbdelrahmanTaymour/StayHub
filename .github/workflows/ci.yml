@@ -1,6 +1,7 @@
-# Validate every pull request before it can be merged.
+# Validate every pull request before it can be merged or allow manual runs.
 on:
   pull_request:
+  workflow_dispatch:
 
 # Grant only the permissions required by this workflow.
 permissions:
@@ -35,10 +36,17 @@ jobs:
           cache-dependency-path: "**/*.csproj"
 
       - name: Restore dependencies
+        env:
+          SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
         run: dotnet restore StayHub.sln
 
       - name: Build solution
-        run: dotnet build StayHub.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        env:
+          SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+        run: >
+          dotnet build StayHub.sln
+          --configuration ${{ env.BUILD_CONFIGURATION }}
+          --no-restore
 
       # Run fast, infrastructure-independent tests in the PR workflow.
       # Integration and functional tests are handled separately.
@@ -91,3 +99,5 @@ jobs:
           tags: stayhub-backend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          secrets: |
+            sixlabors_license=${{ secrets.SIXLABORS_LICENSE_KEY }}

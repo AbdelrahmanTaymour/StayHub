@@ -3,6 +3,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
@@ -11,7 +12,8 @@ namespace StayHub.Application.Bookings.GetApartmentBookings;
 
 internal sealed class GetApartmentBookingsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetApartmentBookingsQuery, PagedResponse<ApartmentBookingResponse>>
 {
     public async Task<Result<PagedResponse<ApartmentBookingResponse>>> Handle(
@@ -64,7 +66,7 @@ internal sealed class GetApartmentBookingsQueryHandler(
                                          b.id AS Id,
                                          u.id AS GuestId,
                                          u.first_name || ' ' || u.last_name AS GuestFullName,
-                                         p.avatar_url AS GuestAvatarUrl,
+                                         p.avatar_key AS GuestAvatarKey,
                                          b.status AS Status,
                                          b.duration_start AS DurationStart,
                                          b.duration_end AS DurationEnd,
@@ -108,25 +110,15 @@ internal sealed class GetApartmentBookingsQueryHandler(
         {
             return new PagedResponse<ApartmentBookingResponse>
             {
-                Items = [], Page = page, PageSize = pageSize, TotalCount = 0, TotalPages = 0
+                Items = [],
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0,
+                TotalPages = 0
             };
         }
 
-        var items = rows.Select(r => new ApartmentBookingResponse
-        {
-            Id = r.Id,
-            GuestId = r.GuestId,
-            GuestFullName = r.GuestFullName,
-            GuestAvatarUrl = r.GuestAvatarUrl,
-            Status = r.Status,
-            DurationStart = r.DurationStart,
-            DurationEnd = r.DurationEnd,
-            Nights = r.DurationEnd.DayNumber - r.DurationStart.DayNumber,
-            TotalPriceAmount = r.TotalPriceAmount,
-            TotalPriceCurrency = r.TotalPriceCurrency,
-            CreatedOnUtc = r.CreatedOnUtc
-        }).ToList();
-
+        var items = await ToBookingResponsesAsync(rows, cancellationToken);
         var totalCount = rows[0].TotalCount;
 
         return new PagedResponse<ApartmentBookingResponse>
@@ -139,15 +131,44 @@ internal sealed class GetApartmentBookingsQueryHandler(
         };
     }
 
+    private async Task<IReadOnlyList<ApartmentBookingResponse>> ToBookingResponsesAsync(
+        IReadOnlyList<BookingRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async r =>
+        {
+            var guestAvatarUrl = string.IsNullOrWhiteSpace(r.GuestAvatarKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.GuestAvatarKey, cancellationToken);
+
+            return new ApartmentBookingResponse
+            {
+                Id = r.Id,
+                GuestId = r.GuestId,
+                GuestFullName = r.GuestFullName,
+                GuestAvatarUrl = guestAvatarUrl,
+                Status = r.Status,
+                DurationStart = r.DurationStart,
+                DurationEnd = r.DurationEnd,
+                Nights = r.DurationEnd.DayNumber - r.DurationStart.DayNumber,
+                TotalPriceAmount = r.TotalPriceAmount,
+                TotalPriceCurrency = r.TotalPriceCurrency,
+                CreatedOnUtc = r.CreatedOnUtc
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
-    private sealed class BookingRow
+    internal sealed class BookingRow
     {
         public Guid Id { get; init; }
         public Guid GuestId { get; init; }
         public string GuestFullName { get; init; } = string.Empty;
-        public string? GuestAvatarUrl { get; init; }
+        public string? GuestAvatarKey { get; init; }
         public BookingStatus Status { get; init; }
         public DateOnly DurationStart { get; init; }
         public DateOnly DurationEnd { get; init; }

@@ -2,13 +2,15 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Favorites.GetFavoriteApartments;
 
 internal sealed class GetFavoriteApartmentsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetFavoriteApartmentsQuery, PagedResponse<FavoriteApartmentResponse>>
 {
     public async Task<Result<PagedResponse<FavoriteApartmentResponse>>> Handle(
@@ -32,7 +34,7 @@ internal sealed class GetFavoriteApartmentsQueryHandler(
                                a.address_city AS City,
                                a.price_amount AS PricePerNight,
                                a.price_currency AS Currency,
-                               img.url AS PrimaryImageUrl,
+                               img.key AS PrimaryImageKey,
                                rv.avg_rating AS Rating,
                                COALESCE(rv.review_count, 0) AS ReviewCount,
                                COUNT(*) OVER() AS TotalCount
@@ -83,18 +85,7 @@ internal sealed class GetFavoriteApartmentsQueryHandler(
             };
         }
 
-        var items = rows.Select(r => new FavoriteApartmentResponse
-        {
-            ApartmentId = r.ApartmentId,
-            Name = r.Name,
-            City = r.City,
-            PricePerNight = r.PricePerNight,
-            Currency = r.Currency,
-            PrimaryImageUrl = r.PrimaryImageUrl,
-            Rating = r.Rating,
-            ReviewCount = r.ReviewCount
-        }).ToList();
-
+        var items = await ToFavoriteApartmentResponsesAsync(rows, cancellationToken);
         var totalCount = rows[0].TotalCount;
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
@@ -108,14 +99,40 @@ internal sealed class GetFavoriteApartmentsQueryHandler(
         };
     }
 
-    private sealed class FavoriteApartmentRow
+    private async Task<IReadOnlyList<FavoriteApartmentResponse>> ToFavoriteApartmentResponsesAsync(
+        IReadOnlyList<FavoriteApartmentRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async r =>
+        {
+            var primaryImageUrl = string.IsNullOrWhiteSpace(r.PrimaryImageKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.PrimaryImageKey, cancellationToken);
+
+            return new FavoriteApartmentResponse
+            {
+                ApartmentId = r.ApartmentId,
+                Name = r.Name,
+                City = r.City,
+                PricePerNight = r.PricePerNight,
+                Currency = r.Currency,
+                PrimaryImageUrl = primaryImageUrl,
+                Rating = r.Rating,
+                ReviewCount = r.ReviewCount
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal sealed class FavoriteApartmentRow
     {
         public Guid ApartmentId { get; init; }
         public string Name { get; init; } = string.Empty;
         public string City { get; init; } = string.Empty;
         public decimal PricePerNight { get; init; }
         public string Currency { get; init; } = string.Empty;
-        public string? PrimaryImageUrl { get; init; }
+        public string? PrimaryImageKey { get; init; }
         public double? Rating { get; init; }
         public int ReviewCount { get; init; }
         public int TotalCount { get; init; }

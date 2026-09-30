@@ -86,7 +86,7 @@ public class UpdateUserProfileCommandHandlerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        profile.AvatarUrl.Should().Be(new AvatarUrl("https://cdn.stayhub.dev/a.png"));
+        profile.AvatarKey.Should().Be(new AvatarKey("https://cdn.stayhub.dev/a.png"));
         profile.Bio.Should().Be(new Bio("New bio"));
         profile.PhoneNumber!.Value.Should().Be("+15551234567");
     }

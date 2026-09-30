@@ -2,13 +2,15 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Conversations.GetMyConversations;
 
 internal sealed class GetMyConversationsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetMyConversationsQuery, IReadOnlyList<MyConversationResponse>>
 {
     public async Task<Result<IReadOnlyList<MyConversationResponse>>> Handle(
@@ -34,9 +36,9 @@ internal sealed class GetMyConversationsQueryHandler(
                                END AS OtherPartyName,
 
                                CASE
-                                   WHEN c.guest_id = @UserId THEN owner_profile.avatar_url
-                                   ELSE guest_profile.avatar_url
-                               END AS OtherPartyAvatarUrl,
+                                   WHEN c.guest_id = @UserId THEN owner_profile.avatar_key
+                                   ELSE guest_profile.avatar_key
+                               END AS OtherPartyAvatarKey,
 
                                CASE
                                    WHEN c.guest_id = @UserId THEN 0  -- Host
@@ -83,10 +85,57 @@ internal sealed class GetMyConversationsQueryHandler(
                            ORDER BY c.last_message_on_utc DESC NULLS LAST
                            """;
 
-        var conversations = await connection.QueryAsync<MyConversationResponse>(
+        var rows = (await connection.QueryAsync<ConversationRow>(
             sql,
-            new { userContext.UserId });
+            new { userContext.UserId })).ToList();
 
-        return conversations.ToList();
+        if (rows.Count == 0)
+        {
+            return Array.Empty<MyConversationResponse>();
+        }
+
+        return await ToMyConversationResponsesAsync(rows, cancellationToken);
+    }
+
+    private async Task<Result<IReadOnlyList<MyConversationResponse>>> ToMyConversationResponsesAsync(
+        IReadOnlyList<ConversationRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async r =>
+        {
+            var otherPartyAvatarUrl = string.IsNullOrWhiteSpace(r.OtherPartyAvatarKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.OtherPartyAvatarKey, cancellationToken);
+
+            return new MyConversationResponse
+            {
+                Id = r.Id,
+                ApartmentId = r.ApartmentId,
+                ApartmentName = r.ApartmentName,
+                OtherPartyId = r.OtherPartyId,
+                OtherPartyName = r.OtherPartyName,
+                OtherPartyAvatarUrl = otherPartyAvatarUrl,
+                OtherPartyRole = r.OtherPartyRole,
+                LastMessagePreview = r.LastMessagePreview,
+                LastMessageOnUtc = r.LastMessageOnUtc,
+                UnreadCount = r.UnreadCount
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal sealed class ConversationRow
+    {
+        public Guid Id { get; init; }
+        public Guid ApartmentId { get; init; }
+        public string ApartmentName { get; init; } = string.Empty;
+        public Guid OtherPartyId { get; init; }
+        public string OtherPartyName { get; init; } = string.Empty;
+        public string? OtherPartyAvatarKey { get; init; }
+        public ConversationRole OtherPartyRole { get; init; }
+        public string? LastMessagePreview { get; init; }
+        public DateTime? LastMessageOnUtc { get; init; }
+        public int UnreadCount { get; init; }
     }
 }

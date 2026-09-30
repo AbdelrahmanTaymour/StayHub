@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Application.Maintenance.GetMaintenanceRequest;
 using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Apartments;
@@ -12,6 +13,8 @@ namespace StayHub.Application.UnitTests.Maintenance;
 public class GetMaintenanceRequestTests
 {
     private readonly IApartmentRepository _apartmentRepositoryMock = Substitute.For<IApartmentRepository>();
+
+    private readonly IFileStorageService _fileStorageServiceMock = Substitute.For<IFileStorageService>();
 
     private readonly GetMaintenanceRequestQueryHandler _handler;
 
@@ -32,7 +35,8 @@ public class GetMaintenanceRequestTests
             _maintenanceRequestRepositoryMock,
             _apartmentRepositoryMock,
             _staffAssignmentRepositoryMock,
-            _userContextMock);
+            _userContextMock,
+            _fileStorageServiceMock);
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Application.Apartments.SearchApartments;
 using StayHub.Domain.Bookings;
 
@@ -9,6 +10,7 @@ namespace StayHub.Application.UnitTests.Apartments;
 
 public class SearchApartmentsQueryHandlerTests
 {
+    private readonly IFileStorageService _fileStorageService = Substitute.For<IFileStorageService>();
     private readonly SearchApartmentsQueryHandler _handler;
     private readonly PricingService _pricingService = new();
     private readonly ISqlConnectionFactory _sqlConnectionFactoryMock = Substitute.For<ISqlConnectionFactory>();
@@ -19,7 +21,8 @@ public class SearchApartmentsQueryHandlerTests
         _handler = new SearchApartmentsQueryHandler(
             _sqlConnectionFactoryMock,
             _userContextMock,
-            _pricingService);
+            _pricingService,
+            _fileStorageService);
     }
 
     [Theory]

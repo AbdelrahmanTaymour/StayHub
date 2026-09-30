@@ -3,6 +3,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
@@ -13,7 +14,8 @@ namespace StayHub.Application.Apartments.SearchApartments;
 internal sealed class SearchApartmentsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext,
-    PricingService pricingService)
+    PricingService pricingService,
+    IFileStorageService fileStorageService)
     : IQueryHandler<SearchApartmentsQuery, PagedResponse<SearchApartmentsResponse>>
 {
     // Only a Confirmed booking blocks availability — a merely Reserved booking must not let
@@ -56,7 +58,7 @@ internal sealed class SearchApartmentsQueryHandler(
                                         a.price_currency AS Currency,
                                         a.cleaning_fee_amount AS CleaningFeeAmount,
                                         a.amenities AS Amenities,
-                                        img.url AS PrimaryImageUrl,
+                                        img.key AS PrimaryImageKey,
                                         rv.avg_rating AS Rating,
                                         COALESCE(rv.review_count, 0) AS ReviewCount,
                                         COUNT(*) OVER() AS TotalCount
@@ -185,7 +187,28 @@ internal sealed class SearchApartmentsQueryHandler(
             ? normalizedRequest.End.Value.DayNumber - normalizedRequest.Start.Value.DayNumber
             : null;
 
-        var items = rows.Select(row =>
+        var items = await ToSearchApartmentResponsesAsync(rows, favoritedIds, nights, cancellationToken);
+
+        var totalCount = rows[0].TotalCount;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)normalizedRequest.PageSize);
+
+        return new PagedResponse<SearchApartmentsResponse>
+        {
+            Items = items,
+            Page = normalizedRequest.Page,
+            PageSize = normalizedRequest.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
+    }
+
+    private async Task<IReadOnlyList<SearchApartmentsResponse>> ToSearchApartmentResponsesAsync(
+        IReadOnlyList<ApartmentSearchRow> rows,
+        HashSet<Guid> favoritedIds,
+        int? nights,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async row =>
         {
             decimal? totalPrice = null;
 
@@ -204,6 +227,10 @@ internal sealed class SearchApartmentsQueryHandler(
                 totalPrice = pricing.TotalPrice.Amount;
             }
 
+            var primaryImageUrl = string.IsNullOrWhiteSpace(row.PrimaryImageKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(row.PrimaryImageKey, cancellationToken);
+
             return new SearchApartmentsResponse
             {
                 Id = row.Id,
@@ -212,24 +239,14 @@ internal sealed class SearchApartmentsQueryHandler(
                 PricePerNight = row.PriceAmount,
                 TotalPrice = totalPrice,
                 Currency = row.Currency,
-                PrimaryImageUrl = row.PrimaryImageUrl,
+                PrimaryImageUrl = primaryImageUrl,
                 Rating = row.Rating,
                 ReviewCount = row.ReviewCount,
                 IsFavorited = favoritedIds.Contains(row.Id)
             };
-        }).ToList();
+        });
 
-        var totalCount = rows[0].TotalCount;
-        var totalPages = (int)Math.Ceiling(totalCount / (double)normalizedRequest.PageSize);
-
-        return new PagedResponse<SearchApartmentsResponse>
-        {
-            Items = items,
-            Page = normalizedRequest.Page,
-            PageSize = normalizedRequest.PageSize,
-            TotalCount = totalCount,
-            TotalPages = totalPages
-        };
+        return (await Task.WhenAll(tasks)).ToList();
     }
 
     private static SearchApartmentsQuery NormalizeRequest(SearchApartmentsQuery request)
@@ -252,7 +269,7 @@ internal sealed class SearchApartmentsQueryHandler(
     }
 
     // Dapper projection row 
-    private sealed class ApartmentSearchRow
+    internal sealed class ApartmentSearchRow
     {
         public Guid Id { get; init; }
         public string Name { get; init; } = string.Empty;
@@ -261,7 +278,7 @@ internal sealed class SearchApartmentsQueryHandler(
         public string Currency { get; init; } = string.Empty;
         public decimal CleaningFeeAmount { get; init; }
         public IReadOnlyList<string>? Amenities { get; init; }
-        public string? PrimaryImageUrl { get; init; }
+        public string? PrimaryImageKey { get; init; }
         public double? Rating { get; init; }
         public int ReviewCount { get; init; }
         public int TotalCount { get; init; }

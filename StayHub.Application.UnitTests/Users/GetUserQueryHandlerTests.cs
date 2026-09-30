@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Application.Users.GetUser;
 using StayHub.Domain.Users;
 
@@ -9,13 +10,14 @@ namespace StayHub.Application.UnitTests.Users;
 
 public class GetUserQueryHandlerTests
 {
+    private readonly IFileStorageService _fileStorageServiceMock = Substitute.For<IFileStorageService>();
     private readonly GetUserQueryHandler _handler;
     private readonly ISqlConnectionFactory _sqlConnectionFactoryMock = Substitute.For<ISqlConnectionFactory>();
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
     public GetUserQueryHandlerTests()
     {
-        _handler = new GetUserQueryHandler(_sqlConnectionFactoryMock, _userContextMock);
+        _handler = new GetUserQueryHandler(_sqlConnectionFactoryMock, _userContextMock, _fileStorageServiceMock);
     }
 
     [Fact]

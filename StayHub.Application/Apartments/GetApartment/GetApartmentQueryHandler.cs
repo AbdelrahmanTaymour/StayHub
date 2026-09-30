@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 
@@ -9,7 +10,8 @@ namespace StayHub.Application.Apartments.GetApartment;
 
 internal sealed class GetApartmentQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext) : IQueryHandler<GetApartmentQuery, ApartmentResponse>
+    IUserContext userContext,
+    IFileStorageService fileStorageService) : IQueryHandler<GetApartmentQuery, ApartmentResponse>
 {
     public async Task<Result<ApartmentResponse>> Handle(
         GetApartmentQuery request,
@@ -38,7 +40,7 @@ internal sealed class GetApartmentQueryHandler(
 
                                owner.id AS HostId,
                                owner.first_name || ' ' || owner.last_name AS HostFullName,
-                               hp.avatar_url AS HostAvatarUrl,
+                               hp.avatar_key AS HostAvatarKey,
 
                                rv.avg_rating AS Rating,
                                COALESCE(rv.review_count, 0) AS ReviewCount
@@ -63,7 +65,7 @@ internal sealed class GetApartmentQueryHandler(
 
                            SELECT
                                ai.id AS Id,
-                               ai.url AS Url,
+                               ai.key AS Key,
                                ai.display_order AS DisplayOrder,
                                ai.is_primary AS IsPrimary
                            FROM apartment_images AS ai
@@ -73,7 +75,7 @@ internal sealed class GetApartmentQueryHandler(
                            SELECT
                                r.id AS Id,
                                u.first_name || ' ' || u.last_name AS ReviewerName,
-                               up.avatar_url AS ReviewerAvatarUrl,
+                               up.avatar_key AS ReviewerAvatarKey,
                                r.rating AS Rating,
                                r.comment AS Comment,
                                r.created_on_utc AS CreatedOnUtc
@@ -103,6 +105,8 @@ internal sealed class GetApartmentQueryHandler(
             return Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
         }
 
+        var hostAvatarUrl = await ResolveUrlAsync(row.HostAvatarKey, cancellationToken);
+
         var apartment = new ApartmentResponse
         {
             Id = row.Id,
@@ -129,15 +133,13 @@ internal sealed class GetApartmentQueryHandler(
             {
                 Id = row.HostId,
                 FullName = row.HostFullName,
-                AvatarUrl = row.HostAvatarUrl
+                AvatarUrl = hostAvatarUrl
             },
 
             Rating = row.Rating,
             ReviewCount = row.ReviewCount
         };
 
-        // A deactivated apartment's public details page must not be reachable by
-        // guessing/reusing its id — only the owner or an admin may still view it.
         if (!apartment.IsActive &&
             !userContext.IsAdmin &&
             !userContext.IsOwner(apartment.OwnerId))
@@ -145,13 +147,11 @@ internal sealed class GetApartmentQueryHandler(
             return Result.Failure<ApartmentResponse>(ApartmentErrors.NotFound);
         }
 
-        apartment.Images = multi
-            .Read<ApartmentImageResponse>()
-            .ToList();
+        var imageRows = multi.Read<ApartmentImageRow>().ToList();
+        var reviewRows = multi.Read<ReviewRow>().ToList();
 
-        apartment.RecentReviews = multi
-            .Read<ApartmentReviewPreviewResponse>()
-            .ToList();
+        apartment.Images = await ToImageResponsesAsync(imageRows, cancellationToken);
+        apartment.RecentReviews = await ToReviewResponsesAsync(reviewRows, cancellationToken);
 
         if (!userContext.IsAuthenticated) return apartment;
 
@@ -173,6 +173,46 @@ internal sealed class GetApartmentQueryHandler(
         apartment = apartment with { IsFavorited = isFavorited };
 
         return apartment;
+    }
+
+    internal async Task<IReadOnlyList<ApartmentImageResponse>> ToImageResponsesAsync(
+        IReadOnlyList<ApartmentImageRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async row => new ApartmentImageResponse
+        {
+            Id = row.Id,
+            Url = await fileStorageService.GeneratePresignedUrlAsync(row.Key, cancellationToken),
+            DisplayOrder = row.DisplayOrder,
+            IsPrimary = row.IsPrimary
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal async Task<IReadOnlyList<ApartmentReviewPreviewResponse>> ToReviewResponsesAsync(
+        IReadOnlyList<ReviewRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async row => new ApartmentReviewPreviewResponse
+        {
+            Id = row.Id,
+            ReviewerName = row.ReviewerName,
+            ReviewerAvatarUrl = await ResolveUrlAsync(row.ReviewerAvatarKey, cancellationToken),
+            Rating = row.Rating,
+            Comment = row.Comment,
+            CreatedOnUtc = row.CreatedOnUtc
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    private async Task<string?> ResolveUrlAsync(string? key, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return null;
+
+        return await fileStorageService.GeneratePresignedUrlAsync(key, cancellationToken);
     }
 
     private sealed class ApartmentRow
@@ -201,9 +241,27 @@ internal sealed class GetApartmentQueryHandler(
 
         public Guid HostId { get; init; }
         public string HostFullName { get; init; } = string.Empty;
-        public string? HostAvatarUrl { get; init; }
+        public string? HostAvatarKey { get; init; }
 
         public double? Rating { get; init; }
         public int ReviewCount { get; init; }
+    }
+
+    internal sealed class ApartmentImageRow
+    {
+        public Guid Id { get; init; }
+        public string Key { get; init; } = string.Empty;
+        public int DisplayOrder { get; init; }
+        public bool IsPrimary { get; init; }
+    }
+
+    internal sealed class ReviewRow
+    {
+        public Guid Id { get; init; }
+        public string ReviewerName { get; init; } = string.Empty;
+        public string? ReviewerAvatarKey { get; init; }
+        public int Rating { get; init; }
+        public string Comment { get; init; } = string.Empty;
+        public DateTime CreatedOnUtc { get; init; }
     }
 }
