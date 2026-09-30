@@ -1,3 +1,7 @@
+using System.Text;
+using StayHub.Application.Apartments.GetApartmentsByOwner;
+using StayHub.Application.Apartments.GetMyApartments;
+using StayHub.Application.Reviews.GetApartmentReviews;
 using StayHub.Domain.Maintenance;
 
 namespace StayHub.Application.Abstractions.Caching;
@@ -18,27 +22,68 @@ public static class CacheKeys
         return $"apartments:search:{filtersAndPage}";
     }
 
-    public static string ApartmentsByOwner(Guid ownerId, bool includeInactive, int page, int pageSize)
-    {
-        return $"apartments:owner:{ownerId}:{page}:{includeInactive}:{pageSize}";
-    }
-
-    public static string MaintenancesByApartment(Guid apartmentId, MaintenanceRequestStatus? status, int page,
+    public static string ApartmentsByOwner(Guid ownerId, OwnerApartmentsSort sort, int page,
         int pageSize)
     {
-        return status != null
-            ? $"maintenance:apartment:{apartmentId}:{status}:{page}:{pageSize}"
-            : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}";
+        return $"apartments:owner:{ownerId}:{sort}:{page}:{pageSize}";
     }
 
-    public static string ReviewsByApartment(Guid apartmentId, int page, int pageSize)
+    public static string MyApartments(
+        Guid ownerId,
+        MyApartmentsFilter status,
+        string? search,
+        int page,
+        int pageSize)
     {
-        return $"reviews:apartment:{apartmentId}:{page}:{pageSize}";
+        return $"apartments:me:{ownerId}:{status}:{search}:{page}:{pageSize}";
+    }
+
+    public static string MyApartmentsVersion(Guid ownerId)
+    {
+        return $"apartments:me:version:{ownerId}";
+    }
+
+    public static string MyApartmentsDashboard(Guid ownerId)
+    {
+        return $"apartments:dashboard:{ownerId}";
+    }
+
+    public static string MaintenancesByApartment(Guid apartmentId, string? search, MaintenanceRequestStatus? status,
+        int page,
+        int pageSize)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append(status != null
+            ? $"maintenance:apartment:{apartmentId}:{status}:{page}:{pageSize}"
+            : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}");
+
+        sb.Append(search != null
+            ? $"maintenance:apartment:{apartmentId}:{search}:{page}:{pageSize}"
+            : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}");
+
+        return sb.ToString();
+    }
+
+    public static string ApartmentReviews(
+        Guid apartmentId,
+        ReviewResponseStatusFilter responseStatus,
+        ReviewRatingFilter rating,
+        ReviewSortOrder sortOrder,
+        int page,
+        int pageSize)
+    {
+        return $"reviews:apartment:{apartmentId}:{responseStatus}:{rating}:{sortOrder}:{page}:{pageSize}";
     }
 
     public static string User(Guid userId)
     {
         return $"user:{userId}";
+    }
+
+    public static string OwnerProfile(Guid ownerId)
+    {
+        return $"user:owner:{ownerId}";
     }
 
     public static string LoggedInUser(Guid userId)

@@ -12,10 +12,10 @@ internal static class BookingRoutes
     public static string ByUser(Guid userId, string query = "") =>
         string.IsNullOrEmpty(query) ? $"{BaseRoute}/by-user/{userId}" : $"{BaseRoute}/by-user/{userId}?{query}";
 
-    public static string ByApartment(Guid apartmentId, string query = "") =>
-        string.IsNullOrEmpty(query)
-            ? $"{BaseRoute}/by-apartment/{apartmentId}"
-            : $"{BaseRoute}/by-apartment/{apartmentId}?{query}";
+    public static string Bookings(Guid apartmentId, string? query = null) =>
+        $"{BaseRoute}/{apartmentId}/bookings" + (query is null ? "" : $"?{query}");
+
+    public static string ByConversation(Guid conversationId) => $"{BaseRoute}/by-conversation/{conversationId}";
 
     public static string Confirm(Guid id) => $"{BaseRoute}/{id}/confirm";
     public static string Reject(Guid id) => $"{BaseRoute}/{id}/reject";

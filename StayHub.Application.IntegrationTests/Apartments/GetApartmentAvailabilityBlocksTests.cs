@@ -1,179 +1,20 @@
 using FluentAssertions;
 using StayHub.Application.Apartments.GetApartmentAvailabilityBlocks;
+using StayHub.Application.IntegrationTests.Bookings;
 using StayHub.Application.IntegrationTests.Integration;
 using StayHub.Application.IntegrationTests.Users;
 using StayHub.Domain.Apartments;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.IntegrationTests.Apartments;
 
-public class GetApartmentAvailabilityBlocksTests(IntegrationTestWebAppFactory factory)
-    : BaseIntegrationTest(factory)
+public class GetApartmentAvailabilityBlocksTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
-    public async Task GetApartmentAvailability_ShouldReturnEmptyBlocks_WhenApartmentHasNoAvailabilityBlocks()
+    public async Task GetAvailabilityBlocks_ShouldReturnNotFound_WhenApartmentDoesNotExist()
     {
-        // Arrange
-        var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(owner.Id);
-
-        DbContext.AddRange(owner, apartment);
-        await DbContext.SaveChangesAsync();
-
-        var query = new GetApartmentAvailabilityBlocksQuery(
-            apartment.Id,
-            null,
-            null);
-
         // Act
-        var result = await Sender.Send(query);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Blocks.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetApartmentAvailability_ShouldReturnAllBlocks_WhenNoMonthFilterIsProvided()
-    {
-        // Arrange
-        var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(owner.Id);
-
-        DbContext.AddRange(owner, apartment);
-        await DbContext.SaveChangesAsync();
-
-        var firstBlock = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 10, 24),
-            new DateOnly(2025, 10, 27),
-            ApartmentUnavailabilityReason.UnderMaintenance,
-            DateTime.UtcNow);
-
-        var secondBlock = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 11, 1),
-            new DateOnly(2025, 11, 3),
-            ApartmentUnavailabilityReason.OwnerBlocked,
-            DateTime.UtcNow);
-
-        DbContext.AddRange(firstBlock, secondBlock);
-        await DbContext.SaveChangesAsync();
-
-        var query = new GetApartmentAvailabilityBlocksQuery(
-            apartment.Id,
-            null,
-            null);
-
-        // Act
-        var result = await Sender.Send(query);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Blocks.Should().HaveCount(2);
-
-        result.Value.Blocks.Should().SatisfyRespectively(
-            first =>
-            {
-                first.Id.Should().Be(firstBlock.Id);
-                first.StartDate.Should().Be(new DateOnly(2025, 10, 24));
-                first.EndDate.Should().Be(new DateOnly(2025, 10, 27));
-                first.Reason.Should().Be("Under Maintenance");
-            },
-            second =>
-            {
-                second.Id.Should().Be(secondBlock.Id);
-                second.StartDate.Should().Be(new DateOnly(2025, 11, 1));
-                second.EndDate.Should().Be(new DateOnly(2025, 11, 3));
-                second.Reason.Should().Be("Owner Blocked");
-            });
-    }
-
-    [Fact]
-    public async Task GetApartmentAvailability_ShouldReturnBlocksOverlappingRequestedMonth()
-    {
-        // Arrange
-        var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(owner.Id);
-
-        DbContext.AddRange(owner, apartment);
-        await DbContext.SaveChangesAsync();
-
-        var startsBeforeMonth = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 9, 28),
-            new DateOnly(2025, 10, 3),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
-
-        var insideMonth = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 10, 10),
-            new DateOnly(2025, 10, 15),
-            ApartmentUnavailabilityReason.UnderMaintenance,
-            DateTime.UtcNow);
-
-        var endsAfterMonth = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 10, 31),
-            new DateOnly(2025, 11, 2),
-            ApartmentUnavailabilityReason.OwnerBlocked,
-            DateTime.UtcNow);
-
-        var afterMonth = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 11, 5),
-            new DateOnly(2025, 11, 8),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
-
-        var beforeMonth = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 9, 1),
-            new DateOnly(2025, 9, 10),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
-
-        DbContext.AddRange(
-            startsBeforeMonth,
-            insideMonth,
-            endsAfterMonth,
-            afterMonth,
-            beforeMonth);
-
-        await DbContext.SaveChangesAsync();
-
-        var query = new GetApartmentAvailabilityBlocksQuery(
-            apartment.Id,
-            2025,
-            10);
-
-        // Act
-        var result = await Sender.Send(query);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Blocks.Should().HaveCount(3);
-
-        result.Value.Blocks.Select(x => x.Id)
-            .Should()
-            .BeEquivalentTo([
-                startsBeforeMonth.Id,
-                insideMonth.Id,
-                endsAfterMonth.Id
-            ]);
-    }
-
-    [Fact]
-    public async Task GetApartmentAvailability_ShouldReturnNotFound_WhenApartmentDoesNotExist()
-    {
-        // Arrange
-        var query = new GetApartmentAvailabilityBlocksQuery(
-            Guid.CreateVersion7(),
-            null,
-            null);
-
-        // Act
-        var result = await Sender.Send(query);
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(Guid.CreateVersion7(), null, null));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -181,89 +22,297 @@ public class GetApartmentAvailabilityBlocksTests(IntegrationTestWebAppFactory fa
     }
 
     [Fact]
-    public async Task GetApartmentAvailability_ShouldReturnOnlyBlocksBelongingToRequestedApartment()
+    public async Task GetAvailabilityBlocks_ShouldReturnBlocksWithoutReason_WhenCallerIsAnonymous()
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-
-        var apartment = ApartmentTestData.CreateApartment(owner.Id);
-        var otherApartment = ApartmentTestData.CreateApartment(owner.Id);
-
-        DbContext.AddRange(owner, apartment, otherApartment);
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var block = ApartmentAvailabilityBlock.Create(
+            apartment.Id, new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 27),
+            ApartmentUnavailabilityReason.UnderMaintenance, DateTime.UtcNow);
+        DbContext.AddRange(owner, apartment, block);
         await DbContext.SaveChangesAsync();
-
-        var apartmentBlock = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 10, 10),
-            new DateOnly(2025, 10, 15),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
-
-        var otherApartmentBlock = ApartmentAvailabilityBlock.Create(
-            otherApartment.Id,
-            new DateOnly(2025, 10, 10),
-            new DateOnly(2025, 10, 15),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
-
-        DbContext.AddRange(apartmentBlock, otherApartmentBlock);
-        await DbContext.SaveChangesAsync();
-
-        var query = new GetApartmentAvailabilityBlocksQuery(
-            apartment.Id,
-            2025,
-            10);
 
         // Act
-        var result = await Sender.Send(query);
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Blocks.Should().ContainSingle();
-        result.Value.Blocks[0].Id.Should().Be(apartmentBlock.Id);
+        result.Value.Blocks[0].Id.Should().Be(block.Id);
+        result.Value.Blocks[0].Reason.Should().BeNull();
     }
 
     [Fact]
-    public async Task GetApartmentAvailability_ShouldReturnBlocksOrderedByStartDate()
+    public async Task GetAvailabilityBlocks_ShouldReturnBlocksWithoutReason_WhenCallerIsAnUnrelatedUser()
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var block = ApartmentAvailabilityBlock.Create(
+            apartment.Id, new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 27),
+            ApartmentUnavailabilityReason.OwnerBlocked, DateTime.UtcNow);
+        DbContext.AddRange(owner, apartment, block);
+        await DbContext.SaveChangesAsync();
 
+        SetCurrentUser(Guid.CreateVersion7(), Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Blocks.Should().ContainSingle();
+        result.Value.Blocks[0].Reason.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnBlocksOrderedByStart_WithReason_WhenCallerIsTheOwner()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
 
         var laterBlock = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 10, 20),
-            new DateOnly(2025, 10, 25),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
-
+            apartment.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3),
+            ApartmentUnavailabilityReason.OwnerBlocked, DateTime.UtcNow);
         var earlierBlock = ApartmentAvailabilityBlock.Create(
-            apartment.Id,
-            new DateOnly(2025, 10, 5),
-            new DateOnly(2025, 10, 10),
-            ApartmentUnavailabilityReason.Booked,
-            DateTime.UtcNow);
+            apartment.Id, new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 27),
+            ApartmentUnavailabilityReason.UnderMaintenance, DateTime.UtcNow);
 
         DbContext.AddRange(laterBlock, earlierBlock);
         await DbContext.SaveChangesAsync();
 
-        var query = new GetApartmentAvailabilityBlocksQuery(
-            apartment.Id,
-            null,
-            null);
+        SetCurrentUser(owner.Id, Role.Guest.Name);
 
         // Act
-        var result = await Sender.Send(query);
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Blocks.Select(x => x.Id)
-            .Should()
-            .ContainInOrder(
-                earlierBlock.Id,
-                laterBlock.Id);
+        result.Value.Blocks.Should().HaveCount(2);
+        result.Value.Blocks[0].Id.Should().Be(earlierBlock.Id);
+        result.Value.Blocks[0].Reason.Should().Be("Under Maintenance");
+        result.Value.Blocks[1].Id.Should().Be(laterBlock.Id);
+        result.Value.Blocks[1].Reason.Should().Be("Owner Blocked");
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnBlocksWithReason_WhenCallerIsAdmin()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var block = ApartmentAvailabilityBlock.Create(
+            apartment.Id, new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 27),
+            ApartmentUnavailabilityReason.UnderMaintenance, DateTime.UtcNow);
+        DbContext.AddRange(owner, apartment, block);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(Guid.CreateVersion7(), Role.Admin.Name);
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Blocks.Should().ContainSingle(b => b.Id == block.Id);
+        result.Value.Blocks[0].Reason.Should().Be("Under Maintenance");
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldFilterByYearAndMonth_WhenProvided()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var octoberBlock = ApartmentAvailabilityBlock.Create(
+            apartment.Id, new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 27),
+            ApartmentUnavailabilityReason.UnderMaintenance, DateTime.UtcNow);
+        var novemberBlock = ApartmentAvailabilityBlock.Create(
+            apartment.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 3),
+            ApartmentUnavailabilityReason.OwnerBlocked, DateTime.UtcNow);
+
+        DbContext.AddRange(octoberBlock, novemberBlock);
+        await DbContext.SaveChangesAsync();
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, 2026, 10));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Blocks.Should().ContainSingle(b => b.Id == octoberBlock.Id);
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldIncludeABlockSpanningIntoTheRequestedMonth()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var spanningBlock = ApartmentAvailabilityBlock.Create(
+            apartment.Id, new DateOnly(2026, 9, 28), new DateOnly(2026, 10, 3),
+            ApartmentUnavailabilityReason.UnderMaintenance, DateTime.UtcNow);
+        DbContext.Add(spanningBlock);
+        await DbContext.SaveChangesAsync();
+
+        // Act — anonymous
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, 2026, 10));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Blocks.Should().ContainSingle(b => b.Id == spanningBlock.Id);
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnConfirmedBookings_AsBookedRanges_ForAnonymousCallers()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        DbContext.AddRange(owner, guest, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var booking = BookingTestData.Reserve(
+            apartment, guest.Id, new DateOnly(2026, 10, 12), new DateOnly(2026, 10, 18), PricingService);
+        booking.Confirm(DateTime.UtcNow);
+        DbContext.Add(booking);
+        await DbContext.SaveChangesAsync();
+
+        // Act 
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.BookedRanges.Should().ContainSingle(r =>
+            r.BookingId == booking.Id
+            && r.StartDate == new DateOnly(2026, 10, 12)
+            && r.EndDate == new DateOnly(2026, 10, 18));
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldNotReturnReservedBookings_AsBookedRanges()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        DbContext.AddRange(owner, guest, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var booking = BookingTestData.Reserve(
+            apartment, guest.Id, new DateOnly(2026, 10, 12), new DateOnly(2026, 10, 18), PricingService);
+        DbContext.Add(booking);
+        await DbContext.SaveChangesAsync();
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.BookedRanges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnEmptyLists_WhenApartmentHasNoBlocksOrBookings()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Blocks.Should().BeEmpty();
+        result.Value.BookedRanges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnNotFound_WhenApartmentIsInactive_AndCallerIsAnonymous()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        apartment.Deactivate();
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ApartmentErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnNotFound_WhenApartmentIsInactive_AndCallerIsUnrelatedUser()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        apartment.Deactivate();
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(Guid.CreateVersion7(), Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ApartmentErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnDetails_WhenApartmentIsInactive_AndCallerIsTheOwner()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        apartment.Deactivate();
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetAvailabilityBlocks_ShouldReturnDetails_WhenApartmentIsInactive_AndCallerIsAdmin()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        apartment.Deactivate();
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(Guid.CreateVersion7(), Role.Admin.Name);
+
+        // Act
+        var result = await Sender.Send(new GetApartmentAvailabilityBlocksQuery(apartment.Id, null, null));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
     }
 }

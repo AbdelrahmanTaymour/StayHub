@@ -24,7 +24,6 @@ using StayHub.Infrastructure.Data;
 using Testcontainers.Keycloak;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
-using Role = StayHub.Domain.Users.Role;
 
 namespace StayHub.Application.IntegrationTests.Integration;
 
@@ -48,7 +47,6 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
     private string _adminClientSecret = string.Empty;
     private string _authClientSecret = string.Empty;
-    private IConnectionMultiplexer _redisMultiplexer = null!;
     private NpgsqlConnection _respawnConnection = null!;
 
     private Respawner _respawner = null!;
@@ -85,17 +83,10 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             SchemasToInclude = ["public"],
             TablesToIgnore = ["__ef_migrations_history", "roles"]
         });
-
-
-        var redisConfiguration = ConfigurationOptions.Parse(_redisContainer.GetConnectionString());
-        redisConfiguration.AllowAdmin = true;
-
-        _redisMultiplexer = await ConnectionMultiplexer.ConnectAsync(redisConfiguration);
     }
 
     public new async Task DisposeAsync()
     {
-        await _redisMultiplexer.DisposeAsync();
         await _respawnConnection.DisposeAsync();
 
         await _dbContainer.StopAsync();
@@ -133,6 +124,17 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             services.Configure<RedisCacheOptions>(options =>
                 options.Configuration = _redisContainer.GetConnectionString());
 
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var configuration = ConfigurationOptions.Parse(
+                    _redisContainer.GetConnectionString());
+
+                configuration.AllowAdmin = true;
+
+                return ConnectionMultiplexer.Connect(configuration);
+            });
+
+
             services.Configure<KeycloakOptions>(options =>
             {
                 var keycloakAddress = _keycloakContainer.GetBaseAddress().TrimEnd('/');
@@ -154,12 +156,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
             services.RemoveAll<IUserContext>();
 
-            services.AddScoped<TestUserContext>(_ => new TestUserContext
-            {
-                UserId = Guid.CreateVersion7(),
-                IdentityId = Guid.CreateVersion7().ToString(),
-                Roles = [Role.Admin.Name]
-            });
+            services.AddScoped<TestUserContext>(_ => new TestUserContext());
 
             services.AddScoped<IUserContext>(sp => sp.GetRequiredService<TestUserContext>());
 
@@ -178,9 +175,11 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
     public async Task ResetCacheAsync()
     {
-        foreach (var endpoint in _redisMultiplexer.GetEndPoints())
+        var multiplexer = Services.GetRequiredService<IConnectionMultiplexer>();
+
+        foreach (var endpoint in multiplexer.GetEndPoints())
         {
-            await _redisMultiplexer.GetServer(endpoint).FlushDatabaseAsync();
+            await multiplexer.GetServer(endpoint).FlushDatabaseAsync();
         }
     }
 

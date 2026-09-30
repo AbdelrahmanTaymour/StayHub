@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Maintenance.StartMaintenanceRequest;
 using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Abstractions;
@@ -12,6 +13,7 @@ namespace StayHub.Application.UnitTests.Maintenance;
 public class StartMaintenanceRequestTests
 {
     private readonly IApartmentRepository _apartmentRepositoryMock = Substitute.For<IApartmentRepository>();
+    private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
     private readonly StartMaintenanceRequestCommandHandler _handler;
 
@@ -31,7 +33,8 @@ public class StartMaintenanceRequestTests
             _apartmentRepositoryMock,
             _staffAssignmentRepositoryMock,
             _userContextMock,
-            _unitOfWorkMock);
+            _unitOfWorkMock,
+            _dateTimeProviderMock);
     }
 
     private void SetUpNoActiveStaff(Guid apartmentId) =>

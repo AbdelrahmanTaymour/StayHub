@@ -3,55 +3,143 @@ using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
-using StayHub.Domain.Apartments;
 
 namespace StayHub.Application.Apartments.GetApartmentsByOwner;
 
 internal sealed class GetApartmentsByOwnerQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext)
-    : IQueryHandler<GetApartmentsByOwnerQuery, IReadOnlyList<ApartmentSummaryResponse>>
+    : IQueryHandler<GetApartmentsByOwnerQuery, PagedResponse<OwnerApartmentsResponse>>
 {
-    public async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> Handle(
+    public async Task<Result<PagedResponse<OwnerApartmentsResponse>>> Handle(
         GetApartmentsByOwnerQuery request,
         CancellationToken cancellationToken)
     {
-        if (request.IncludeInactive && !userContext.IsAdmin && !userContext.IsOwner(request.OwnerId))
-        {
-            return Result.Failure<IReadOnlyList<ApartmentSummaryResponse>>(ApartmentErrors.NotAuthorized);
-        }
-
         using var connection = sqlConnectionFactory.CreateConnection();
 
-        const string sql = """
-                           SELECT
-                               a.id AS Id,
-                               a.name AS Name,
-                               a.address_city AS City,
-                               a.price_amount AS Price,
-                               a.price_currency AS Currency,
-                               img.url AS PrimaryImageUrl
-                           FROM apartments a
-                           LEFT JOIN apartment_images img
-                               ON img.apartment_id = a.id
-                               AND img.is_primary = true
-                           WHERE a.owner_id = @OwnerId
-                             AND (@IncludeInactive OR a.is_active = true)
-                           ORDER BY a.created_on_utc DESC
-                           OFFSET @Offset ROWS
-                           FETCH NEXT @PageSize ROWS ONLY
-                           """;
+        // Sort comes from a closed enum switch, never from raw user input — safe to interpolate.
+        var orderBy = request.Sort switch
+        {
+            OwnerApartmentsSort.PriceAsc => "a.price_amount ASC, a.created_on_utc DESC",
+            OwnerApartmentsSort.PriceDesc => "a.price_amount DESC, a.created_on_utc DESC",
+            OwnerApartmentsSort.Rating => "rv.avg_rating DESC NULLS LAST, a.created_on_utc DESC",
+            OwnerApartmentsSort.Reviews => "rv.review_count DESC, a.created_on_utc DESC",
+            _ => "a.price_amount ASC, a.created_on_utc DESC"
+        };
 
-        var apartments = await connection.QueryAsync<ApartmentSummaryResponse>(
+        var sql = $"""
+                   SELECT
+                       a.id AS Id,
+                       a.name AS Name,
+                       a.address_city AS City,
+                       a.address_country AS Country,
+                       a.price_amount AS PricePerNight,
+                       a.price_currency AS Currency,
+                       img.url AS PrimaryImageUrl,
+                       rv.avg_rating AS Rating,
+                       COALESCE(rv.review_count, 0) AS ReviewCount,
+                       COUNT(*) OVER() AS TotalCount
+
+                   FROM apartments a
+
+                   LEFT JOIN apartment_images img
+                       ON img.apartment_id = a.id
+                       AND img.is_primary = true
+
+                   LEFT JOIN LATERAL (
+                       SELECT
+                           AVG(r.rating)::float AS avg_rating,
+                           COUNT(*)::int AS review_count
+                       FROM reviews r
+                       WHERE r.apartment_id = a.id
+                   ) rv ON true
+
+                   WHERE a.owner_id = @OwnerId
+                     AND a.is_active = true
+
+                   ORDER BY {orderBy}
+
+                   OFFSET @Offset ROWS
+                   FETCH NEXT @PageSize ROWS ONLY
+                   """;
+
+        var rows = (await connection.QueryAsync<OwnerApartmentRow>(
             sql,
             new
             {
                 request.OwnerId,
-                request.IncludeInactive,
                 Offset = (request.Page - 1) * request.PageSize,
                 request.PageSize
-            });
+            })).ToList();
 
-        return apartments.ToList();
+        if (rows.Count == 0)
+        {
+            return new PagedResponse<OwnerApartmentsResponse>
+            {
+                Items = [],
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalCount = 0,
+                TotalPages = 0
+            };
+        }
+
+        // Favorites — only when authenticated, only for this page's ids, never cached.
+        HashSet<Guid> favoritedIds;
+        if (userContext.UserId is { } currentUserId)
+        {
+            var apartmentIds = rows.Select(r => r.Id).ToArray();
+
+            var favoriteRows = await connection.QueryAsync<Guid>(
+                """
+                SELECT apartment_id
+                FROM favorite_apartments
+                WHERE user_id = @UserId
+                  AND apartment_id = ANY(@ApartmentIds)
+                """,
+                new { UserId = currentUserId, ApartmentIds = apartmentIds });
+
+            favoritedIds = favoriteRows.ToHashSet();
+        }
+
+        var items = rows.Select(row => new OwnerApartmentsResponse
+        {
+            Id = row.Id,
+            Name = row.Name,
+            City = row.City,
+            Country = row.Country,
+            PricePerNight = row.PricePerNight,
+            Currency = row.Currency,
+            PrimaryImageUrl = row.PrimaryImageUrl,
+            Rating = row.Rating,
+            ReviewCount = row.ReviewCount,
+            IsFavorited = favoritedIds.Contains(row.Id)
+        }).ToList();
+
+        var totalCount = rows[0].TotalCount;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+
+        return new PagedResponse<OwnerApartmentsResponse>
+        {
+            Items = items,
+            Page = request.Page,
+            PageSize = request.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
+    }
+
+    private sealed class OwnerApartmentRow
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public string City { get; init; } = string.Empty;
+        public string Country { get; init; } = string.Empty;
+        public decimal PricePerNight { get; init; }
+        public string Currency { get; init; } = string.Empty;
+        public string? PrimaryImageUrl { get; init; }
+        public double? Rating { get; init; }
+        public int ReviewCount { get; init; }
+        public int TotalCount { get; init; }
     }
 }

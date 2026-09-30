@@ -1,10 +1,11 @@
 using MediatR;
 using StayHub.Api.Extensions;
-using StayHub.Application.Conversations.GetMessagesByConversation;
+using StayHub.Application.Conversations.GetConversationMessages;
 using StayHub.Application.Conversations.GetMyConversations;
 using StayHub.Application.Conversations.MarkConversationAsRead;
 using StayHub.Application.Conversations.SendMessage;
 using StayHub.Application.Conversations.StartConversation;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Endpoints.Conversations;
 
@@ -15,11 +16,11 @@ public static class ConversationEndpoints
         var group = builder.MapGroup("conversations").WithTags("Conversations").RequireAuthorization();
 
         group.MapGet("", GetMyConversations)
-            .Produces<IReadOnlyList<ConversationSummaryResponse>>();
+            .Produces<IReadOnlyList<MyConversationResponse>>();
 
         group.MapGet("{id:guid}/messages", GetMessages)
             .WithName(nameof(GetMessages))
-            .Produces<IReadOnlyList<MessageResponse>>()
+            .Produces<PagedResponse<ConversationMessagesResponse>>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("", Start)
@@ -55,7 +56,7 @@ public static class ConversationEndpoints
         int page = 1,
         int pageSize = 20)
     {
-        var result = await sender.Send(new GetMessagesByConversationQuery(id, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetConversationMessagesQuery(id, page, pageSize), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
@@ -65,7 +66,7 @@ public static class ConversationEndpoints
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var command = new StartConversationCommand(request.ApartmentId, request.InitialMessage);
+        var command = new StartConversationCommand(request.ApartmentId, request.BookingId, request.InitialMessage);
 
         var result = await sender.Send(command, cancellationToken);
 

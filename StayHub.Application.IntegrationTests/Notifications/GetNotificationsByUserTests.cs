@@ -1,7 +1,7 @@
 using FluentAssertions;
 using StayHub.Application.IntegrationTests.Integration;
 using StayHub.Application.IntegrationTests.Users;
-using StayHub.Application.Notifications.GetNotificationsByUser;
+using StayHub.Application.Notifications.GetMyNotifications;
 using StayHub.Domain.Notifications;
 using StayHub.Domain.Users;
 
@@ -20,11 +20,11 @@ public class GetNotificationsByUserTests(IntegrationTestWebAppFactory factory) :
         SetCurrentUser(user.Id, Role.Guest.Name);
 
         // Act
-        var result = await Sender.Send(new GetNotificationsByUserQuery(UnreadOnly: false, Page: 1, PageSize: 10));
+        var result = await Sender.Send(new GetMyNotificationsQuery(UnreadOnly: false, Page: 1, PageSize: 10));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty();
+        result.Value.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -46,13 +46,13 @@ public class GetNotificationsByUserTests(IntegrationTestWebAppFactory factory) :
         SetCurrentUser(user.Id, Role.Guest.Name);
 
         // Act
-        var result = await Sender.Send(new GetNotificationsByUserQuery(UnreadOnly: false, Page: 1, PageSize: 10));
+        var result = await Sender.Send(new GetMyNotificationsQuery(UnreadOnly: false, Page: 1, PageSize: 10));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().HaveCount(2);
-        result.Value[0].Id.Should().Be(newerNotification.Id);
-        result.Value[1].Id.Should().Be(olderNotification.Id);
+        result.Value.Items.Should().HaveCount(2);
+        result.Value.Items[0].Id.Should().Be(newerNotification.Id);
+        result.Value.Items[1].Id.Should().Be(olderNotification.Id);
     }
 
     [Fact]
@@ -72,10 +72,10 @@ public class GetNotificationsByUserTests(IntegrationTestWebAppFactory factory) :
         SetCurrentUser(user.Id, Role.Guest.Name);
 
         // Act
-        var result = await Sender.Send(new GetNotificationsByUserQuery(UnreadOnly: true, Page: 1, PageSize: 10));
+        var result = await Sender.Send(new GetMyNotificationsQuery(UnreadOnly: true, Page: 1, PageSize: 10));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(n => n.Id == unreadNotification.Id);
+        result.Value.Items.Should().ContainSingle(n => n.Id == unreadNotification.Id);
     }
 }

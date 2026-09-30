@@ -4,6 +4,7 @@ using StayHub.Application.Apartments.SetAsPrimaryImage;
 using StayHub.Application.IntegrationTests.Integration;
 using StayHub.Application.IntegrationTests.Users;
 using StayHub.Domain.Apartments;
+using StayHub.Domain.Users;
 
 namespace StayHub.Application.IntegrationTests.Apartments;
 
@@ -31,19 +32,14 @@ public sealed class SetAsPrimaryImageTests(IntegrationTestWebAppFactory factory)
             DateTime.UtcNow.AddMinutes(-1),
             isPrimary: false);
 
-        DbContext.AddRange(
-            owner,
-            apartment,
-            currentPrimaryImage,
-            newImage);
+        DbContext.AddRange(owner, apartment, currentPrimaryImage, newImage);
 
         await DbContext.SaveChangesAsync();
 
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
         // Act
-        var result = await Sender.Send(
-            new SetAsPrimaryImageCommand(
-                apartment.Id,
-                newImage.Id));
+        var result = await Sender.Send(new SetAsPrimaryImageCommand(apartment.Id, newImage.Id));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -55,18 +51,12 @@ public sealed class SetAsPrimaryImageTests(IntegrationTestWebAppFactory factory)
             .ToListAsync();
 
         images.Should().HaveCount(2);
-
-        images.Count(i => i.IsPrimary)
-            .Should()
-            .Be(1);
-
-        var persistedOldPrimary = images
-            .Single(i => i.Id == currentPrimaryImage.Id);
+        images.Count(i => i.IsPrimary).Should().Be(1);
+        var persistedOldPrimary = images.Single(i => i.Id == currentPrimaryImage.Id);
 
         persistedOldPrimary.IsPrimary.Should().BeFalse();
 
-        var persistedNewPrimary = images
-            .Single(i => i.Id == newImage.Id);
+        var persistedNewPrimary = images.Single(i => i.Id == newImage.Id);
 
         persistedNewPrimary.IsPrimary.Should().BeTrue();
     }
@@ -77,11 +67,8 @@ public sealed class SetAsPrimaryImageTests(IntegrationTestWebAppFactory factory)
         // Arrange
         var owner = UserTestData.CreateUser();
 
-        var firstApartment = ApartmentTestData.CreateApartment(
-            ownerId: owner.Id);
-
-        var secondApartment = ApartmentTestData.CreateApartment(
-            ownerId: owner.Id);
+        var firstApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var secondApartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
 
         var image = ApartmentImage.Create(
             firstApartment.Id,
@@ -90,19 +77,14 @@ public sealed class SetAsPrimaryImageTests(IntegrationTestWebAppFactory factory)
             DateTime.UtcNow,
             isPrimary: false);
 
-        DbContext.AddRange(
-            owner,
-            firstApartment,
-            secondApartment,
-            image);
+        DbContext.AddRange(owner, firstApartment, secondApartment, image);
 
         await DbContext.SaveChangesAsync();
 
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
         // Act
-        var result = await Sender.Send(
-            new SetAsPrimaryImageCommand(
-                secondApartment.Id,
-                image.Id));
+        var result = await Sender.Send(new SetAsPrimaryImageCommand(secondApartment.Id, image.Id));
 
         // Assert
         result.IsFailure.Should().BeTrue();

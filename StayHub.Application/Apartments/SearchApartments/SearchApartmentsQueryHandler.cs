@@ -1,31 +1,45 @@
 using System.Text;
 using Dapper;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
-using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Shared;
 
 namespace StayHub.Application.Apartments.SearchApartments;
 
 internal sealed class SearchApartmentsQueryHandler(
-    ISqlConnectionFactory sqlConnectionFactory)
-    : IQueryHandler<SearchApartmentsQuery, IReadOnlyList<ApartmentSummaryResponse>>
+    ISqlConnectionFactory sqlConnectionFactory,
+    IUserContext userContext,
+    PricingService pricingService)
+    : IQueryHandler<SearchApartmentsQuery, PagedResponse<SearchApartmentsResponse>>
 {
+    // Only a Confirmed booking blocks availability — a merely Reserved booking must not let
+    // a single pending guest lock out everyone else searching for the same apartment.
     private static readonly int[] ActiveBookingStatuses =
     [
-        (int)BookingStatus.Reserved,
         (int)BookingStatus.Confirmed
     ];
 
-    public async Task<Result<IReadOnlyList<ApartmentSummaryResponse>>> Handle(
+    public async Task<Result<PagedResponse<SearchApartmentsResponse>>> Handle(
         SearchApartmentsQuery request,
         CancellationToken cancellationToken)
     {
         if (request.Start is not null &&
             request.End is not null &&
             request.Start >= request.End)
-            return Array.Empty<ApartmentSummaryResponse>();
+        {
+            return new PagedResponse<SearchApartmentsResponse>
+            {
+                Items = [],
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalCount = 0,
+                TotalPages = 0
+            };
+        }
 
         var normalizedRequest = NormalizeRequest(request);
 
@@ -38,18 +52,31 @@ internal sealed class SearchApartmentsQueryHandler(
                                         a.id AS Id,
                                         a.name AS Name,
                                         a.address_city AS City,
-                                        a.price_amount AS Price,
+                                        a.price_amount AS PriceAmount,
                                         a.price_currency AS Currency,
-                                        img.url AS PrimaryImageUrl
+                                        a.cleaning_fee_amount AS CleaningFeeAmount,
+                                        a.amenities AS Amenities,
+                                        img.url AS PrimaryImageUrl,
+                                        rv.avg_rating AS Rating,
+                                        COALESCE(rv.review_count, 0) AS ReviewCount,
+                                        COUNT(*) OVER() AS TotalCount
+
                                     FROM apartments a
 
                                     LEFT JOIN apartment_images img
                                         ON img.apartment_id = a.id
                                         AND img.is_primary = true
 
+                                    LEFT JOIN LATERAL (
+                                        SELECT
+                                            AVG(r.rating)::float AS avg_rating,
+                                            COUNT(*)::int AS review_count
+                                        FROM reviews r
+                                        WHERE r.apartment_id = a.id
+                                    ) rv ON true
+
                                     WHERE a.is_active = true
                                     """);
-
 
         if (!string.IsNullOrWhiteSpace(normalizedRequest.City))
         {
@@ -60,7 +87,6 @@ internal sealed class SearchApartmentsQueryHandler(
 
             parameters.Add("City", $"%{normalizedRequest.City.Trim()}%");
         }
-
 
         if (normalizedRequest.MinPrice.HasValue)
         {
@@ -81,7 +107,6 @@ internal sealed class SearchApartmentsQueryHandler(
 
             parameters.Add("MaxPrice", normalizedRequest.MaxPrice.Value);
         }
-
 
         if (normalizedRequest is { Start: not null, End: not null })
         {
@@ -123,32 +148,100 @@ internal sealed class SearchApartmentsQueryHandler(
         parameters.Add("Offset", (normalizedRequest.Page - 1) * normalizedRequest.PageSize);
         parameters.Add("PageSize", normalizedRequest.PageSize);
 
-        var apartments =
-            await connection.QueryAsync<ApartmentSummaryResponse>(
-                sql.ToString(),
-                parameters);
+        var rows = (await connection.QueryAsync<ApartmentSearchRow>(sql.ToString(), parameters)).ToList();
 
-        return apartments.ToList();
+        if (rows.Count == 0)
+        {
+            return new PagedResponse<SearchApartmentsResponse>
+            {
+                Items = [],
+                Page = normalizedRequest.Page,
+                PageSize = normalizedRequest.PageSize,
+                TotalCount = 0,
+                TotalPages = 0
+            };
+        }
+
+        // Favorites — only when authenticated, only for this page's ids, never cached
+        // (the search result itself is cached and must stay user-agnostic).
+        HashSet<Guid> favoritedIds = [];
+        if (userContext.IsAuthenticated)
+        {
+            var apartmentIds = rows.Select(r => r.Id).ToArray();
+
+            var favoriteRows = await connection.QueryAsync<Guid>(
+                """
+                SELECT apartment_id
+                FROM favorite_apartments
+                WHERE user_id = @UserId
+                  AND apartment_id = ANY(@ApartmentIds)
+                """,
+                new { userContext.UserId, ApartmentIds = apartmentIds });
+
+            favoritedIds = favoriteRows.ToHashSet();
+        }
+
+        int? nights = normalizedRequest is { Start: not null, End: not null }
+            ? normalizedRequest.End.Value.DayNumber - normalizedRequest.Start.Value.DayNumber
+            : null;
+
+        var items = rows.Select(row =>
+        {
+            decimal? totalPrice = null;
+
+            if (nights is > 0)
+            {
+                var amenities = (row.Amenities ?? [])
+                    .Select(Enum.Parse<Amenity>)
+                    .ToList();
+
+                var pricing = pricingService.CalculatePrice(
+                    new Money(row.PriceAmount, Currency.FromCode(row.Currency)),
+                    new Money(row.CleaningFeeAmount, Currency.FromCode(row.Currency)),
+                    amenities,
+                    nights.Value);
+
+                totalPrice = pricing.TotalPrice.Amount;
+            }
+
+            return new SearchApartmentsResponse
+            {
+                Id = row.Id,
+                Name = row.Name,
+                City = row.City,
+                PricePerNight = row.PriceAmount,
+                TotalPrice = totalPrice,
+                Currency = row.Currency,
+                PrimaryImageUrl = row.PrimaryImageUrl,
+                Rating = row.Rating,
+                ReviewCount = row.ReviewCount,
+                IsFavorited = favoritedIds.Contains(row.Id)
+            };
+        }).ToList();
+
+        var totalCount = rows[0].TotalCount;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)normalizedRequest.PageSize);
+
+        return new PagedResponse<SearchApartmentsResponse>
+        {
+            Items = items,
+            Page = normalizedRequest.Page,
+            PageSize = normalizedRequest.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
     }
 
-
-    private static SearchApartmentsQuery NormalizeRequest(
-        SearchApartmentsQuery request)
+    private static SearchApartmentsQuery NormalizeRequest(SearchApartmentsQuery request)
     {
-        var page =
-            request.Page < 1
-                ? 1
-                : request.Page;
+        var page = request.Page < 1 ? 1 : request.Page;
 
-
-        var pageSize =
-            request.PageSize switch
-            {
-                < 1 => 10,
-                > 100 => 100,
-                _ => request.PageSize
-            };
-
+        var pageSize = request.PageSize switch
+        {
+            < 1 => 10,
+            > 100 => 100,
+            _ => request.PageSize
+        };
 
         return request with
         {
@@ -156,5 +249,21 @@ internal sealed class SearchApartmentsQueryHandler(
             PageSize = pageSize,
             City = request.City?.Trim()
         };
+    }
+
+    // Dapper projection row 
+    private sealed class ApartmentSearchRow
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public string City { get; init; } = string.Empty;
+        public decimal PriceAmount { get; init; }
+        public string Currency { get; init; } = string.Empty;
+        public decimal CleaningFeeAmount { get; init; }
+        public IReadOnlyList<string>? Amenities { get; init; }
+        public string? PrimaryImageUrl { get; init; }
+        public double? Rating { get; init; }
+        public int ReviewCount { get; init; }
+        public int TotalCount { get; init; }
     }
 }

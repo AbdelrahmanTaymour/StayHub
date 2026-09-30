@@ -134,7 +134,7 @@ public class GetMaintenanceRequestTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnFailure_WhenCallerIsNotOwnerAdminReporterOrActiveStaff()
+    public async Task Handle_Should_ReturnFailure_WhenCallerIsNotOwnerAdminOrActiveStaff()
     {
         // Arrange
         var apartment = ApartmentData.Create();
@@ -156,6 +156,40 @@ public class GetMaintenanceRequestTests
 
         _staffAssignmentRepositoryMock
             .GetActiveAsync(apartment.Id, callerId, Arg.Any<CancellationToken>())
+            .Returns((ApartmentStaffAssignment?)null);
+
+        // Act
+        var result = await _handler.Handle(new GetMaintenanceRequestQuery(maintenanceRequest.Id), default);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(MaintenanceRequestErrors.NotAuthorized);
+    }
+
+    [Fact]
+    public async Task Handle_Should_ReturnFailure_WhenCallerIsTheReporterButNotStaff()
+    {
+        // Being the reporter is no longer sufficient on this query — a
+        // reporting guest must use GetMaintenanceRequestForGuestQuery instead.
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var reporterId = Guid.CreateVersion7();
+
+        var maintenanceRequest = MaintenanceRequestData.Create(apartment.Id, reporterId);
+
+        _maintenanceRequestRepositoryMock
+            .GetByIdAsync(maintenanceRequest.Id, Arg.Any<CancellationToken>())
+            .Returns(maintenanceRequest);
+
+        _apartmentRepositoryMock
+            .GetByIdAsync(apartment.Id, Arg.Any<CancellationToken>())
+            .Returns(apartment);
+
+        _userContextMock.UserId.Returns(reporterId);
+        _userContextMock.Roles.Returns([]);
+
+        _staffAssignmentRepositoryMock
+            .GetActiveAsync(apartment.Id, reporterId, Arg.Any<CancellationToken>())
             .Returns((ApartmentStaffAssignment?)null);
 
         // Act

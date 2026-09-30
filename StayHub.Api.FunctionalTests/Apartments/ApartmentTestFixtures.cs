@@ -37,7 +37,7 @@ internal static class ApartmentTestFixtures
         content.Add(fileContent, "File", "photo.jpg");
         content.Add(new StringContent(isPrimary.ToString()), "IsPrimary");
 
-        var response = await httpClient.PostAsync(ApartmentRoutes.Images(apartmentId), content);
+        var response = await httpClient.PostAsync(ApartmentRoutes.AddImages(apartmentId), content);
 
         response.EnsureSuccessStatusCode();
 

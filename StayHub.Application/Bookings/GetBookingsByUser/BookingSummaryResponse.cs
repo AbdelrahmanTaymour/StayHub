@@ -12,7 +12,7 @@ public sealed class BookingSummaryResponse
 
     public decimal TotalPriceAmount { get; init; }
 
-    public string TotalPriceCurrency { get; init; }
+    public string TotalPriceCurrency { get; init; } = string.Empty;
 
     public DateOnly DurationStart { get; init; }
 

@@ -24,6 +24,8 @@ internal sealed class MaintenanceRequestConfiguration : IEntityTypeConfiguration
 
         builder.HasIndex(request => new { request.ApartmentId, request.Status });
 
+        builder.HasIndex(request => request.AssignedToUserId);
+
         builder.HasOne<Apartment>()
             .WithMany()
             .HasForeignKey(request => request.ApartmentId);
@@ -31,6 +33,12 @@ internal sealed class MaintenanceRequestConfiguration : IEntityTypeConfiguration
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(request => request.ReportedByUserId);
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(request => request.AssignedToUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.Property<uint>("Version").IsRowVersion();
     }

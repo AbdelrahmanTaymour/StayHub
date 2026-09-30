@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using StayHub.Api.Extensions;
+using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Apartments.ActivateApartment;
 using StayHub.Application.Apartments.AddApartmentAmenity;
 using StayHub.Application.Apartments.AddApartmentImage;
@@ -10,18 +11,28 @@ using StayHub.Application.Apartments.CreateApartment;
 using StayHub.Application.Apartments.CreateApartmentAvailabilityBlock;
 using StayHub.Application.Apartments.DeactivateApartment;
 using StayHub.Application.Apartments.GetApartment;
+using StayHub.Application.Apartments.GetApartmentAmenities;
 using StayHub.Application.Apartments.GetApartmentAvailabilityBlocks;
+using StayHub.Application.Apartments.GetApartmentForEdit;
+using StayHub.Application.Apartments.GetApartmentImages;
+using StayHub.Application.Apartments.GetApartmentPricing;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
+using StayHub.Application.Apartments.GetApartmentStaff;
+using StayHub.Application.Apartments.GetMyApartments;
+using StayHub.Application.Apartments.GetMyApartmentsDashboard;
 using StayHub.Application.Apartments.RemoveApartmentAmenity;
 using StayHub.Application.Apartments.RemoveApartmentAvailabilityBlock;
 using StayHub.Application.Apartments.RemoveApartmentImage;
 using StayHub.Application.Apartments.ReorderApartmentImages;
 using StayHub.Application.Apartments.RevokeApartmentStaffAssignment;
 using StayHub.Application.Apartments.SearchApartments;
+using StayHub.Application.Apartments.SearchStaffCandidate;
 using StayHub.Application.Apartments.SetAsPrimaryImage;
 using StayHub.Application.Apartments.UpdateApartment;
 using StayHub.Application.Users.InviteUser;
+using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
+using ApartmentPricingResponse = StayHub.Application.Apartments.GetApartmentPricing.ApartmentPricingResponse;
 
 namespace StayHub.Api.Endpoints.Apartments;
 
@@ -39,13 +50,30 @@ public static class ApartmentEndpoints
             .Produces<ApartmentResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapGet("mine", GetMine)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetMine))
+            .Produces<PagedResponse<MyApartmentsResponse>>();
+
+        group.MapGet("mine/dashboard", GetMineDashboard)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetMineDashboard))
+            .Produces<MyApartmentsDashboardResponse>();
+
+        group.MapGet("{apartmentId:guid}/edit", GetForEdit)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetForEdit))
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .Produces<ApartmentForEditResponse>();
+
         group.MapGet("", Search)
             .AllowAnonymous()
-            .Produces<IReadOnlyList<ApartmentSummaryResponse>>();
+            .Produces<PagedResponse<SearchApartmentsResponse>>();
 
         group.MapGet("by-owner/{ownerId:guid}", GetByOwner)
             .AllowAnonymous()
-            .Produces<IReadOnlyList<ApartmentSummaryResponse>>();
+            .Produces<IReadOnlyList<OwnerApartmentsResponse>>();
 
         group.MapPost("", Create)
             .HasPermission(Permissions.ApartmentCreate)
@@ -73,7 +101,20 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        group.Map("{apartmentId:guid}/pricing", GetPricing)
+            .AllowAnonymous()
+            .Produces<ApartmentPricingResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         // ---- Amenities ----
+
+        group.MapGet("{apartmentId:guid}/amenities", GetAmenities)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetAmenities))
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<ApartmentAmenitiesResponse>();
 
         group.MapPost("{id:guid}/amenities", AddAmenity)
             .HasPermission(Permissions.ApartmentManage)
@@ -89,6 +130,13 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         // ---- Images ----
+
+        group.MapGet("{apartmentId:guid}/images", GetImages)
+            .HasPermission(Permissions.ApartmentManage)
+            .WithName(nameof(GetImages))
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<ApartmentImagesResponse>();
 
         group.MapPost("{id:guid}/images", AddImage)
             .HasPermission(Permissions.ApartmentManage)
@@ -118,11 +166,12 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
         // ---- Availability blocks ----
-        group.MapGet("{id:guid}/availability-blocks", GetApartmentAvailabilityBlocks)
+
+        group.MapGet("{apartmentId:guid}/availability-blocks", GetAvailabilityBlocks)
             .AllowAnonymous()
-            .WithName(nameof(GetApartmentAvailabilityBlocksQuery))
+            .WithName(nameof(GetAvailabilityBlocks))
             .Produces<ApartmentAvailabilityResponse>()
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status404NotFound);
 
 
         group.MapPost("{id:guid}/availability-blocks", CreateAvailabilityBlock)
@@ -141,6 +190,11 @@ public static class ApartmentEndpoints
 
         // ---- Staff assignments ----
 
+        group.MapGet("{apartmentId:guid}/staff", GetStaff)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces<IReadOnlyList<ApartmentStaffResponse>>()
+            .Produces(StatusCodes.Status404NotFound);
+
         group.MapPost("{id:guid}/staff", AssignStaff)
             .HasPermission(Permissions.ApartmentManage)
             .Produces<Guid>(StatusCodes.Status201Created)
@@ -154,10 +208,15 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapGet("{apartmentId:guid}/staff/search", SearchStaffCandidate)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces<StaffCandidateResponse>()
+            .Produces(StatusCodes.Status404NotFound);
+
         group.MapPost("{id:guid}/staff/invite", InviteStaff)
             .HasPermission(Permissions.ApartmentManage)
-            .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
+            .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -172,6 +231,40 @@ public static class ApartmentEndpoints
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
+
+    private static async Task<IResult> GetMine(
+        ISender sender,
+        IUserContext userContext,
+        CancellationToken cancellationToken,
+        MyApartmentsFilter status = MyApartmentsFilter.All,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        var result = await sender.Send(new GetMyApartmentsQuery(userContext.UserId, status, search, page, pageSize),
+            cancellationToken);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetMineDashboard(
+        ISender sender,
+        IUserContext userContext,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetMyApartmentsDashboardQuery(userContext.UserId), cancellationToken);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetForEdit(
+        Guid apartmentId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetApartmentForEditQuery(apartmentId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
 
     private static async Task<IResult> Search(
         [AsParameters] SearchApartmentsQuery query,
@@ -191,16 +284,20 @@ public static class ApartmentEndpoints
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
 
-
     private static async Task<IResult> GetByOwner(
         Guid ownerId,
         ISender sender,
         CancellationToken cancellationToken,
-        bool includeInactive = false,
+        OwnerApartmentsSort sort = OwnerApartmentsSort.PriceAsc,
         int page = 1,
-        int pageSize = 20)
+        int pageSize = 9)
     {
-        var result = await sender.Send(new GetApartmentsByOwnerQuery(ownerId, includeInactive, page, pageSize),
+        var result = await sender.Send(
+            new GetApartmentsByOwnerQuery(
+                OwnerId: ownerId,
+                Sort: sort,
+                Page: page,
+                PageSize: pageSize),
             cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
@@ -265,6 +362,31 @@ public static class ApartmentEndpoints
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
     }
 
+    private static async Task<IResult> GetPricing(
+        [FromRoute] Guid apartmentId,
+        [FromQuery] DateOnly start,
+        [FromQuery] DateOnly end,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new GetApartmentPricingQuery(apartmentId, start, end),
+            cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetAmenities(
+        Guid apartmentId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetApartmentAmenitiesQuery(apartmentId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
+
     private static async Task<IResult> AddAmenity(
         Guid id,
         AddApartmentAmenityRequest request,
@@ -285,6 +407,16 @@ public static class ApartmentEndpoints
         var result = await sender.Send(new RemoveApartmentAmenityCommand(id, amenity), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> GetImages(
+        Guid apartmentId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetApartmentImagesQuery(apartmentId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> AddImage(
@@ -344,18 +476,17 @@ public static class ApartmentEndpoints
             : Results.NoContent();
     }
 
-    private static async Task<IResult> GetApartmentAvailabilityBlocks(
-        Guid id,
-        int? year,
-        int? month,
+    private static async Task<IResult> GetAvailabilityBlocks(
+        Guid apartmentId,
         ISender sender,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? year = null,
+        int? month = null)
     {
-        var query = new GetApartmentAvailabilityBlocksQuery(id, year, month);
+        var result = await sender.Send(
+            new GetApartmentAvailabilityBlocksQuery(apartmentId, year, month), cancellationToken);
 
-        var result = await sender.Send(query, cancellationToken);
-
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> CreateAvailabilityBlock(
@@ -381,6 +512,16 @@ public static class ApartmentEndpoints
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
     }
 
+    private static async Task<IResult> GetStaff(
+        Guid apartmentId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetApartmentStaffQuery(apartmentId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
+    }
+
     private static async Task<IResult> AssignStaff(
         Guid id,
         AssignApartmentStaffRequest request,
@@ -402,6 +543,17 @@ public static class ApartmentEndpoints
         var result = await sender.Send(new RevokeApartmentStaffAssignmentCommand(assignmentId), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> SearchStaffCandidate(
+        Guid apartmentId,
+        string email,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new SearchStaffCandidateQuery(apartmentId, email), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> InviteStaff(

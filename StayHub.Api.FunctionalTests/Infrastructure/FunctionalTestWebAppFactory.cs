@@ -36,7 +36,6 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
     private readonly RedisContainer _redisContainer;
     private string _adminClientSecret = string.Empty;
     private string _authClientSecret = string.Empty;
-    private IConnectionMultiplexer _redisMultiplexer = null!;
     private NpgsqlConnection _respawnConnection = null!;
 
     private Respawner _respawner = null!;
@@ -103,19 +102,12 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
             SchemasToInclude = ["public"],
             TablesToIgnore = ["__ef_migrations_history", "roles", "permissions", "role_permissions"]
         });
-
-        // 6. Connect Redis Multiplexer
-        var redisConfiguration = ConfigurationOptions.Parse(_redisContainer.GetConnectionString());
-        redisConfiguration.AllowAdmin = true;
-
-        _redisMultiplexer = await ConnectionMultiplexer.ConnectAsync(redisConfiguration);
     }
 
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync();
 
-        await _redisMultiplexer.DisposeAsync();
         await _respawnConnection.DisposeAsync();
 
         await Task.WhenAll(
@@ -155,6 +147,16 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
             services.Configure<RedisCacheOptions>(options =>
                 options.Configuration = _redisContainer.GetConnectionString());
 
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var configuration = ConfigurationOptions.Parse(
+                    _redisContainer.GetConnectionString());
+
+                configuration.AllowAdmin = true;
+
+                return ConnectionMultiplexer.Connect(configuration);
+            });
+
             var keycloakAddress = _keycloakContainer.GetBaseAddress().TrimEnd('/');
 
             services.Configure<KeycloakOptions>(options =>
@@ -188,9 +190,11 @@ public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyn
 
     public async Task ResetCacheAsync()
     {
-        foreach (var endpoint in _redisMultiplexer.GetEndPoints())
+        var multiplexer = Services.GetRequiredService<IConnectionMultiplexer>();
+
+        foreach (var endpoint in multiplexer.GetEndPoints())
         {
-            await _redisMultiplexer.GetServer(endpoint).FlushDatabaseAsync();
+            await multiplexer.GetServer(endpoint).FlushDatabaseAsync();
         }
     }
 

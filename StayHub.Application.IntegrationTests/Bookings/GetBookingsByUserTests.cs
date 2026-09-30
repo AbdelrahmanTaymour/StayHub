@@ -100,6 +100,6 @@ public class GetBookingsByUserTests(IntegrationTestWebAppFactory factory) : Base
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle(b => b.Id == booking.Id);
+        result.Value.Items.Should().ContainSingle(b => b.Id == booking.Id);
     }
 }

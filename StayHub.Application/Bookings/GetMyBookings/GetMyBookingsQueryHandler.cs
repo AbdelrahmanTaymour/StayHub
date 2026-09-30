@@ -1,47 +1,166 @@
+using System.Text;
 using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
-using StayHub.Application.Bookings.GetBookingsByUser;
 using StayHub.Domain.Abstractions;
+using StayHub.Domain.Bookings;
 
 namespace StayHub.Application.Bookings.GetMyBookings;
 
 internal sealed class GetMyBookingsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext)
-    : IQueryHandler<GetMyBookingsQuery, IReadOnlyList<BookingSummaryResponse>>
+    : IQueryHandler<GetMyBookingsQuery, PagedResponse<MyBookingsResponse>>
 {
-    public async Task<Result<IReadOnlyList<BookingSummaryResponse>>> Handle(
+    public async Task<Result<PagedResponse<MyBookingsResponse>>> Handle(
         GetMyBookingsQuery request,
         CancellationToken cancellationToken)
     {
+        var page = request.Page < 1 ? 1 : request.Page;
+        var pageSize = request.PageSize switch
+        {
+            < 1 => 10,
+            > 50 => 50,
+            _ => request.PageSize
+        };
+
         using var connection = sqlConnectionFactory.CreateConnection();
 
-        const string sql = """
-                           SELECT
-                               id AS Id,
-                               apartment_id AS ApartmentId,
-                               status AS Status,
-                               total_price_amount AS TotalPriceAmount,
-                               total_price_currency AS TotalPriceCurrency,
-                               duration_start AS DurationStart,
-                               duration_end AS DurationEnd
-                           FROM bookings
-                           WHERE user_id = @UserId
-                           ORDER BY created_on_utc DESC
-                           OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
-                           """;
+        var sql = new StringBuilder("""
+                                    SELECT
+                                        b.id AS Id,
+                                        b.apartment_id AS ApartmentId,
+                                        a.name AS ApartmentName,
+                                        a.address_city AS ApartmentCity,
+                                        img.url AS PrimaryImageUrl,
+                                        b.status AS Status,
+                                        a.price_amount AS PricePerNight,
+                                        b.total_price_amount AS TotalPriceAmount,
+                                        b.total_price_currency AS TotalPriceCurrency,
+                                        b.duration_start AS DurationStart,
+                                        b.duration_end AS DurationEnd,
+                                        COUNT(*) OVER() AS TotalCount
 
-        var bookings = await connection.QueryAsync<BookingSummaryResponse>(
-            sql,
+                                    FROM bookings b
+
+                                    JOIN apartments a
+                                        ON a.id = b.apartment_id
+
+                                    LEFT JOIN apartment_images img
+                                        ON img.apartment_id = a.id
+                                        AND img.is_primary = true
+
+                                    WHERE b.user_id = @UserId
+                                    """);
+
+        switch (request.Filter)
+        {
+            case MyBookingsFilter.Upcoming:
+                sql.Append("""
+
+                           AND b.status IN (@Reserved, @Confirmed)
+                           AND b.duration_end >= @Today
+                           """);
+                break;
+            case MyBookingsFilter.Completed:
+                sql.Append("""
+
+                           AND b.status = @CompletedStatus
+                           """);
+                break;
+            case MyBookingsFilter.Cancelled:
+                sql.Append("""
+
+                           AND b.status = @CancelledStatus
+                           """);
+                break;
+            case MyBookingsFilter.All:
+            default:
+                break;
+        }
+
+        sql.Append("""
+
+                   ORDER BY b.created_on_utc DESC
+                   OFFSET @Offset ROWS
+                   FETCH NEXT @PageSize ROWS ONLY
+                   """);
+
+        var rows = (await connection.QueryAsync<BookingRow>(
+            sql.ToString(),
             new
             {
                 userContext.UserId,
-                Offset = (request.Page - 1) * request.PageSize,
-                request.PageSize
-            });
+                Reserved = (int)BookingStatus.Reserved,
+                Confirmed = (int)BookingStatus.Confirmed,
+                CompletedStatus = (int)BookingStatus.Completed,
+                CancelledStatus = (int)BookingStatus.Cancelled,
+                Today = DateOnly.FromDateTime(DateTime.UtcNow),
+                Offset = (page - 1) * pageSize,
+                PageSize = pageSize
+            })).ToList();
 
-        return bookings.ToList();
+        if (rows.Count == 0)
+        {
+            return new PagedResponse<MyBookingsResponse>
+            {
+                Items = [],
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0,
+                TotalPages = 0
+            };
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var items = rows.Select(r => new MyBookingsResponse
+        {
+            Id = r.Id,
+            ApartmentId = r.ApartmentId,
+            ApartmentName = r.ApartmentName,
+            ApartmentCity = r.ApartmentCity,
+            PrimaryImageUrl = r.PrimaryImageUrl,
+            Status = r.Status,
+            PricePerNight = r.PricePerNight,
+            TotalPriceAmount = r.TotalPriceAmount,
+            TotalPriceCurrency = r.TotalPriceCurrency,
+            DurationStart = r.DurationStart,
+            DurationEnd = r.DurationEnd,
+            Nights = r.DurationEnd.DayNumber - r.DurationStart.DayNumber,
+            // Mirrors the same rule the Cancel command enforces: only Reserved/Confirmed
+            // bookings that haven't started yet are cancellable.
+            CanCancel = r.Status is BookingStatus.Reserved or BookingStatus.Confirmed
+                        && r.DurationStart > today
+        }).ToList();
+
+        var totalCount = rows[0].TotalCount;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        return new PagedResponse<MyBookingsResponse>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
+    }
+
+    private sealed class BookingRow
+    {
+        public Guid Id { get; init; }
+        public Guid ApartmentId { get; init; }
+        public string ApartmentName { get; init; } = string.Empty;
+        public string ApartmentCity { get; init; } = string.Empty;
+        public string? PrimaryImageUrl { get; init; }
+        public BookingStatus Status { get; init; }
+        public decimal PricePerNight { get; init; }
+        public decimal TotalPriceAmount { get; init; }
+        public string TotalPriceCurrency { get; init; } = string.Empty;
+        public DateOnly DurationStart { get; init; }
+        public DateOnly DurationEnd { get; init; }
+        public int TotalCount { get; init; }
     }
 }

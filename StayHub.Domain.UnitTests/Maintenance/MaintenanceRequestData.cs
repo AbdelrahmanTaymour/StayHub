@@ -18,10 +18,10 @@ internal static class MaintenanceRequestData
             DateTime.UtcNow);
     }
 
-    public static MaintenanceRequest CreateAndStart()
+    public static MaintenanceRequest CreateAndStart(DateTime? createdOnUtc = null)
     {
         var request = Create();
-        request.Start();
+        request.Start(createdOnUtc ?? DateTime.UtcNow);
         return request;
     }
 

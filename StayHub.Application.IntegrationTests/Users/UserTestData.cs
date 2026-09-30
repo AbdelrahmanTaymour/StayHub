@@ -4,11 +4,11 @@ namespace StayHub.Application.IntegrationTests.Users;
 
 internal static class UserTestData
 {
-    public static User CreateUser(string firstName = "Test", string lastName = "User")
+    public static User CreateUser(string? email = null, string firstName = "Test", string lastName = "User")
     {
-        var email = Email.Create($"{Guid.NewGuid():N}@test.local").Value;
+        var emailValue = Email.Create(email ?? $"{Guid.NewGuid():N}@test.local").Value;
 
-        var user = User.Create(new FirstName(firstName), new LastName(lastName), email, DateTime.UtcNow);
+        var user = User.Create(new FirstName(firstName), new LastName(lastName), emailValue, DateTime.UtcNow);
         user.SetIdentityId(Guid.NewGuid().ToString());
 
         return user;

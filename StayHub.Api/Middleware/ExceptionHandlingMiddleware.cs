@@ -72,6 +72,12 @@ public class ExceptionHandlingMiddleware(
                 "Invalid request",
                 applicationException.Message),
 
+            BadHttpRequestException badHttpRequestException => new ExceptionDetails(
+                badHttpRequestException.StatusCode,
+                "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+                "Invalid request",
+                "One or more request parameters could not be parsed. Please check the values you provided."),
+
             _ => new ExceptionDetails(
                 StatusCodes.Status500InternalServerError,
                 "https://tools.ietf.org/html/rfc7231#section-6.6.1",

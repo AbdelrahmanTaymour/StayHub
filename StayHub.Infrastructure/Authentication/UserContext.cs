@@ -27,6 +27,8 @@ internal sealed class UserContext(IHttpContextAccessor httpContextAccessor) : IU
             .GetRoles() ??
         [];
 
+    public bool IsAuthenticated =>
+        httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;
 
     public bool IsAdmin => Roles.Contains(Role.Admin.Name);
 

@@ -3,6 +3,7 @@ using StayHub.Api.Extensions;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Users.ForgotPassword;
 using StayHub.Application.Users.GetLoggedInUser;
+using StayHub.Application.Users.GetOwnerProfile;
 using StayHub.Application.Users.GetUser;
 using StayHub.Application.Users.GetUserSessions;
 using StayHub.Application.Users.LogInUser;
@@ -32,6 +33,12 @@ public static class UserEndpoints
             .WithName(nameof(GetUser))
             .Produces<UserResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("{ownerId:guid}/profile", GetOwnerProfile)
+            .WithName(nameof(GetOwnerProfile))
+            .Produces<UserProfileResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .AllowAnonymous();
 
         group.MapPost("register", Register)
             .AllowAnonymous()
@@ -96,6 +103,14 @@ public static class UserEndpoints
     private static async Task<IResult> GetUser(Guid id, ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetUserQuery(id), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetOwnerProfile(Guid ownerId, ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOwnerProfileQuery(ownerId), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }

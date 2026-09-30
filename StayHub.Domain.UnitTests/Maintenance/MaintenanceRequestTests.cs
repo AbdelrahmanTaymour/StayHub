@@ -46,13 +46,15 @@ public class MaintenanceRequestTests : BaseTest
     {
         // Arrange
         var request = MaintenanceRequestData.Create();
+        var utcNow = DateTime.UtcNow;
 
         // Act
-        var result = request.Start();
+        var result = request.Start(utcNow);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         request.Status.Should().Be(MaintenanceRequestStatus.InProgress);
+        request.StartOnUtc.Should().Be(utcNow);
     }
 
     [Fact]
@@ -60,23 +62,26 @@ public class MaintenanceRequestTests : BaseTest
     {
         // Arrange
         var request = MaintenanceRequestData.Create();
+        var utcNow = DateTime.UtcNow;
 
         // Act
-        request.Start();
+        request.Start(utcNow);
 
         // Assert
         var domainEvent = AssertDomainEventWasPublished<MaintenanceRequestStartedDomainEvent>(request);
         domainEvent.MaintenanceRequestId.Should().Be(request.Id);
+        request.StartOnUtc.Should().Be(utcNow);
     }
 
     [Fact]
     public void Start_Should_ReturnFailure_WhenAlreadyInProgress()
     {
         // Arrange
-        var request = MaintenanceRequestData.CreateAndStart();
+        var utcNow = DateTime.UtcNow;
+        var request = MaintenanceRequestData.CreateAndStart(utcNow);
 
         // Act
-        var result = request.Start();
+        var result = request.Start(utcNow);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -160,8 +165,7 @@ public class MaintenanceRequestTests : BaseTest
     [Fact]
     public void Close_Should_ReturnFailure_WhenStillInProgress()
     {
-        // Arrange — must be resolved before it can be closed; can't skip
-        // straight from InProgress to Closed.
+        // Arrange
         var request = MaintenanceRequestData.CreateAndStart();
 
         // Act
@@ -170,5 +174,96 @@ public class MaintenanceRequestTests : BaseTest
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(MaintenanceRequestErrors.NotResolved);
+    }
+
+    [Theory]
+    [MemberData(nameof(NonClosedRequests))]
+    public void AssignStaff_Should_SetAssignedToUserIdAndOnUtcAndReturnSuccess_WhenNotClosed(
+        MaintenanceRequest request)
+    {
+        // Arrange
+        var staffUserId = Guid.CreateVersion7();
+        var utcNow = DateTime.UtcNow;
+
+        // Act
+        var result = request.AssignStaff(staffUserId, utcNow);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.AssignedToUserId.Should().Be(staffUserId);
+        request.AssignedToOnUtc.Should().Be(utcNow);
+    }
+
+    [Fact]
+    public void AssignStaff_Should_RaiseMaintenanceRequestStaffAssignedDomainEvent_WhenNotClosed()
+    {
+        // Arrange
+        var request = MaintenanceRequestData.Create();
+        var staffUserId = Guid.CreateVersion7();
+
+        // Act
+        request.AssignStaff(staffUserId, DateTime.UtcNow);
+
+        // Assert
+        var domainEvent = AssertDomainEventWasPublished<MaintenanceRequestStaffAssignedDomainEvent>(request);
+        domainEvent.MaintenanceRequestId.Should().Be(request.Id);
+        domainEvent.StaffId.Should().Be(staffUserId);
+    }
+
+    [Fact]
+    public void AssignStaff_Should_OverwritePreviousAssignee_WhenReassigned()
+    {
+        // Arrange
+        var request = MaintenanceRequestData.Create();
+        var firstStaffUserId = Guid.CreateVersion7();
+        var secondStaffUserId = Guid.CreateVersion7();
+
+        request.AssignStaff(firstStaffUserId, DateTime.UtcNow);
+        var reassignedAt = DateTime.UtcNow.AddMinutes(5);
+
+        // Act
+        var result = request.AssignStaff(secondStaffUserId, reassignedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.AssignedToUserId.Should().Be(secondStaffUserId);
+        request.AssignedToOnUtc.Should().Be(reassignedAt);
+    }
+
+    [Fact]
+    public void AssignStaff_Should_ReturnFailure_WhenClosed()
+    {
+        // Arrange
+        var request = MaintenanceRequestData.CreateStartAndResolve();
+        request.Close(DateTime.UtcNow);
+
+        // Act
+        var result = request.AssignStaff(Guid.CreateVersion7(), DateTime.UtcNow);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(MaintenanceRequestErrors.AlreadyClosed);
+    }
+
+    [Fact]
+    public void AssignStaff_Should_NotChangeAssignee_WhenClosed()
+    {
+        // Arrange
+        var request = MaintenanceRequestData.CreateStartAndResolve();
+        request.Close(DateTime.UtcNow);
+
+        // Act
+        request.AssignStaff(Guid.CreateVersion7(), DateTime.UtcNow);
+
+        // Assert
+        request.AssignedToUserId.Should().BeNull();
+        request.AssignedToOnUtc.Should().BeNull();
+    }
+
+    public static IEnumerable<object[]> NonClosedRequests()
+    {
+        yield return [MaintenanceRequestData.Create()];
+        yield return [MaintenanceRequestData.CreateAndStart()];
+        yield return [MaintenanceRequestData.CreateStartAndResolve()];
     }
 }

@@ -31,9 +31,6 @@ public class ConversationTests : BaseTest
     [Fact]
     public void Start_Should_AllowNullBookingId()
     {
-        // Arrange — a guest can message a host about an apartment before
-        // ever booking it (a pre-booking inquiry), so BookingId is nullable
-        // by design, not an oversight.
         // Act
         var conversation = ConversationData.Start(bookingId: null);
 
@@ -106,9 +103,7 @@ public class ConversationTests : BaseTest
     [Fact]
     public void RegisterMessage_Should_NotRaiseAnyDomainEvent()
     {
-        // Arrange — tracking the latest message timestamp is bookkeeping;
-        // the MessageSentDomainEvent raised by Message.Send is what actually
-        // notifies the system a message went out.
+        // Arrange
         var conversation = ConversationData.Start();
         conversation.ClearDomainEvents();
 
@@ -132,5 +127,48 @@ public class ConversationTests : BaseTest
 
         // Assert
         conversation.LastMessageOnUtc.Should().Be(latestMessageTime);
+    }
+
+    [Fact]
+    public void AttachBooking_Should_SetBookingId_WhenNoneWasLinkedYet()
+    {
+        // Arrange
+        var conversation = ConversationData.Start(bookingId: null);
+        var bookingId = Guid.CreateVersion7();
+
+        // Act
+        conversation.AttachBooking(bookingId);
+
+        // Assert
+        conversation.BookingId.Should().Be(bookingId);
+    }
+
+    [Fact]
+    public void AttachBooking_Should_NotOverwriteExistingBookingId()
+    {
+        // Arrange
+        var originalBookingId = Guid.CreateVersion7();
+        var conversation = ConversationData.Start(bookingId: originalBookingId);
+        var otherBookingId = Guid.CreateVersion7();
+
+        // Act
+        conversation.AttachBooking(otherBookingId);
+
+        // Assert
+        conversation.BookingId.Should().Be(originalBookingId);
+    }
+
+    [Fact]
+    public void AttachBooking_Should_NotRaiseAnyDomainEvent()
+    {
+        // Arrange
+        var conversation = ConversationData.Start(bookingId: null);
+        conversation.ClearDomainEvents();
+
+        // Act
+        conversation.AttachBooking(Guid.CreateVersion7());
+
+        // Assert
+        conversation.GetDomainEvents().Should().BeEmpty();
     }
 }

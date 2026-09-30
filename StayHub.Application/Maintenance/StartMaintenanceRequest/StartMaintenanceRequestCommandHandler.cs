@@ -1,4 +1,5 @@
 using StayHub.Application.Abstractions.Authentication;
+using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
@@ -11,7 +12,8 @@ internal sealed class StartMaintenanceRequestCommandHandler(
     IApartmentRepository apartmentRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
     IUserContext userContext,
-    IUnitOfWork unitOfWork) : ICommandHandler<StartMaintenanceRequestCommand>
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<StartMaintenanceRequestCommand>
 {
     public async Task<Result> Handle(StartMaintenanceRequestCommand request, CancellationToken cancellationToken)
     {
@@ -37,7 +39,7 @@ internal sealed class StartMaintenanceRequestCommandHandler(
             return Result.Failure(MaintenanceRequestErrors.NotAuthorized);
         }
 
-        var result = maintenanceRequest.Start();
+        var result = maintenanceRequest.Start(dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
 

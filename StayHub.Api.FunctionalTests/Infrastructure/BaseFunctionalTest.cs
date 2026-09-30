@@ -33,11 +33,12 @@ public abstract class BaseFunctionalTest : IAsyncLifetime
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    protected async Task<(string AccessToken, RegisterUserRequest Request, Guid UserId)> RegisterAndAuthenticateAsync()
+    protected async Task<(string AccessToken, RegisterUserRequest Request, Guid UserId)> RegisterAndAuthenticateAsync(
+        string firstName = "Test", string lastName = "User")
     {
         var request = new RegisterUserRequest(
-            "Test",
-            "User",
+            firstName,
+            lastName,
             $"{Guid.NewGuid():N}@test.local",
             "Str0ng!Passw0rd");
 

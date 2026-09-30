@@ -7,14 +7,21 @@ public class PricingService
 {
     public PricingDetails CalculatePrice(Apartment apartment, DateRange period)
     {
-        var currency = apartment.Price.Currency;
+        return CalculatePrice(apartment.Price, apartment.CleaningFee, apartment.Amenities, period.LengthInDays);
+    }
 
-        var priceForPeriod = new Money(
-            apartment.Price.Amount * period.LengthInDays,
-            currency);
+    public PricingDetails CalculatePrice(
+        Money price,
+        Money cleaningFee,
+        IEnumerable<Amenity> amenities,
+        int lengthInDays)
+    {
+        var currency = price.Currency;
+
+        var priceForPeriod = new Money(price.Amount * lengthInDays, currency);
 
         decimal percentageUpCharge = 0;
-        foreach (var amenity in apartment.Amenities)
+        foreach (var amenity in amenities)
             percentageUpCharge += amenity switch
             {
                 Amenity.GardenView or Amenity.MountainView => 0.05m,
@@ -29,13 +36,10 @@ public class PricingService
         var totalPrice = Money.Zero(currency);
         totalPrice += priceForPeriod;
 
-        if (!apartment.CleaningFee.IsZero()) totalPrice += apartment.CleaningFee;
+        if (!cleaningFee.IsZero()) totalPrice += cleaningFee;
 
         totalPrice += amenitiesUpCharge;
 
-        // Money is owned by its aggregate, so create a separate instance for the Booking.
-        var cleaningFee = apartment.CleaningFee.Copy();
-
-        return new PricingDetails(priceForPeriod, cleaningFee, amenitiesUpCharge, totalPrice);
+        return new PricingDetails(priceForPeriod, cleaningFee.Copy(), amenitiesUpCharge, totalPrice);
     }
 }

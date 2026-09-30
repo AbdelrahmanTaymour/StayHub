@@ -20,8 +20,17 @@ public static class MaintenanceRequestErrors
         "MaintenanceRequest.NotResolved",
         "The maintenance request is not resolved");
 
+    public static readonly Error AlreadyClosed = Error.Conflict(
+        "MaintenanceRequest.AlreadyClosed",
+        "The maintenance request is already closed");
+
     public static readonly Error NotAuthorized = Error.Forbidden(
         "MaintenanceRequest.NotAuthorized",
         "You're not authorized to perform this action"
+    );
+
+    public static readonly Error AssigneeIsNotActiveStaff = Error.Validation(
+        "MaintenanceRequest.AssigneeIsNotActiveStaff",
+        "The specified user is not an active staff member for this apartment"
     );
 }

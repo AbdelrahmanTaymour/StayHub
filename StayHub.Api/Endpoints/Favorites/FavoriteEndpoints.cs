@@ -1,9 +1,9 @@
 using MediatR;
 using StayHub.Api.Extensions;
-using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Application.Favorites.AddFavoriteApartment;
 using StayHub.Application.Favorites.GetFavoriteApartments;
 using StayHub.Application.Favorites.RemoveFavoriteApartment;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Api.Endpoints.Favorites;
 
@@ -14,7 +14,7 @@ public static class FavoriteEndpoints
         var group = builder.MapGroup("favorites").WithTags("Favorites").RequireAuthorization();
 
         group.MapGet("", Get)
-            .Produces<IReadOnlyList<ApartmentSummaryResponse>>();
+            .Produces<PagedResponse<FavoriteApartmentResponse>>();
 
         group.MapPut("{apartmentId:guid}", Add)
             .Produces(StatusCodes.Status204NoContent)
@@ -32,11 +32,11 @@ public static class FavoriteEndpoints
         ISender sender,
         CancellationToken cancellationToken,
         int page = 1,
-        int pageSize = 20)
+        int pageSize = 12)
     {
         var result = await sender.Send(new GetFavoriteApartmentsQuery(page, pageSize), cancellationToken);
 
-        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> Add(Guid apartmentId, ISender sender, CancellationToken cancellationToken)

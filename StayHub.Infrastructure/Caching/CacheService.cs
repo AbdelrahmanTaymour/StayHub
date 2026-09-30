@@ -1,11 +1,14 @@
 using System.Buffers;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 using StayHub.Application.Abstractions.Caching;
 
 namespace StayHub.Infrastructure.Caching;
 
-internal sealed class CacheService(IDistributedCache cache) : ICacheService
+internal sealed class CacheService(
+    IDistributedCache cache,
+    IConnectionMultiplexer redis) : ICacheService
 {
     public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
@@ -44,6 +47,16 @@ internal sealed class CacheService(IDistributedCache cache) : ICacheService
 
         return value;
     }
+
+    public async Task<long> IncrementAsync(string key, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var database = redis.GetDatabase();
+
+        return await database.StringIncrementAsync(key);
+    }
+
 
     private static T Deserialize<T>(byte[] bytes)
     {

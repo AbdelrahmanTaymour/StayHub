@@ -34,8 +34,11 @@ public sealed class MaintenanceRequest : Entity
     public Description Description { get; private set; }
     public MaintenanceRequestStatus Status { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
+    public DateTime? StartOnUtc { get; private set; }
     public DateTime? ResolvedOnUtc { get; private set; }
     public DateTime? ClosedOnUtc { get; private set; }
+    public Guid? AssignedToUserId { get; private set; }
+    public DateTime? AssignedToOnUtc { get; private set; }
 
     public static MaintenanceRequest Create(
         Guid apartmentId,
@@ -58,11 +61,12 @@ public sealed class MaintenanceRequest : Entity
         return request;
     }
 
-    public Result Start()
+    public Result Start(DateTime utcNow)
     {
         if (Status != MaintenanceRequestStatus.Open) return Result.Failure(MaintenanceRequestErrors.NotOpen);
 
         Status = MaintenanceRequestStatus.InProgress;
+        StartOnUtc = utcNow;
 
         RaiseDomainEvent(new MaintenanceRequestStartedDomainEvent(Id, ReportedByUserId));
 
@@ -90,6 +94,19 @@ public sealed class MaintenanceRequest : Entity
         ClosedOnUtc = utcNow;
 
         RaiseDomainEvent(new MaintenanceRequestClosedDomainEvent(Id, ReportedByUserId));
+
+        return Result.Success();
+    }
+
+    public Result AssignStaff(Guid staffUserId, DateTime utcNow)
+    {
+        if (Status == MaintenanceRequestStatus.Closed)
+            return Result.Failure(MaintenanceRequestErrors.AlreadyClosed);
+
+        AssignedToUserId = staffUserId;
+        AssignedToOnUtc = utcNow;
+
+        RaiseDomainEvent(new MaintenanceRequestStaffAssignedDomainEvent(Id, staffUserId));
 
         return Result.Success();
     }

@@ -6,6 +6,7 @@ using StayHub.Application.Conversations.StartConversation;
 using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
+using StayHub.Domain.Bookings;
 using StayHub.Domain.Conversations;
 
 namespace StayHub.Application.UnitTests.Conversations;
@@ -16,6 +17,7 @@ public class StartConversationTests
     private static readonly DateTime UtcNow = DateTime.UtcNow;
 
     private readonly IApartmentRepository _apartmentRepositoryMock = Substitute.For<IApartmentRepository>();
+    private readonly IBookingRepository _bookingtRepositoryMock = Substitute.For<IBookingRepository>();
     private readonly IConversationRepository _conversationRepositoryMock = Substitute.For<IConversationRepository>();
     private readonly IDateTimeProvider _dateTimeProviderMock = Substitute.For<IDateTimeProvider>();
 
@@ -30,6 +32,7 @@ public class StartConversationTests
 
         _handler = new StartConversationCommandHandler(
             _apartmentRepositoryMock,
+            _bookingtRepositoryMock,
             _conversationRepositoryMock,
             _messageRepositoryMock,
             _userContextMock,
@@ -45,7 +48,7 @@ public class StartConversationTests
         _apartmentRepositoryMock.GetByIdAsync(apartmentId, Arg.Any<CancellationToken>()).Returns((Apartment?)null);
 
         // Act
-        var result = await _handler.Handle(new StartConversationCommand(apartmentId, InitialMessage), default);
+        var result = await _handler.Handle(new StartConversationCommand(apartmentId, null, InitialMessage), default);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -67,7 +70,7 @@ public class StartConversationTests
         _userContextMock.UserId.Returns(apartment.OwnerId);
 
         // Act
-        var result = await _handler.Handle(new StartConversationCommand(apartment.Id, InitialMessage), default);
+        var result = await _handler.Handle(new StartConversationCommand(apartment.Id, null, InitialMessage), default);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -88,7 +91,7 @@ public class StartConversationTests
         _userContextMock.UserId.Returns(guestId);
 
         // Act
-        var result = await _handler.Handle(new StartConversationCommand(apartment.Id, InitialMessage), default);
+        var result = await _handler.Handle(new StartConversationCommand(apartment.Id, null, InitialMessage), default);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -110,7 +113,7 @@ public class StartConversationTests
         _userContextMock.UserId.Returns(guestId);
 
         // Act
-        await _handler.Handle(new StartConversationCommand(apartment.Id, InitialMessage), default);
+        await _handler.Handle(new StartConversationCommand(apartment.Id, null, InitialMessage), default);
 
         // Assert
         existingConversation.LastMessageOnUtc.Should().Be(UtcNow);
@@ -129,7 +132,7 @@ public class StartConversationTests
         _userContextMock.UserId.Returns(guestId);
 
         // Act
-        var result = await _handler.Handle(new StartConversationCommand(apartment.Id, InitialMessage), default);
+        var result = await _handler.Handle(new StartConversationCommand(apartment.Id, null, InitialMessage), default);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

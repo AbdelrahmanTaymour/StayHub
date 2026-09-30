@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using StayHub.Api.FunctionalTests.Bookings;
 using StayHub.Api.FunctionalTests.Infrastructure;
@@ -127,5 +128,31 @@ public sealed class StartMaintenanceRequestTests(FunctionalTestWebAppFactory fac
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Start_ShouldSetStatusAndStartOnUtc_WhenSuccessful()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
+
+        var beforeStart = DateTime.UtcNow;
+
+        // Act
+        var startResponse = await HttpClient.PostAsync(MaintenanceRoutes.Start(requestId), null);
+        startResponse.EnsureSuccessStatusCode();
+
+        // Assert
+        var getResponse = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
+        getResponse.EnsureSuccessStatusCode();
+
+        var detail = await getResponse.Content.ReadFromJsonAsync<JsonElement>();
+        detail.GetProperty("status").GetString().Should().Be("InProgress");
+
+        var startOnUtc = detail.GetProperty("startOnUtc").GetDateTime();
+        startOnUtc.Should().BeOnOrAfter(beforeStart.AddSeconds(-1));
+        startOnUtc.Should().BeOnOrBefore(DateTime.UtcNow.AddSeconds(1));
     }
 }

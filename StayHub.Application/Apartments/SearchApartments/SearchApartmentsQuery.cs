@@ -1,5 +1,5 @@
 using StayHub.Application.Abstractions.Caching;
-using StayHub.Application.Apartments.GetApartmentsByOwner;
+using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Apartments.SearchApartments;
 
@@ -10,22 +10,13 @@ public sealed record SearchApartmentsQuery(
     DateOnly? Start = null,
     DateOnly? End = null,
     int Page = 1,
-    int PageSize = 20) : ICachedQuery<IReadOnlyList<ApartmentSummaryResponse>>
+    int PageSize = 20) : ICachedQuery<PagedResponse<SearchApartmentsResponse>>
 {
     public string CacheKey
     {
         get
         {
-            var filtersAndPage = string.Join(
-                '|',
-                City,
-                MinPrice,
-                MaxPrice,
-                Start,
-                End,
-                Page,
-                PageSize);
-
+            var filtersAndPage = string.Join('|', City, MinPrice, MaxPrice, Start, End, Page, PageSize);
             return CacheKeys.ApartmentSearch(filtersAndPage);
         }
     }
