@@ -2,18 +2,18 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
-using StayHub.Application.Maintenance.GetMaintenanceRequestsByApartment;
+using StayHub.Application.Maintenance.GetApartmentMaintenanceRequests;
 using StayHub.Application.UnitTests.Apartments;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Maintenance;
 
 namespace StayHub.Application.UnitTests.Maintenance;
 
-public sealed class GetMaintenanceRequestsByApartmentTests
+public sealed class GetApartmentMaintenanceRequestsTests
 {
     private readonly IApartmentRepository _apartmentRepositoryMock = Substitute.For<IApartmentRepository>();
 
-    private readonly GetMaintenanceRequestsByApartmentQueryHandler _handler;
+    private readonly GetApartmentMaintenanceRequestsQueryHandler _handler;
 
     private readonly ISqlConnectionFactory _sqlConnectionFactoryMock =
         Substitute.For<ISqlConnectionFactory>();
@@ -23,9 +23,9 @@ public sealed class GetMaintenanceRequestsByApartmentTests
 
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
-    public GetMaintenanceRequestsByApartmentTests()
+    public GetApartmentMaintenanceRequestsTests()
     {
-        _handler = new GetMaintenanceRequestsByApartmentQueryHandler(
+        _handler = new GetApartmentMaintenanceRequestsQueryHandler(
             _sqlConnectionFactoryMock,
             _apartmentRepositoryMock,
             _staffAssignmentRepositoryMock,
@@ -44,7 +44,7 @@ public sealed class GetMaintenanceRequestsByApartmentTests
 
         // Act
         var result = await _handler.Handle(
-            new GetMaintenanceRequestsByApartmentQuery(apartmentId, null, 1, 10), default);
+            new GetApartmentMaintenanceRequestsQuery(apartmentId), default);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -62,7 +62,7 @@ public sealed class GetMaintenanceRequestsByApartmentTests
             .Returns((Apartment?)null);
 
         // Act
-        await _handler.Handle(new GetMaintenanceRequestsByApartmentQuery(apartmentId, null, 1, 10), default);
+        await _handler.Handle(new GetApartmentMaintenanceRequestsQuery(apartmentId), default);
 
         // Assert
         await _staffAssignmentRepositoryMock.DidNotReceive()
@@ -80,7 +80,7 @@ public sealed class GetMaintenanceRequestsByApartmentTests
             .Returns((Apartment?)null);
 
         // Act
-        await _handler.Handle(new GetMaintenanceRequestsByApartmentQuery(apartmentId, null, 1, 10), default);
+        await _handler.Handle(new GetApartmentMaintenanceRequestsQuery(apartmentId), default);
 
         // Assert
         _sqlConnectionFactoryMock.DidNotReceive().CreateConnection();
@@ -107,7 +107,7 @@ public sealed class GetMaintenanceRequestsByApartmentTests
 
         // Act
         var result = await _handler.Handle(
-            new GetMaintenanceRequestsByApartmentQuery(apartment.Id, null, 1, 10), default);
+            new GetApartmentMaintenanceRequestsQuery(apartment.Id), default);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -135,7 +135,7 @@ public sealed class GetMaintenanceRequestsByApartmentTests
 
         // Act
         await _handler.Handle(
-            new GetMaintenanceRequestsByApartmentQuery(apartment.Id, null, 1, 10), default);
+            new GetApartmentMaintenanceRequestsQuery(apartment.Id), default);
 
         // Assert
         _sqlConnectionFactoryMock.DidNotReceive().CreateConnection();

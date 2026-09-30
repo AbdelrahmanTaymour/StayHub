@@ -2,8 +2,8 @@ using MediatR;
 using StayHub.Api.Extensions;
 using StayHub.Application.Maintenance.CloseMaintenanceRequest;
 using StayHub.Application.Maintenance.CreateMaintenanceRequest;
+using StayHub.Application.Maintenance.GetApartmentMaintenanceRequests;
 using StayHub.Application.Maintenance.GetMaintenanceRequest;
-using StayHub.Application.Maintenance.GetMaintenanceRequestsByApartment;
 using StayHub.Application.Maintenance.ResolveMaintenanceRequest;
 using StayHub.Application.Maintenance.StartMaintenanceRequest;
 using StayHub.Domain.Maintenance;
@@ -18,7 +18,7 @@ public static class MaintenanceEndpoints
 
         group.MapGet("{id:guid}/maintenance-requests", GetMaintenanceRequestsByApartment)
             .HasPermission(Permissions.MaintenanceManage)
-            .Produces<IReadOnlyList<MaintenanceRequestsSummaryResponse>>()
+            .Produces<IReadOnlyList<MaintenanceRequestsResponse>>()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -65,11 +65,12 @@ public static class MaintenanceEndpoints
         Guid id,
         ISender sender,
         CancellationToken cancellationToken,
+        string? search = null,
         MaintenanceRequestStatus? status = null,
         int page = 1,
         int pageSize = 20)
     {
-        var query = new GetMaintenanceRequestsByApartmentQuery(id, status, page, pageSize);
+        var query = new GetApartmentMaintenanceRequestsQuery(id, search, status, page, pageSize);
 
         var result = await sender.Send(query, cancellationToken);
 

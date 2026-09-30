@@ -1,3 +1,4 @@
+using System.Text;
 using StayHub.Application.Apartments.GetApartmentsByOwner;
 using StayHub.Application.Apartments.GetMyApartments;
 using StayHub.Application.Reviews.GetApartmentReviews;
@@ -47,12 +48,21 @@ public static class CacheKeys
         return $"apartments:dashboard:{ownerId}";
     }
 
-    public static string MaintenancesByApartment(Guid apartmentId, MaintenanceRequestStatus? status, int page,
+    public static string MaintenancesByApartment(Guid apartmentId, string? search, MaintenanceRequestStatus? status,
+        int page,
         int pageSize)
     {
-        return status != null
+        var sb = new StringBuilder();
+
+        sb.Append(status != null
             ? $"maintenance:apartment:{apartmentId}:{status}:{page}:{pageSize}"
-            : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}";
+            : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}");
+
+        sb.Append(search != null
+            ? $"maintenance:apartment:{apartmentId}:{search}:{page}:{pageSize}"
+            : $"maintenance:apartment:{apartmentId}:{page}:{pageSize}");
+
+        return sb.ToString();
     }
 
     public static string ApartmentReviews(
