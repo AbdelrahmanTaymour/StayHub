@@ -10,31 +10,22 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["StayHub.Api/StayHub.Api.csproj", "StayHub.Api/"]
+# Copy project files first to preserve restore-layer caching
+COPY ["StayHub.Api/*.csproj", "StayHub.Api/"]
+COPY ["StayHub.Application/*.csproj", "StayHub.Application/"]
+COPY ["StayHub.Domain/*.csproj", "StayHub.Domain/"]
+COPY ["StayHub.Infrastructure/*.csproj", "StayHub.Infrastructure/"]
 
-# Restore dependencies with secret mapped to env var
-RUN --mount=type=secret,id=sixlabors_license \
-    export SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" && \
-    dotnet restore "StayHub.Api/StayHub.Api.csproj"
+# Restore dependencies
+RUN dotnet restore "StayHub.Api/StayHub.Api.csproj"
 
+# Copy remaining source code
 COPY . .
 
-WORKDIR "/src/StayHub.Api"
-
-# Build with secret mapped to env var
+# Build and publish
+WORKDIR /src/StayHub.Api
 RUN --mount=type=secret,id=sixlabors_license \
-    export SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" && \
-    dotnet build "./StayHub.Api.csproj" \
-    -c $BUILD_CONFIGURATION \
-    -o /app/build \
-    --no-restore
-
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-
-# Publish with secret mapped to env var
-RUN --mount=type=secret,id=sixlabors_license \
-    export SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" && \
+    SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" \
     dotnet publish "./StayHub.Api.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
@@ -43,5 +34,5 @@ RUN --mount=type=secret,id=sixlabors_license \
 
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "StayHub.Api.dll"]
