@@ -7,8 +7,8 @@ namespace StayHub.Application.Apartments.RemoveApartmentImage;
 public sealed class DeleteApartmentImageBlobJob(IFileStorageService fileStorageService)
 {
     [AutomaticRetry(Attempts = 5)]
-    public async Task ExecuteAsync(ApartmentImageUrl url, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(ApartmentImageKey key, CancellationToken cancellationToken = default)
     {
-        await fileStorageService.DeleteAsync(url.Value, cancellationToken);
+        await fileStorageService.DeleteAsync(key.Value, cancellationToken);
     }
 }

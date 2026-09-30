@@ -10,6 +10,31 @@ namespace StayHub.Application.IntegrationTests.Bookings;
 public class GetMyBookingsTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
+    public async Task GetMyBookings_ShouldResolveFromUserContext_NotFromClientInput()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var loggedInGuest = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        DbContext.AddRange(owner, loggedInGuest, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var booking = BookingTestData.Reserve(
+            apartment, loggedInGuest.Id, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 5), PricingService);
+        DbContext.Add(booking);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(loggedInGuest.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetMyBookingsQuery(Page: 1, PageSize: 10));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Items.Should().ContainSingle(b => b.Id == booking.Id);
+    }
+
+    [Fact]
     public async Task GetMyBookings_ShouldReturnEmptyPage_WhenCallerHasNoBookings()
     {
         // Arrange

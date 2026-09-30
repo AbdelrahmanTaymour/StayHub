@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
 
@@ -9,7 +10,8 @@ namespace StayHub.Application.Apartments.GetMyApartments;
 
 internal sealed class GetMyApartmentsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetMyApartmentsQuery, PagedResponse<MyApartmentsResponse>>
 {
     private const int WindowDays = 30;
@@ -70,7 +72,7 @@ internal sealed class GetMyApartmentsQueryHandler(
                        p.is_active AS IsActive,
                        p.price_amount AS PricePerNight,
                        p.price_currency AS Currency,
-                       img.url AS PrimaryImageUrl,
+                       img.key AS PrimaryImageKey,
                        COALESCE(ph.photo_count, 0) AS PhotoCount,
                        rv.avg_rating AS Rating,
                        COALESCE(rv.review_count, 0) AS ReviewCount,
@@ -131,37 +133,52 @@ internal sealed class GetMyApartmentsQueryHandler(
                 WindowStart = today.AddDays(-WindowDays)
             })).ToList();
 
-        return BuildPage(rows, page, pageSize);
+        return await ToMyApartmentsResponsePageAsync(rows, page, pageSize, cancellationToken);
     }
 
-    private static PagedResponse<MyApartmentsResponse> BuildPage(
-        List<MyApartmentRow> rows, int page, int pageSize)
+    private async Task<PagedResponse<MyApartmentsResponse>> ToMyApartmentsResponsePageAsync(
+        IReadOnlyList<MyApartmentRow> rows,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
     {
         if (rows.Count == 0)
         {
             return new PagedResponse<MyApartmentsResponse>
             {
-                Items = [], Page = page, PageSize = pageSize, TotalCount = 0, TotalPages = 0
+                Items = [],
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0,
+                TotalPages = 0
             };
         }
 
-        var items = rows.Select(r => new MyApartmentsResponse
+        var tasks = rows.Select(async r =>
         {
-            Id = r.Id,
-            Name = r.Name,
-            City = r.City,
-            Country = r.Country,
-            PrimaryImageUrl = r.PrimaryImageUrl,
-            IsActive = r.IsActive,
-            PricePerNight = r.PricePerNight,
-            Currency = r.Currency,
-            Rating = r.Rating,
-            ReviewCount = r.ReviewCount,
-            OccupancyRateLast30Days = Math.Min(100, Math.Round(r.OccupiedNightsLast30Days * 100d / WindowDays, 1)),
-            PhotoCount = r.PhotoCount,
-            PendingBookingsCount = r.PendingBookingsCount
-        }).ToList();
+            var primaryImageUrl = string.IsNullOrWhiteSpace(r.PrimaryImageKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.PrimaryImageKey, cancellationToken);
 
+            return new MyApartmentsResponse
+            {
+                Id = r.Id,
+                Name = r.Name,
+                City = r.City,
+                Country = r.Country,
+                PrimaryImageUrl = primaryImageUrl,
+                IsActive = r.IsActive,
+                PricePerNight = r.PricePerNight,
+                Currency = r.Currency,
+                Rating = r.Rating,
+                ReviewCount = r.ReviewCount,
+                OccupancyRateLast30Days = Math.Min(100, Math.Round(r.OccupiedNightsLast30Days * 100d / WindowDays, 1)),
+                PhotoCount = r.PhotoCount,
+                PendingBookingsCount = r.PendingBookingsCount
+            };
+        });
+
+        var items = (await Task.WhenAll(tasks)).ToList();
         var totalCount = rows[0].TotalCount;
 
         return new PagedResponse<MyApartmentsResponse>
@@ -178,13 +195,13 @@ internal sealed class GetMyApartmentsQueryHandler(
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
-    private sealed class MyApartmentRow
+    internal sealed class MyApartmentRow
     {
         public Guid Id { get; init; }
         public string Name { get; init; } = string.Empty;
         public string City { get; init; } = string.Empty;
         public string Country { get; init; } = string.Empty;
-        public string? PrimaryImageUrl { get; init; }
+        public string? PrimaryImageKey { get; init; }
         public bool IsActive { get; init; }
         public decimal PricePerNight { get; init; }
         public string Currency { get; init; } = string.Empty;

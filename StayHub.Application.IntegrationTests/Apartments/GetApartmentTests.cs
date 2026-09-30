@@ -32,11 +32,11 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
         // Arrange
         var owner = UserTestData.CreateUser(firstName: "Kenji", lastName: "Takahashi");
         var apartment = ApartmentTestData.CreateApartment(
-            ownerId: owner.Id,
-            name: "Nile View Studio",
-            city: "Cairo",
-            priceAmount: 750m,
-            priceCurrency: "USD");
+            owner.Id,
+            "Nile View Studio",
+            "Cairo",
+            750m,
+            "USD");
 
         var amenity = Enum.GetValues<Amenity>().First();
         apartment.AddAmenity(amenity);
@@ -75,11 +75,16 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
     public async Task GetApartment_ShouldReturnHostAvatar_WhenHostHasProfile()
     {
         // Arrange
+        const string avatarKey = "avatars/host-avatar.png";
+        const string expectedAvatarUrl = $"{TestFileStorageService.BaseUrl}/{avatarKey}";
+
         var owner = UserTestData.CreateUser(firstName: "Kenji", lastName: "Takahashi");
         var profile = UserTestData.CreateProfile(owner.Id);
-        profile.UpdateAvatar(new AvatarUrl("https://test-storage.local/host-avatar.png"), DateTime.UtcNow);
 
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        // Store key into the domain entity / database
+        profile.UpdateAvatar(new AvatarKey(avatarKey), DateTime.UtcNow);
+
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
 
         DbContext.AddRange(owner, profile, apartment);
         await DbContext.SaveChangesAsync();
@@ -91,7 +96,7 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Host.AvatarUrl.Should().Be("https://test-storage.local/host-avatar.png");
+        result.Value.Host.AvatarUrl.Should().Be(expectedAvatarUrl);
     }
 
     [Fact]
@@ -99,11 +104,11 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
         DbContext.AddRange(owner, apartment);
 
-        var secondImage = ApartmentTestData.CreateImage(apartment.Id, displayOrder: 1);
-        var firstImage = ApartmentTestData.CreateImage(apartment.Id, displayOrder: 0, isPrimary: true);
+        var secondImage = ApartmentTestData.CreateImage(apartment.Id, 1);
+        var firstImage = ApartmentTestData.CreateImage(apartment.Id, 0, true);
 
         // Deliberately added out of order to prove ORDER BY display_order, not insertion order.
         DbContext.Add(secondImage);
@@ -118,9 +123,19 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Images.Should().HaveCount(2);
+
         result.Value.Images[0].Id.Should().Be(firstImage.Id);
+        result.Value.Images[0].Url.Should().Be(
+            firstImage.Key.Value.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? firstImage.Key.Value
+                : $"{TestFileStorageService.BaseUrl}/{firstImage.Key.Value}");
         result.Value.Images[0].IsPrimary.Should().BeTrue();
+
         result.Value.Images[1].Id.Should().Be(secondImage.Id);
+        result.Value.Images[1].Url.Should().Be(
+            secondImage.Key.Value.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? secondImage.Key.Value
+                : $"{TestFileStorageService.BaseUrl}/{secondImage.Key.Value}");
         result.Value.Images[1].IsPrimary.Should().BeFalse();
     }
 
@@ -130,7 +145,7 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
         // Arrange
         var owner = UserTestData.CreateUser();
         var guest = UserTestData.CreateUser(firstName: "Sarah", lastName: "Jenkins");
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
@@ -150,8 +165,8 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
         DbContext.AddRange(olderBooking, newerBooking);
         await DbContext.SaveChangesAsync();
 
-        var olderReview = ReviewTestData.CreateReview(olderBooking, rating: 3, utcNow: baseTime);
-        var newerReview = ReviewTestData.CreateReview(newerBooking, rating: 5, utcNow: baseTime.AddMinutes(1));
+        var olderReview = ReviewTestData.CreateReview(olderBooking, 3, utcNow: baseTime);
+        var newerReview = ReviewTestData.CreateReview(newerBooking, 5, utcNow: baseTime.AddMinutes(1));
         DbContext.AddRange(olderReview, newerReview);
         await DbContext.SaveChangesAsync();
 
@@ -174,7 +189,7 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
         apartment.Deactivate();
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
@@ -196,7 +211,7 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
         apartment.Deactivate();
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
@@ -218,7 +233,7 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
         apartment.Deactivate();
         DbContext.AddRange(owner, apartment);
         await DbContext.SaveChangesAsync();
@@ -239,7 +254,7 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         // Arrange
         var owner = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var apartment = ApartmentTestData.CreateApartment(owner.Id);
         var favoritingUser = UserTestData.CreateUser();
         var favorite = FavoriteApartment.Create(favoritingUser.Id, apartment.Id, DateTime.UtcNow);
 

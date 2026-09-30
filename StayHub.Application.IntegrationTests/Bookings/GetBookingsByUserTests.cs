@@ -1,6 +1,5 @@
 using FluentAssertions;
 using StayHub.Application.Bookings.GetBookingsByUser;
-using StayHub.Application.Bookings.GetMyBookings;
 using StayHub.Application.IntegrationTests.Apartments;
 using StayHub.Application.IntegrationTests.Integration;
 using StayHub.Application.IntegrationTests.Users;
@@ -76,30 +75,5 @@ public class GetBookingsByUserTests(IntegrationTestWebAppFactory factory) : Base
 
         result.Value[0].Id.Should().Be(newerBooking.Id);
         result.Value[1].Id.Should().Be(olderBooking.Id);
-    }
-
-    [Fact]
-    public async Task GetMyBookings_ShouldResolveFromUserContext_NotFromClientInput()
-    {
-        // Arrange
-        var owner = UserTestData.CreateUser();
-        var loggedInGuest = UserTestData.CreateUser();
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
-        DbContext.AddRange(owner, loggedInGuest, apartment);
-        await DbContext.SaveChangesAsync();
-
-        var booking = BookingTestData.Reserve(
-            apartment, loggedInGuest.Id, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 5), PricingService);
-        DbContext.Add(booking);
-        await DbContext.SaveChangesAsync();
-
-        SetCurrentUser(loggedInGuest.Id, Role.Guest.Name);
-
-        // Act
-        var result = await Sender.Send(new GetMyBookingsQuery(Page: 1, PageSize: 10));
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Items.Should().ContainSingle(b => b.Id == booking.Id);
     }
 }

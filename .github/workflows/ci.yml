@@ -38,7 +38,13 @@ jobs:
         run: dotnet restore StayHub.sln
 
       - name: Build solution
-        run: dotnet build StayHub.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+        run: >
+          dotnet build StayHub.sln
+          --configuration ${{ env.BUILD_CONFIGURATION }}
+          --no-restore
+          -p:SixLaborsLicenseKey="$SIXLABORS_LICENSE_KEY"
 
       # Run fast, infrastructure-independent tests in the PR workflow.
       # Integration and functional tests are handled separately.
@@ -91,3 +97,5 @@ jobs:
           tags: stayhub-backend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          secrets: |
+            sixlabors_license=${{ secrets.SIXLABORS_LICENSE_KEY }}

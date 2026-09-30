@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 
@@ -9,7 +10,8 @@ namespace StayHub.Application.Apartments.GetApartmentStaff;
 
 internal sealed class GetApartmentStaffQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetApartmentStaffQuery, IReadOnlyList<ApartmentStaffResponse>>
 {
     public async Task<Result<IReadOnlyList<ApartmentStaffResponse>>> Handle(
@@ -25,7 +27,7 @@ internal sealed class GetApartmentStaffQueryHandler(
                                asa.id AS AssignmentId,
                                u.id AS UserId,
                                u.first_name || ' ' || u.last_name AS FullName,
-                               p.avatar_url AS AvatarUrl,
+                               p.avatar_key AS AvatarKey,
                                p.phone_number AS PhoneNumber,
                                asa.role AS Role,
                                asa.created_on_utc AS AssignedOnUtc
@@ -46,8 +48,46 @@ internal sealed class GetApartmentStaffQueryHandler(
             return Result.Failure<IReadOnlyList<ApartmentStaffResponse>>(ApartmentErrors.NotFound);
         }
 
-        var staff = await multi.ReadAsync<ApartmentStaffResponse>();
+        var staffRows = (await multi.ReadAsync<ApartmentStaffRow>()).ToList();
+
+        var staff = await ToStaffResponsesAsync(staffRows, cancellationToken);
 
         return staff.ToList();
+    }
+
+    internal async Task<IReadOnlyList<ApartmentStaffResponse>> ToStaffResponsesAsync(
+        IReadOnlyList<ApartmentStaffRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async row =>
+        {
+            var avatarUrl = string.IsNullOrWhiteSpace(row.AvatarKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(row.AvatarKey, cancellationToken);
+
+            return new ApartmentStaffResponse
+            {
+                AssignmentId = row.AssignmentId,
+                UserId = row.UserId,
+                FullName = row.FullName,
+                AvatarUrl = avatarUrl,
+                PhoneNumber = row.PhoneNumber,
+                Role = row.Role,
+                AssignedOnUtc = row.AssignedOnUtc
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal sealed class ApartmentStaffRow
+    {
+        public Guid AssignmentId { get; init; }
+        public Guid UserId { get; init; }
+        public string FullName { get; init; } = string.Empty;
+        public string? AvatarKey { get; init; }
+        public string? PhoneNumber { get; init; }
+        public ApartmentStaffRole Role { get; init; }
+        public DateTime AssignedOnUtc { get; init; }
     }
 }

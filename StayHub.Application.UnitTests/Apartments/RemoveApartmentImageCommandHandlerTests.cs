@@ -26,7 +26,7 @@ public class RemoveApartmentImageCommandHandlerTests
     }
 
     private static ApartmentImage CreateImage(Guid apartmentId) =>
-        ApartmentImage.Create(apartmentId, new ApartmentImageUrl("https://cdn.stayhub.dev/a.png"), 0, DateTime.UtcNow);
+        ApartmentImage.Create(apartmentId, new ApartmentImageKey("https://cdn.stayhub.dev/a.png"), 0, DateTime.UtcNow);
 
     [Fact]
     public async Task Handle_Should_ReturnFailure_WhenImageNotFound()

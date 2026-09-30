@@ -2,13 +2,15 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 
 namespace StayHub.Application.Apartments.GetApartmentsByOwner;
 
 internal sealed class GetApartmentsByOwnerQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetApartmentsByOwnerQuery, PagedResponse<OwnerApartmentsResponse>>
 {
     public async Task<Result<PagedResponse<OwnerApartmentsResponse>>> Handle(
@@ -17,7 +19,6 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
-        // Sort comes from a closed enum switch, never from raw user input — safe to interpolate.
         var orderBy = request.Sort switch
         {
             OwnerApartmentsSort.PriceAsc => "a.price_amount ASC, a.created_on_utc DESC",
@@ -35,7 +36,7 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
                        a.address_country AS Country,
                        a.price_amount AS PricePerNight,
                        a.price_currency AS Currency,
-                       img.url AS PrimaryImageUrl,
+                       img.key AS PrimaryImageKey,
                        rv.avg_rating AS Rating,
                        COALESCE(rv.review_count, 0) AS ReviewCount,
                        COUNT(*) OVER() AS TotalCount
@@ -102,19 +103,7 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
             favoritedIds = favoriteRows.ToHashSet();
         }
 
-        var items = rows.Select(row => new OwnerApartmentsResponse
-        {
-            Id = row.Id,
-            Name = row.Name,
-            City = row.City,
-            Country = row.Country,
-            PricePerNight = row.PricePerNight,
-            Currency = row.Currency,
-            PrimaryImageUrl = row.PrimaryImageUrl,
-            Rating = row.Rating,
-            ReviewCount = row.ReviewCount,
-            IsFavorited = favoritedIds.Contains(row.Id)
-        }).ToList();
+        var items = await ToOwnerApartmentResponsesAsync(rows, favoritedIds, cancellationToken);
 
         var totalCount = rows[0].TotalCount;
         var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
@@ -129,7 +118,36 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
         };
     }
 
-    private sealed class OwnerApartmentRow
+    private async Task<IReadOnlyList<OwnerApartmentsResponse>> ToOwnerApartmentResponsesAsync(
+        IReadOnlyList<OwnerApartmentRow> rows,
+        HashSet<Guid> favoritedIds,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async row =>
+        {
+            var primaryImageUrl = string.IsNullOrWhiteSpace(row.PrimaryImageKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(row.PrimaryImageKey, cancellationToken);
+
+            return new OwnerApartmentsResponse
+            {
+                Id = row.Id,
+                Name = row.Name,
+                City = row.City,
+                Country = row.Country,
+                PricePerNight = row.PricePerNight,
+                Currency = row.Currency,
+                PrimaryImageUrl = primaryImageUrl,
+                Rating = row.Rating,
+                ReviewCount = row.ReviewCount,
+                IsFavorited = favoritedIds.Contains(row.Id)
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    internal sealed class OwnerApartmentRow
     {
         public Guid Id { get; init; }
         public string Name { get; init; } = string.Empty;
@@ -137,7 +155,7 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
         public string Country { get; init; } = string.Empty;
         public decimal PricePerNight { get; init; }
         public string Currency { get; init; } = string.Empty;
-        public string? PrimaryImageUrl { get; init; }
+        public string? PrimaryImageKey { get; init; }
         public double? Rating { get; init; }
         public int ReviewCount { get; init; }
         public int TotalCount { get; init; }

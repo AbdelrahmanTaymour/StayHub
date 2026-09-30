@@ -8,13 +8,13 @@ public sealed class ApartmentImage : Entity
     private ApartmentImage(
         Guid id,
         Guid apartmentId,
-        ApartmentImageUrl url,
+        ApartmentImageKey key,
         int displayOrder,
         bool isPrimary,
         DateTime createdOnUtc) : base(id)
     {
         ApartmentId = apartmentId;
-        Url = url;
+        Key = key;
         DisplayOrder = displayOrder;
         IsPrimary = isPrimary;
         CreatedOnUtc = createdOnUtc;
@@ -25,19 +25,19 @@ public sealed class ApartmentImage : Entity
     }
 
     public Guid ApartmentId { get; }
-    public ApartmentImageUrl Url { get; }
+    public ApartmentImageKey Key { get; }
     public int DisplayOrder { get; private set; }
     public bool IsPrimary { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
     public static ApartmentImage Create(
         Guid apartmentId,
-        ApartmentImageUrl url,
+        ApartmentImageKey key,
         int displayOrder,
         DateTime utcNow,
         bool isPrimary = false)
     {
-        var image = new ApartmentImage(Guid.CreateVersion7(), apartmentId, url, displayOrder, isPrimary, utcNow);
+        var image = new ApartmentImage(Guid.CreateVersion7(), apartmentId, key, displayOrder, isPrimary, utcNow);
 
         image.RaiseDomainEvent(new ApartmentImageAddedDomainEvent(image.Id, image.ApartmentId));
 
@@ -65,6 +65,6 @@ public sealed class ApartmentImage : Entity
 
     public void MarkForRemoval()
     {
-        RaiseDomainEvent(new ApartmentImageRemovedDomainEvent(Id, ApartmentId, Url));
+        RaiseDomainEvent(new ApartmentImageRemovedDomainEvent(Id, ApartmentId, Key));
     }
 }

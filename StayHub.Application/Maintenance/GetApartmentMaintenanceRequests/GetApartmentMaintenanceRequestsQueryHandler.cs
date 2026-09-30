@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Maintenance;
@@ -12,7 +13,8 @@ internal sealed class GetApartmentMaintenanceRequestsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IApartmentRepository apartmentRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetApartmentMaintenanceRequestsQuery,
         PagedResponse<MaintenanceRequestsResponse>>
 {
@@ -23,8 +25,10 @@ internal sealed class GetApartmentMaintenanceRequestsQueryHandler(
         var apartment = await apartmentRepository.GetByIdAsync(request.ApartmentId, cancellationToken);
 
         if (apartment is null)
+        {
             return Result
                 .Failure<PagedResponse<MaintenanceRequestsResponse>>(ApartmentErrors.NotFound);
+        }
 
         var isOwner = userContext.IsOwner(apartment.OwnerId);
         var isAdmin = userContext.IsAdmin;
@@ -62,7 +66,7 @@ internal sealed class GetApartmentMaintenanceRequestsQueryHandler(
                                mr.reported_by_user_id AS ReportedByUserId,
                                u.first_name AS ReporterFirstName,
                                u.last_name AS ReporterLastName,
-                               up.avatar_url AS ReporterAvatarUrl,
+                               up.avatar_key AS ReporterAvatarKey,
                                COUNT(*) OVER() AS TotalCount
                            FROM maintenance_requests mr
                            INNER JOIN users u ON u.id = mr.reported_by_user_id
@@ -99,19 +103,7 @@ internal sealed class GetApartmentMaintenanceRequestsQueryHandler(
             };
         }
 
-        var items = rows.Select(r => new MaintenanceRequestsResponse
-        {
-            Id = r.Id,
-            Title = r.Title,
-            Status = r.Status,
-            CreatedOnUtc = r.CreatedOnUtc,
-            ReportedByUserId = r.ReportedByUserId,
-            ReporterFirstName = r.ReporterFirstName,
-            ReporterLastName = r.ReporterLastName,
-            ReporterAvatarUrl = r.ReporterAvatarUrl,
-            IsReportedByOwner = r.ReportedByUserId == apartment.OwnerId
-        }).ToList();
-
+        var items = await ToMaintenanceRequestsResponsesAsync(rows, apartment.OwnerId, cancellationToken);
         var totalCount = rows[0].TotalCount;
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
@@ -125,11 +117,39 @@ internal sealed class GetApartmentMaintenanceRequestsQueryHandler(
         };
     }
 
+    private async Task<IReadOnlyList<MaintenanceRequestsResponse>> ToMaintenanceRequestsResponsesAsync(
+        IReadOnlyList<MaintenanceRequestRow> rows,
+        Guid ownerId,
+        CancellationToken cancellationToken)
+    {
+        var tasks = rows.Select(async r =>
+        {
+            var reporterAvatarUrl = string.IsNullOrWhiteSpace(r.ReporterAvatarKey)
+                ? null
+                : await fileStorageService.GeneratePresignedUrlAsync(r.ReporterAvatarKey, cancellationToken);
+
+            return new MaintenanceRequestsResponse
+            {
+                Id = r.Id,
+                Title = r.Title,
+                Status = r.Status,
+                CreatedOnUtc = r.CreatedOnUtc,
+                ReportedByUserId = r.ReportedByUserId,
+                ReporterFirstName = r.ReporterFirstName,
+                ReporterLastName = r.ReporterLastName,
+                ReporterAvatarUrl = reporterAvatarUrl,
+                IsReportedByOwner = r.ReportedByUserId == ownerId
+            };
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
     // Escapes LIKE wildcards so a user typing "%" or "_" searches for the literal character.
     private static string EscapeLike(string value) =>
         value.Replace("\\", @"\\").Replace("%", "\\%").Replace("_", "\\_");
 
-    private sealed class MaintenanceRequestRow
+    internal sealed class MaintenanceRequestRow
     {
         public Guid Id { get; init; }
         public string Title { get; init; } = string.Empty;
@@ -138,7 +158,7 @@ internal sealed class GetApartmentMaintenanceRequestsQueryHandler(
         public Guid ReportedByUserId { get; init; }
         public string ReporterFirstName { get; init; } = string.Empty;
         public string ReporterLastName { get; init; } = string.Empty;
-        public string? ReporterAvatarUrl { get; init; }
+        public string? ReporterAvatarKey { get; init; }
         public int TotalCount { get; init; }
     }
 }

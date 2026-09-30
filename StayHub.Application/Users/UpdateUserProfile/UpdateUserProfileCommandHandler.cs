@@ -22,7 +22,7 @@ internal sealed class UpdateUserProfileCommandHandler(
         if (profile is null) return Result.Failure(UserProfileErrors.NotFound);
 
         if (request.AvatarUrl is not null)
-            profile.UpdateAvatar(new AvatarUrl(request.AvatarUrl), dateTimeProvider.UtcNow);
+            profile.UpdateAvatar(new AvatarKey(request.AvatarUrl), dateTimeProvider.UtcNow);
 
         if (request.Bio is not null) profile.UpdateBio(new Bio(request.Bio), dateTimeProvider.UtcNow);
 

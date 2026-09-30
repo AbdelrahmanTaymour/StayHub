@@ -10,7 +10,7 @@ public class ApartmentImageRemovedDomainEventHandler(
     public Task Handle(ApartmentImageRemovedDomainEvent notification, CancellationToken cancellationToken)
     {
         backgroundJobScheduler.Enqueue<DeleteApartmentImageBlobJob>(job =>
-            job.ExecuteAsync(notification.Url, CancellationToken.None));
+            job.ExecuteAsync(notification.Key, CancellationToken.None));
 
         return Task.CompletedTask;
     }

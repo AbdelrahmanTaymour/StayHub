@@ -42,11 +42,12 @@ internal sealed class AddApartmentImageCommandHandler(
             request.FileContent,
             request.FileName,
             request.ContentType,
+            ImageCategory.ApartmentPhoto,
             cancellationToken);
 
         var image = ApartmentImage.Create(
             request.ApartmentId,
-            new ApartmentImageUrl(url),
+            new ApartmentImageKey(url),
             countExistingImages,
             dateTimeProvider.UtcNow,
             request.IsPrimary);

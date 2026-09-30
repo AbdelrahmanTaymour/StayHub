@@ -16,7 +16,7 @@ internal static class ApartmentData
 
     public static ApartmentImage CreateImage(Guid apartmentId, bool isPrimary = false) => ApartmentImage.Create(
         apartmentId,
-        new ApartmentImageUrl("existing-primary.jpg"),
+        new ApartmentImageKey("existing-primary.jpg"),
         displayOrder: 0,
         DateTime.UtcNow.AddMinutes(-5),
         isPrimary);

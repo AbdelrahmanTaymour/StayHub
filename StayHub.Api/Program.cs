@@ -24,7 +24,21 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     loggerConfig.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => { options.CustomSchemaIds(GetSchemaId); });
+
+static string GetSchemaId(Type type)
+{
+    if (!type.IsGenericType)
+    {
+        return type.FullName?.Replace("+", ".") ?? type.Name;
+    }
+
+    var genericTypeName = type.GetGenericTypeDefinition().Name;
+    var cleanGenericName = genericTypeName[..genericTypeName.IndexOf('`')];
+    var genericArguments = type.GetGenericArguments().Select(GetSchemaId);
+
+    return $"{cleanGenericName}Of{string.Join("And", genericArguments)}";
+}
 
 builder.Services.AddControllers();
 

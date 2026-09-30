@@ -2,6 +2,7 @@ using Dapper;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Data;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
 
@@ -9,7 +10,8 @@ namespace StayHub.Application.Bookings.GetConversationBookingDetails;
 
 internal sealed class GetConversationBookingDetailsQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
-    IUserContext userContext)
+    IUserContext userContext,
+    IFileStorageService fileStorageService)
     : IQueryHandler<GetConversationBookingDetailsQuery, ConversationBookingDetailsResponse>
 {
     public async Task<Result<ConversationBookingDetailsResponse>> Handle(
@@ -24,14 +26,14 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
                                b.status AS Status,
                                a.id AS ApartmentId,
                                a.name AS ApartmentName,
-                               img.url AS ApartmentImageUrl,
+                               img.key AS ApartmentImageKey,
                                a.address_state || ', ' || a.address_city || ' ' || a.address_zip_code AS ApartmentAddress,
                                b.duration_start AS CheckIn,
                                b.duration_end AS CheckOut,
                                b.total_price_amount AS TotalPriceAmount,
                                b.total_price_currency AS TotalPriceCurrency,
                                owner.first_name || ' ' || owner.last_name AS HostName,
-                               owner_profile.avatar_url AS HostAvatarUrl,
+                               owner_profile.avatar_key AS HostAvatarKey,
                                owner_profile.phone_number AS HostPhoneNumber
 
                            FROM conversations c
@@ -64,13 +66,30 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
             return Result.Failure<ConversationBookingDetailsResponse>(BookingErrors.NotFound);
         }
 
+        return await ToConversationBookingDetailsResponseAsync(row, cancellationToken);
+    }
+
+    internal async Task<ConversationBookingDetailsResponse> ToConversationBookingDetailsResponseAsync(
+        ReservationRow row,
+        CancellationToken cancellationToken)
+    {
+        var apartmentImageUrlTask = string.IsNullOrWhiteSpace(row.ApartmentImageKey)
+            ? Task.FromResult<string?>(null)
+            : fileStorageService.GeneratePresignedUrlAsync(row.ApartmentImageKey, cancellationToken)!;
+
+        var hostAvatarUrlTask = string.IsNullOrWhiteSpace(row.HostAvatarKey)
+            ? Task.FromResult<string?>(null)
+            : fileStorageService.GeneratePresignedUrlAsync(row.HostAvatarKey, cancellationToken)!;
+
+        await Task.WhenAll(apartmentImageUrlTask, hostAvatarUrlTask);
+
         return new ConversationBookingDetailsResponse
         {
             BookingId = row.BookingId,
             Status = row.Status,
             ApartmentId = row.ApartmentId,
             ApartmentName = row.ApartmentName,
-            ApartmentImageUrl = row.ApartmentImageUrl,
+            ApartmentImageUrl = await apartmentImageUrlTask,
             ApartmentAddress = row.ApartmentAddress,
             CheckIn = row.CheckIn,
             CheckOut = row.CheckOut,
@@ -78,25 +97,25 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
             TotalPriceAmount = row.TotalPriceAmount,
             TotalPriceCurrency = row.TotalPriceCurrency,
             HostName = row.HostName,
-            HostAvatarUrl = row.HostAvatarUrl,
+            HostAvatarUrl = await hostAvatarUrlTask,
             HostPhoneNumber = row.HostPhoneNumber
         };
     }
 
-    private sealed class ReservationRow
+    internal sealed class ReservationRow
     {
         public Guid BookingId { get; init; }
         public BookingStatus Status { get; init; }
         public Guid ApartmentId { get; init; }
         public string ApartmentName { get; init; } = string.Empty;
-        public string? ApartmentImageUrl { get; init; }
+        public string? ApartmentImageKey { get; init; }
         public string ApartmentAddress { get; init; } = string.Empty;
         public DateOnly CheckIn { get; init; }
         public DateOnly CheckOut { get; init; }
         public decimal TotalPriceAmount { get; init; }
         public string TotalPriceCurrency { get; init; } = string.Empty;
         public string HostName { get; init; } = string.Empty;
-        public string? HostAvatarUrl { get; init; }
+        public string? HostAvatarKey { get; init; }
         public string? HostPhoneNumber { get; init; }
     }
 }

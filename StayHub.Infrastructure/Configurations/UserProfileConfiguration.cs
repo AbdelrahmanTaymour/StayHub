@@ -12,9 +12,10 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
 
         builder.HasKey(profile => profile.Id);
 
-        builder.Property(profile => profile.AvatarUrl)
+        builder.Property(profile => profile.AvatarKey)
+            .HasColumnName("avatar_key")
             .HasMaxLength(2000)
-            .HasConversion(avatar => avatar.Url, value => new AvatarUrl(value));
+            .HasConversion(avatar => avatar.key, value => new AvatarKey(value));
 
         builder.Property(profile => profile.Bio)
             .HasMaxLength(1000)

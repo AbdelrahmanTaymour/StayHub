@@ -16,7 +16,7 @@ public sealed class UserProfile : Entity
     }
 
     public Guid UserId { get; private set; }
-    public AvatarUrl? AvatarUrl { get; private set; }
+    public AvatarKey? AvatarKey { get; private set; }
     public Bio? Bio { get; private set; }
     public PhoneNumber? PhoneNumber { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
@@ -29,9 +29,9 @@ public sealed class UserProfile : Entity
         return userProfile;
     }
 
-    public Result UpdateAvatar(AvatarUrl avatarUrl, DateTime utcNow)
+    public Result UpdateAvatar(AvatarKey avatarKey, DateTime utcNow)
     {
-        AvatarUrl = avatarUrl;
+        AvatarKey = avatarKey;
         UpdatedOnUtc = utcNow;
 
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(UserId));

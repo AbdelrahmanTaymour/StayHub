@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using StayHub.Infrastructure;
@@ -11,9 +12,11 @@ using StayHub.Infrastructure;
 namespace StayHub.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930165521_Rename_Apartment_Image_Url_Column_To_Key")]
+    partial class Rename_Apartment_Image_Url_Column_To_Key
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1044,10 +1047,10 @@ namespace StayHub.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("AvatarKey")
+                    b.Property<string>("AvatarUrl")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
-                        .HasColumnName("avatar_key");
+                        .HasColumnName("avatar_url");
 
                     b.Property<string>("Bio")
                         .HasMaxLength(1000)
