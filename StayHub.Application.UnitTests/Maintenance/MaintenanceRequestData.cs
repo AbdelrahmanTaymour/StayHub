@@ -17,7 +17,7 @@ internal static class MaintenanceRequestData
     public static MaintenanceRequest CreateAndStart(Guid apartmentId)
     {
         var request = Create(apartmentId);
-        request.Start();
+        request.Start(DateTime.UtcNow);
         return request;
     }
 

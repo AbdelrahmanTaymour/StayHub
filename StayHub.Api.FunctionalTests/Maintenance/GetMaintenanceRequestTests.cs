@@ -11,26 +11,13 @@ namespace StayHub.Api.FunctionalTests.Maintenance;
 
 public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory factory) : BaseFunctionalTest(factory)
 {
-    private async Task<(string OwnerToken, Guid ApartmentId, Guid RequestId)> ArrangeOpenRequestAsOwnerAsync()
-    {
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
-        AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
-
-        var createResponse = await HttpClient.PostAsJsonAsync(
-            MaintenanceRoutes.CreateRequest(apartmentId), MaintenanceTestData.ValidCreateRequest());
-        createResponse.EnsureSuccessStatusCode();
-        var requestId = await createResponse.Content.ReadFromJsonAsync<Guid>();
-
-        return (ownerToken, apartmentId, requestId);
-    }
-
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnOk_WhenCallerIsOwner()
+    public async Task GetById_ShouldReturnOk_WhenCallerIsOwner()
     {
         // Arrange
-        var (ownerToken, _, requestId) = await ArrangeOpenRequestAsOwnerAsync();
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         // Act
         var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
@@ -40,10 +27,12 @@ public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory facto
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnOk_WhenCallerIsAdmin()
+    public async Task GetById_ShouldReturnOk_WhenCallerIsAdmin()
     {
         // Arrange
-        var (_, _, requestId) = await ArrangeOpenRequestAsOwnerAsync();
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         var (adminToken, _, adminUserId) = await RegisterAndAuthenticateAsync();
         await Factory.PromoteToAdminAsync(adminUserId);
@@ -57,10 +46,12 @@ public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory facto
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnOk_WhenCallerIsActiveStaff()
+    public async Task GetById_ShouldReturnOk_WhenCallerIsActiveStaff()
     {
         // Arrange
-        var (ownerToken, apartmentId, requestId) = await ArrangeOpenRequestAsOwnerAsync();
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var (apartmentId, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
 
         var (staffToken, _, staffUserId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
@@ -79,7 +70,27 @@ public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory facto
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnOk_WhenCallerIsTheReportingGuest()
+    public async Task GetById_ShouldReturnForbidden_WhenCallerIsUnrelatedUser()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var (_, requestId) = await MaintenanceTestFixtures.CreateOpenRequestAsOwnerAsync(HttpClient);
+
+        var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(otherToken);
+
+        // Act
+        var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("MaintenanceRequest.NotAuthorized");
+    }
+
+    [Fact]
+    public async Task GetById_ShouldReturnForbidden_WhenCallerIsTheReportingGuestButNotStaff()
     {
         // Arrange
         var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -100,29 +111,11 @@ public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory facto
         var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnForbidden_WhenCallerIsUnrelatedUser()
-    {
-        // Arrange
-        var (_, _, requestId) = await ArrangeOpenRequestAsOwnerAsync();
-
-        var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
-        AuthenticateAs(otherToken);
-
-        // Act
-        var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
-
-        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("MaintenanceRequest.NotAuthorized");
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnNotFound_WhenRequestDoesNotExist()
+    public async Task GetById_ShouldReturnNotFound_WhenRequestDoesNotExist()
     {
         // Arrange
         var (accessToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -136,23 +129,33 @@ public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory facto
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
+    public async Task GetById_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
-        // Arrange
-        var requestId = Guid.NewGuid();
-
         // Act
-        var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
+        var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(Guid.NewGuid()));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnExpectedShape_WhenRequestExists()
+    public async Task GetById_ShouldReturnExpectedShape_IncludingReporterContactInfoAndAssignedToUserId()
     {
         // Arrange
-        var (ownerToken, apartmentId, requestId) = await ArrangeOpenRequestAsOwnerAsync();
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (guestToken, _, reporterUserId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var reserveResponse = await HttpClient.PostAsJsonAsync(
+            BookingRoutes.BaseRoute, BookingTestData.ValidReserveRequest(apartmentId));
+        reserveResponse.EnsureSuccessStatusCode();
+        var createResponse = await HttpClient.PostAsJsonAsync(
+            MaintenanceRoutes.CreateRequest(apartmentId), MaintenanceTestData.ValidCreateRequest(title: "Broken AC"));
+        createResponse.EnsureSuccessStatusCode();
+        var requestId = await createResponse.Content.ReadFromJsonAsync<Guid>();
+
         AuthenticateAs(ownerToken);
 
         // Act
@@ -160,31 +163,18 @@ public sealed class GetMaintenanceRequestTests(FunctionalTestWebAppFactory facto
         response.EnsureSuccessStatusCode();
 
         // Assert
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        body.GetProperty("id").GetGuid().Should().Be(requestId);
-        body.GetProperty("apartmentId").GetGuid().Should().Be(apartmentId);
-        body.GetProperty("status").GetString().Should().Be("Open");
-        body.TryGetProperty("description", out var description).Should().BeTrue();
-        description.GetString().Should().NotBeNullOrWhiteSpace();
-        body.TryGetProperty("reporterEmail", out var reporterEmail).Should().BeTrue();
-        reporterEmail.GetString().Should().NotBeNullOrWhiteSpace();
-    }
-
-    [Fact]
-    public async Task GetMaintenanceRequest_ShouldReflectStatusTransitions()
-    {
-        // Arrange
-        var (ownerToken, _, requestId) = await ArrangeOpenRequestAsOwnerAsync();
-        AuthenticateAs(ownerToken);
-        var startResponse = await HttpClient.PostAsync(MaintenanceRoutes.Start(requestId), null);
-        startResponse.EnsureSuccessStatusCode();
-
-        // Act
-        var response = await HttpClient.GetAsync(MaintenanceRoutes.ById(requestId));
-        response.EnsureSuccessStatusCode();
-
-        // Assert
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        body.GetProperty("status").GetString().Should().Be("InProgress");
+        var item = await response.Content.ReadFromJsonAsync<JsonElement>();
+        item.GetProperty("id").GetGuid().Should().Be(requestId);
+        item.GetProperty("title").GetString().Should().Be("Broken AC");
+        item.GetProperty("status").GetString().Should().Be("Open");
+        item.GetProperty("reportedByUserId").GetGuid().Should().Be(reporterUserId);
+        item.TryGetProperty("reporterFirstName", out _).Should().BeTrue();
+        item.TryGetProperty("reporterLastName", out _).Should().BeTrue();
+        item.TryGetProperty("reporterEmail", out _).Should().BeTrue();
+        item.TryGetProperty("startOnUtc", out var startOnUtc).Should().BeTrue();
+        startOnUtc.ValueKind.Should().Be(JsonValueKind.Null);
+        item.TryGetProperty("assignedToUserId", out var assignedToUserId).Should().BeTrue();
+        assignedToUserId.ValueKind.Should().Be(JsonValueKind.Null);
+        item.TryGetProperty("description", out _).Should().BeTrue();
     }
 }

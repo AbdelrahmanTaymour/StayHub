@@ -10,8 +10,10 @@ internal static class MaintenanceRoutes
             : $"{BaseApi}/{apartmentId}/maintenance-requests?{query}";
 
     public static string ById(Guid requestId) => $"{BaseApi}/maintenance-requests/{requestId}";
+    public static string Guest(Guid requestId) => $"{BaseApi}/maintenance-requests/{requestId}/guest";
     public static string CreateRequest(Guid apartmentId) => $"{BaseApi}/{apartmentId}/maintenance-requests";
     public static string Start(Guid requestId) => $"{BaseApi}/maintenance-requests/{requestId}/start";
     public static string Resolve(Guid requestId) => $"{BaseApi}/maintenance-requests/{requestId}/resolve";
     public static string Close(Guid requestId) => $"{BaseApi}/maintenance-requests/{requestId}/close";
+    public static string Assign(Guid requestId) => $"{BaseApi}/maintenance-requests/{requestId}/assign";
 }

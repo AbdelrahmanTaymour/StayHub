@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.BackgroundJobs;
 using StayHub.Application.Abstractions.Caching;
@@ -188,6 +189,8 @@ public static class DependencyInjection
             throw new ArgumentNullException(nameof(configuration));
 
         services.AddStackExchangeRedisCache(options => options.Configuration = connectionString);
+
+        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(connectionString));
 
         services.AddSingleton<ICacheService, CacheService>();
     }

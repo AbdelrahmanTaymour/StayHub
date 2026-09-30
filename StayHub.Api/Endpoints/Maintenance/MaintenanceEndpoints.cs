@@ -1,9 +1,11 @@
 using MediatR;
 using StayHub.Api.Extensions;
+using StayHub.Application.Maintenance.AssignMaintenanceRequestStaff;
 using StayHub.Application.Maintenance.CloseMaintenanceRequest;
 using StayHub.Application.Maintenance.CreateMaintenanceRequest;
 using StayHub.Application.Maintenance.GetApartmentMaintenanceRequests;
 using StayHub.Application.Maintenance.GetMaintenanceRequest;
+using StayHub.Application.Maintenance.GetMaintenanceRequestForGuest;
 using StayHub.Application.Maintenance.ResolveMaintenanceRequest;
 using StayHub.Application.Maintenance.StartMaintenanceRequest;
 using StayHub.Domain.Maintenance;
@@ -26,6 +28,12 @@ public static class MaintenanceEndpoints
             .HasPermission(Permissions.MaintenanceManage)
             .WithName(nameof(GetMaintenanceRequest))
             .Produces<MaintenanceRequestResponse>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("maintenance-requests/{requestId:guid}/guest", GetMaintenanceRequestForGuest)
+            .WithName(nameof(GetMaintenanceRequestForGuest))
+            .Produces<GuestMaintenanceRequestResponse>()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -58,6 +66,14 @@ public static class MaintenanceEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        group.MapPost("maintenance-requests/{requestId:guid}/assign", AssignMaintenanceRequestStaff)
+            .HasPermission(Permissions.MaintenanceManage)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         return builder;
     }
 
@@ -83,6 +99,16 @@ public static class MaintenanceEndpoints
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetMaintenanceRequestQuery(requestId), cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GetMaintenanceRequestForGuest(
+        Guid requestId,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetMaintenanceRequestForGuestQuery(requestId), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
@@ -134,4 +160,19 @@ public static class MaintenanceEndpoints
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
     }
+
+    private static async Task<IResult> AssignMaintenanceRequestStaff(
+        Guid requestId,
+        AssignMaintenanceRequestStaffRequest request,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var command = new AssignMaintenanceRequestStaffCommand(requestId, request.StaffUserId);
+
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private sealed record AssignMaintenanceRequestStaffRequest(Guid StaffUserId);
 }

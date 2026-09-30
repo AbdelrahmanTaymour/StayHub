@@ -32,13 +32,12 @@ internal sealed class GetMaintenanceRequestQueryHandler(
 
         var isOwner = userContext.IsOwner(apartment.OwnerId);
         var isAdmin = userContext.IsAdmin;
-        var isReporter = maintenanceRequest.ReportedByUserId == userContext.UserId;
         var isActiveStaff = !isOwner && await staffAssignmentRepository.GetActiveAsync(
             apartment.Id,
             userContext.UserId,
             cancellationToken) is not null;
 
-        if (!isOwner && !isAdmin && !isReporter && !isActiveStaff)
+        if (!isOwner && !isAdmin && !isActiveStaff)
         {
             return Result.Failure<MaintenanceRequestResponse>(MaintenanceRequestErrors.NotAuthorized);
         }
@@ -55,6 +54,7 @@ internal sealed class GetMaintenanceRequestQueryHandler(
                                mr.description AS Description,
                                mr.status AS Status,
                                mr.created_on_utc AS CreatedOnUtc,
+                               mr.start_on_utc AS StartOnUtc,
                                mr.resolved_on_utc AS ResolvedOnUtc,
                                mr.closed_on_utc AS ClosedOnUtc,
                                mr.reported_by_user_id AS ReportedByUserId,
@@ -62,7 +62,8 @@ internal sealed class GetMaintenanceRequestQueryHandler(
                                u.last_name AS ReporterLastName,
                                u.email AS ReporterEmail,
                                up.phone_number AS ReporterPhoneNumber,
-                               up.avatar_url AS ReporterAvatarUrl
+                               up.avatar_url AS ReporterAvatarUrl,
+                               mr.assigned_to_user_id AS AssignedToUserId
                            FROM maintenance_requests mr
                            INNER JOIN apartments a ON a.id = mr.apartment_id
                            INNER JOIN users u ON u.id = mr.reported_by_user_id

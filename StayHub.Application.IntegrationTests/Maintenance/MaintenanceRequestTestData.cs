@@ -36,7 +36,7 @@ internal static class MaintenanceRequestTestData
             title,
             createdOnUtc);
 
-        request.Start();
+        request.Start(DateTime.UtcNow);
 
         return request;
     }

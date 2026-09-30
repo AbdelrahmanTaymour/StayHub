@@ -46,6 +46,8 @@ public class GetMaintenanceRequestTests(IntegrationTestWebAppFactory factory) : 
         result.Value.ReporterFirstName.Should().Be(reporter.FirstName.Value);
         result.Value.ReporterLastName.Should().Be(reporter.LastName.Value);
         result.Value.ReporterEmail.Should().Be(reporter.Email.Value);
+        result.Value.StartOnUtc.Should().BeNull();
+        result.Value.AssignedToUserId.Should().BeNull();
     }
 
     [Fact]
@@ -65,7 +67,7 @@ public class GetMaintenanceRequestTests(IntegrationTestWebAppFactory factory) : 
     }
 
     [Fact]
-    public async Task GetMaintenanceRequest_ShouldReturnNotAuthorized_WhenCallerIsNotOwnerAdminReporterOrActiveStaff()
+    public async Task GetMaintenanceRequest_ShouldReturnNotAuthorized_WhenCallerIsNotOwnerAdminOrActiveStaff()
     {
         // Arrange
         var owner = UserTestData.CreateUser();
@@ -96,6 +98,33 @@ public class GetMaintenanceRequestTests(IntegrationTestWebAppFactory factory) : 
     }
 
     [Fact]
+    public async Task GetMaintenanceRequest_ShouldReturnNotAuthorized_WhenCallerIsReporterButNotStaff()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var reporter = UserTestData.CreateUser();
+
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+
+        DbContext.AddRange(owner, reporter, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var maintenanceRequest = MaintenanceRequestTestData.Create(apartment.Id, reporter.Id);
+
+        DbContext.Add(maintenanceRequest);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(reporter.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetMaintenanceRequestQuery(maintenanceRequest.Id));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(MaintenanceRequestErrors.NotAuthorized);
+    }
+
+    [Fact]
     public async Task GetMaintenanceRequest_ShouldSucceed_WhenCallerIsAdmin()
     {
         // Arrange
@@ -113,33 +142,6 @@ public class GetMaintenanceRequestTests(IntegrationTestWebAppFactory factory) : 
         await DbContext.SaveChangesAsync();
 
         SetCurrentUser(Guid.CreateVersion7(), Role.Admin.Name);
-
-        // Act
-        var result = await Sender.Send(new GetMaintenanceRequestQuery(maintenanceRequest.Id));
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Id.Should().Be(maintenanceRequest.Id);
-    }
-
-    [Fact]
-    public async Task GetMaintenanceRequest_ShouldSucceed_WhenCallerIsReporter()
-    {
-        // Arrange
-        var owner = UserTestData.CreateUser();
-        var reporter = UserTestData.CreateUser();
-
-        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
-
-        DbContext.AddRange(owner, reporter, apartment);
-        await DbContext.SaveChangesAsync();
-
-        var maintenanceRequest = MaintenanceRequestTestData.Create(apartment.Id, reporter.Id);
-
-        DbContext.Add(maintenanceRequest);
-        await DbContext.SaveChangesAsync();
-
-        SetCurrentUser(reporter.Id, Role.Guest.Name);
 
         // Act
         var result = await Sender.Send(new GetMaintenanceRequestQuery(maintenanceRequest.Id));
@@ -176,5 +178,62 @@ public class GetMaintenanceRequestTests(IntegrationTestWebAppFactory factory) : 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Id.Should().Be(maintenanceRequest.Id);
+    }
+
+    [Fact]
+    public async Task GetMaintenanceRequest_ShouldReflectStartOnUtc_AfterTicketHasBeenStarted()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var reporter = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+
+        DbContext.AddRange(owner, reporter, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var maintenanceRequest = MaintenanceRequestTestData.Create(apartment.Id, reporter.Id);
+        var startedAt = DateTime.UtcNow;
+        maintenanceRequest.Start(startedAt);
+
+        DbContext.Add(maintenanceRequest);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetMaintenanceRequestQuery(maintenanceRequest.Id));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(MaintenanceRequestStatus.InProgress);
+        result.Value.StartOnUtc.Should().Be(startedAt);
+    }
+
+    [Fact]
+    public async Task GetMaintenanceRequest_ShouldReflectAssignedToUserId_AfterStaffHasBeenAssigned()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var reporter = UserTestData.CreateUser();
+        var staffUser = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+
+        DbContext.AddRange(owner, reporter, staffUser, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var maintenanceRequest = MaintenanceRequestTestData.Create(apartment.Id, reporter.Id);
+        maintenanceRequest.AssignStaff(staffUser.Id, DateTime.UtcNow);
+
+        DbContext.Add(maintenanceRequest);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetMaintenanceRequestQuery(maintenanceRequest.Id));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.AssignedToUserId.Should().Be(staffUser.Id);
     }
 }

@@ -5,17 +5,18 @@ using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Maintenance;
 
-namespace StayHub.Application.Maintenance.StartMaintenanceRequest;
+namespace StayHub.Application.Maintenance.AssignMaintenanceRequestStaff;
 
-internal sealed class StartMaintenanceRequestCommandHandler(
+internal sealed class AssignMaintenanceRequestStaffCommandHandler(
     IMaintenanceRequestRepository maintenanceRequestRepository,
     IApartmentRepository apartmentRepository,
     IApartmentStaffAssignmentRepository staffAssignmentRepository,
     IUserContext userContext,
-    IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider) : ICommandHandler<StartMaintenanceRequestCommand>
+    IDateTimeProvider dateTimeProvider,
+    IUnitOfWork unitOfWork)
+    : ICommandHandler<AssignMaintenanceRequestStaffCommand>
 {
-    public async Task<Result> Handle(StartMaintenanceRequestCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(AssignMaintenanceRequestStaffCommand request, CancellationToken cancellationToken)
     {
         var maintenanceRequest = await maintenanceRequestRepository.GetByIdAsync(
             request.MaintenanceRequestId,
@@ -29,17 +30,19 @@ internal sealed class StartMaintenanceRequestCommandHandler(
 
         var isOwner = userContext.IsOwner(apartment.OwnerId);
         var isAdmin = userContext.IsAdmin;
-        var isActiveStaff = !isOwner && await staffAssignmentRepository.GetActiveAsync(
-            apartment.Id,
-            userContext.UserId,
-            cancellationToken) is not null;
 
-        if (!isOwner && !isAdmin && !isActiveStaff)
-        {
+        if (!isOwner && !isAdmin)
             return Result.Failure(MaintenanceRequestErrors.NotAuthorized);
-        }
 
-        var result = maintenanceRequest.Start(dateTimeProvider.UtcNow);
+        var staffAssignment = await staffAssignmentRepository.GetActiveAsync(
+            maintenanceRequest.ApartmentId,
+            request.StaffUserId,
+            cancellationToken);
+
+        if (staffAssignment is null)
+            return Result.Failure(MaintenanceRequestErrors.AssigneeIsNotActiveStaff);
+
+        var result = maintenanceRequest.AssignStaff(request.StaffUserId, dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
 

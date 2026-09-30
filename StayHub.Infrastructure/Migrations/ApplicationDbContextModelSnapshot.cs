@@ -427,6 +427,14 @@ namespace StayHub.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("apartment_id");
 
+                    b.Property<DateTime?>("AssignedToOnUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_to_on_utc");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_to_user_id");
+
                     b.Property<DateTime?>("ClosedOnUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("closed_on_utc");
@@ -449,6 +457,10 @@ namespace StayHub.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_on_utc");
 
+                    b.Property<DateTime?>("StartOnUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_on_utc");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -467,6 +479,9 @@ namespace StayHub.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_maintenance_requests");
+
+                    b.HasIndex("AssignedToUserId")
+                        .HasDatabaseName("ix_maintenance_requests_assigned_to_user_id");
 
                     b.HasIndex("ReportedByUserId")
                         .HasDatabaseName("ix_maintenance_requests_reported_by_user_id");
@@ -1534,6 +1549,12 @@ namespace StayHub.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_maintenance_requests_apartments_apartment_id");
+
+                    b.HasOne("StayHub.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_maintenance_requests_user_assigned_to_user_id");
 
                     b.HasOne("StayHub.Domain.Users.User", null)
                         .WithMany()
