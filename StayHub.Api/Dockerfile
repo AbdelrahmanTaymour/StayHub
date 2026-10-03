@@ -10,27 +10,26 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copy project files first to preserve restore-layer caching
-COPY ["StayHub.Api/*.csproj", "StayHub.Api/"]
-COPY ["StayHub.Application/*.csproj", "StayHub.Application/"]
-COPY ["StayHub.Domain/*.csproj", "StayHub.Domain/"]
-COPY ["StayHub.Infrastructure/*.csproj", "StayHub.Infrastructure/"]
+# Copy project files from correct relative path under StayHub
+COPY StayHub/StayHub.Api/StayHub.Api.csproj StayHub/StayHub.Api/
+COPY StayHub/StayHub.Application/StayHub.Application.csproj StayHub/StayHub.Application/
+COPY StayHub/StayHub.Domain/StayHub.Domain.csproj StayHub/StayHub.Domain/
+COPY StayHub/StayHub.Infrastructure/StayHub.Infrastructure.csproj StayHub/StayHub.Infrastructure/
 
 # Restore dependencies
-RUN dotnet restore "StayHub.Api/StayHub.Api.csproj"
+RUN dotnet restore StayHub/StayHub.Api/StayHub.Api.csproj
 
 # Copy remaining source code
 COPY . .
 
 # Build and publish
-WORKDIR /src/StayHub.Api
+WORKDIR /src/StayHub/StayHub.Api
 RUN --mount=type=secret,id=sixlabors_license \
     SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" \
-    dotnet publish "./StayHub.Api.csproj" \
+    dotnet publish StayHub.Api.csproj \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
-    /p:UseAppHost=false \
-    --no-restore
+    /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

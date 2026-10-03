@@ -24,7 +24,23 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     loggerConfig.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options => { options.CustomSchemaIds(GetSchemaId); });
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.CustomSchemaIds(GetSchemaId);
+    options.SchemaFilter<EnumSchemaFilter>();
+});
 
 static string GetSchemaId(Type type)
 {
@@ -40,12 +56,23 @@ static string GetSchemaId(Type type)
     return $"{cleanGenericName}Of{string.Join("And", genericArguments)}";
 }
 
-builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "https://localhost:7232", "http://localhost:5236")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.Converters.Add(
-        new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 builder.Services.AddApplication(builder.Configuration);
@@ -56,6 +83,9 @@ builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 var app = builder.Build();
 
 app.UseCustomExceptionHandler();
+
+app.UseRouting();
+app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
 {
@@ -110,7 +140,6 @@ routeGroupBuilder.MapFavoriteEndpoints();
 routeGroupBuilder.MapNotificationEndpoints();
 routeGroupBuilder.MapMaintenanceEndpoints();
 routeGroupBuilder.MapUserEndpoints();
-
 
 app.MapHealthChecks("health", new HealthCheckOptions
 {
