@@ -11,10 +11,10 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy project files from correct relative path under StayHub
-COPY StayHub/StayHub.Api/StayHub.Api.csproj StayHub/StayHub.Api/
-COPY StayHub/StayHub.Application/StayHub.Application.csproj StayHub/StayHub.Application/
-COPY StayHub/StayHub.Domain/StayHub.Domain.csproj StayHub/StayHub.Domain/
-COPY StayHub/StayHub.Infrastructure/StayHub.Infrastructure.csproj StayHub/StayHub.Infrastructure/
+COPY ["StayHub.Api/*.csproj", "StayHub.Api/"]
+COPY ["StayHub.Application/*.csproj", "StayHub.Application/"]
+COPY ["StayHub.Domain/*.csproj", "StayHub.Domain/"]
+COPY ["StayHub.Infrastructure/*.csproj", "StayHub.Infrastructure/"]
 
 # Restore dependencies
 RUN dotnet restore StayHub/StayHub.Api/StayHub.Api.csproj
