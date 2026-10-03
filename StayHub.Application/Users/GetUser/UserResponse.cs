@@ -1,6 +1,6 @@
 namespace StayHub.Application.Users.GetUser;
 
-public sealed class UserResponse
+public sealed record UserResponse
 {
     public Guid Id { get; init; }
 

@@ -5,6 +5,7 @@ public sealed record SearchApartmentsResponse
     public Guid Id { get; init; }
     public string Name { get; init; }
     public string City { get; init; }
+    public string Country { get; init; }
     public decimal PricePerNight { get; init; }
     public decimal? TotalPrice { get; init; }
     public string Currency { get; init; }

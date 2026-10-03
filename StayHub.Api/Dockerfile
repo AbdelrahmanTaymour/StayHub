@@ -24,7 +24,8 @@ COPY . .
 
 # Build and publish
 WORKDIR /src/StayHub.Api
-RUN --mount=type=secret,id=sixlabors_license \
+RUN --mount=type=secret,id=sixlabors_license,required=true \
+    test -s /run/secrets/sixlabors_license && \
     SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" \
     dotnet publish "./StayHub.Api.csproj" \
     -c $BUILD_CONFIGURATION \

@@ -54,6 +54,7 @@ internal sealed class SearchApartmentsQueryHandler(
                                         a.id AS Id,
                                         a.name AS Name,
                                         a.address_city AS City,
+                                        a.address_country AS Country,
                                         a.price_amount AS PriceAmount,
                                         a.price_currency AS Currency,
                                         a.cleaning_fee_amount AS CleaningFeeAmount,
@@ -236,6 +237,7 @@ internal sealed class SearchApartmentsQueryHandler(
                 Id = row.Id,
                 Name = row.Name,
                 City = row.City,
+                Country = row.Country,
                 PricePerNight = row.PriceAmount,
                 TotalPrice = totalPrice,
                 Currency = row.Currency,
@@ -274,6 +276,7 @@ internal sealed class SearchApartmentsQueryHandler(
         public Guid Id { get; init; }
         public string Name { get; init; } = string.Empty;
         public string City { get; init; } = string.Empty;
+        public string Country { get; init; } = string.Empty;
         public decimal PriceAmount { get; init; }
         public string Currency { get; init; } = string.Empty;
         public decimal CleaningFeeAmount { get; init; }

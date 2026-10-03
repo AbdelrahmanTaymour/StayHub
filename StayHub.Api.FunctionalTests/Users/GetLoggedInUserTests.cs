@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using StayHub.Api.FunctionalTests.Infrastructure;
-using StayHub.Application.Users.GetUser;
+using StayHub.Application.Users.GetLoggedInUser;
 
 namespace StayHub.Api.FunctionalTests.Users;
 
@@ -21,9 +21,12 @@ public class GetLoggedInUserTests(FunctionalTestWebAppFactory factory) : BaseFun
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var body = await response.Content.ReadFromJsonAsync<UserResponse>();
+        var body = await response.Content.ReadFromJsonAsync<LoggedInUserResponse>();
+
+        body.Should().NotBeNull();
         body!.Id.Should().Be(userId);
         body.Email.Should().Be(request.Email);
+        body.Role.Should().Be("Guest");
     }
 
     [Fact]

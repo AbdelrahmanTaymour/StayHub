@@ -24,7 +24,7 @@ public static class UserEndpoints
 
         group.MapGet("me", GetLoggedInUser)
             .HasPermission(Permissions.UserRead)
-            .Produces<UserResponse>()
+            .Produces<LoggedInUserResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
