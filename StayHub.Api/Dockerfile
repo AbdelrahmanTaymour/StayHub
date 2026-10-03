@@ -23,13 +23,15 @@ RUN dotnet restore "StayHub.Api/StayHub.Api.csproj"
 COPY . .
 
 # Build and publish
-WORKDIR /src/StayHub/StayHub.Api
-RUN --mount=type=secret,id=sixlabors_license \
+WORKDIR /src/StayHub.Api
+RUN --mount=type=secret,id=sixlabors_license,required=true \
+    test -s /run/secrets/sixlabors_license && \
     SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" \
-    dotnet publish StayHub.Api.csproj \
+    dotnet publish "./StayHub.Api.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
-    /p:UseAppHost=false
+    /p:UseAppHost=false \
+    --no-restore
 
 FROM base AS final
 WORKDIR /app
