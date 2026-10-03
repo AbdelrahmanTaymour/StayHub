@@ -10,14 +10,14 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copy project files from correct relative path under StayHub
+# Copy project files first to preserve restore-layer caching
 COPY ["StayHub.Api/*.csproj", "StayHub.Api/"]
 COPY ["StayHub.Application/*.csproj", "StayHub.Application/"]
 COPY ["StayHub.Domain/*.csproj", "StayHub.Domain/"]
 COPY ["StayHub.Infrastructure/*.csproj", "StayHub.Infrastructure/"]
 
 # Restore dependencies
-RUN dotnet restore StayHub/StayHub.Api/StayHub.Api.csproj
+RUN dotnet restore "StayHub.Api/StayHub.Api.csproj"
 
 # Copy remaining source code
 COPY . .
