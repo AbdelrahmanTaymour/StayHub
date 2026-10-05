@@ -8,4 +8,6 @@ internal static class FavoriteRoutes
         string.IsNullOrEmpty(query) ? BaseRoute : $"{BaseRoute}?{query}";
 
     public static string ById(Guid apartmentId) => $"{BaseRoute}/{apartmentId}";
+
+    public static string Add(Guid apartmentId) => $"{BaseRoute}/{apartmentId}";
 }

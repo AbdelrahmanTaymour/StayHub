@@ -101,7 +101,7 @@ public static class ApartmentEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
-        group.Map("{apartmentId:guid}/pricing", GetPricing)
+        group.MapGet("{apartmentId:guid}/pricing", GetPricing)
             .AllowAnonymous()
             .Produces<ApartmentPricingResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)

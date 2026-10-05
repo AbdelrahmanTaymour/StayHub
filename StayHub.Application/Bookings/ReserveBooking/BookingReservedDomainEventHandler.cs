@@ -24,6 +24,6 @@ public class BookingReservedDomainEventHandler(
         await emailService.SendAsync(
             user.Email,
             "Booking reserved!",
-            "You have minutes to confirm your booking.");
+            "Wait for the owner to confirm your booking.");
     }
 }
