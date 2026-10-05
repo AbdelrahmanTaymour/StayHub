@@ -1,10 +1,5 @@
-using StayHub.Application.Abstractions.Caching;
+using StayHub.Application.Abstractions.Messaging;
 
 namespace StayHub.Application.Apartments.GetApartment;
 
-public sealed record GetApartmentQuery(Guid ApartmentId) : ICachedQuery<ApartmentResponse>
-{
-    public string CacheKey => CacheKeys.Apartment(ApartmentId);
-
-    public TimeSpan? Expiration => TimeSpan.FromMinutes(5);
-}
+public sealed record GetApartmentQuery(Guid ApartmentId) : IQuery<ApartmentResponse>;

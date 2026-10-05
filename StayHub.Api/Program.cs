@@ -111,7 +111,11 @@ if (app.Environment.IsDevelopment())
     //app.SeedData();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 
 app.UseRequestContextLogging();
 

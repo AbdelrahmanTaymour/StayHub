@@ -272,4 +272,119 @@ public class GetApartmentTests(IntegrationTestWebAppFactory factory) : BaseInteg
         result.IsSuccess.Should().BeTrue();
         result.Value.IsFavorited.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task GetApartment_ShouldReturnNotFound_WhenInactiveApartmentIsCachedAndRequestedAnonymously()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Hidden Apartment");
+        apartment.Deactivate();
+
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        // The owner loads the inactive apartment, which populates the shared cache entry.
+        UserContext.UserId = owner.Id;
+        UserContext.IdentityId = owner.IdentityId;
+        UserContext.IsAuthenticated = true;
+
+        var ownerResult = await Sender.Send(new GetApartmentQuery(apartment.Id));
+        ownerResult.IsSuccess.Should().BeTrue();
+
+        // An anonymous caller requests the same apartment. It must not be served from the cache.
+        UserContext.UserId = Guid.Empty;
+        UserContext.IdentityId = string.Empty;
+        UserContext.Roles = [];
+        UserContext.IsAuthenticated = false;
+
+        // Act
+        var anonymousResult = await Sender.Send(new GetApartmentQuery(apartment.Id));
+
+        // Assert
+        anonymousResult.IsFailure.Should().BeTrue();
+        anonymousResult.Error.Should().Be(ApartmentErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task GetApartment_ShouldReturnNotFound_WhenInactiveApartmentWasCachedForOwner()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id, name: "Hidden Apartment");
+        apartment.Deactivate();
+
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        // The owner loads the inactive apartment. This populates the shared cache entry.
+        UserContext.UserId = owner.Id;
+        UserContext.IsAuthenticated = true;
+
+        var ownerResult = await Sender.Send(new GetApartmentQuery(apartment.Id));
+        ownerResult.IsSuccess.Should().BeTrue();
+
+        // An anonymous caller requests the same apartment and must not receive it from the cache.
+        UserContext.UserId = Guid.Empty;
+        UserContext.IsAuthenticated = false;
+
+        // Act
+        var anonymousResult = await Sender.Send(new GetApartmentQuery(apartment.Id));
+
+        // Assert
+        anonymousResult.IsFailure.Should().BeTrue();
+        anonymousResult.Error.Should().Be(ApartmentErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task GetApartment_ShouldReturnInactiveApartment_WhenCallerIsAdmin()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        apartment.Deactivate();
+
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        UserContext.UserId = Guid.NewGuid();
+        UserContext.IsAuthenticated = true;
+        UserContext.Roles = [Role.Admin.Name];
+
+        // Act
+        var result = await Sender.Send(new GetApartmentQuery(apartment.Id));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be(apartment.Id);
+    }
+
+    [Fact]
+    public async Task GetApartment_ShouldReturnIsFavoritedFalse_ForUserWhoDidNotFavorite()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+        var favoriter = UserTestData.CreateUser();
+
+        DbContext.AddRange(owner, apartment, favoriter);
+        await DbContext.SaveChangesAsync();
+
+        // Favorite as one user, which populates the shared cache entry.
+        UserContext.UserId = favoriter.Id;
+        UserContext.IsAuthenticated = true;
+        DbContext.Add(FavoriteApartment.Create(favoriter.Id, apartment.Id, DateTime.UtcNow));
+        await DbContext.SaveChangesAsync();
+        await Sender.Send(new GetApartmentQuery(apartment.Id));
+
+        // A different user gets the same cached entry and must see false.
+        UserContext.UserId = Guid.NewGuid();
+
+        // Act
+        var result = await Sender.Send(new GetApartmentQuery(apartment.Id));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.IsFavorited.Should().BeFalse();
+    }
 }
