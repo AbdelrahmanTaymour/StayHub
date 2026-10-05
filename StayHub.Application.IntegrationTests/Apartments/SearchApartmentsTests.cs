@@ -246,4 +246,61 @@ public class SearchApartmentsTests(IntegrationTestWebAppFactory factory) : BaseI
         result.Value.Page.Should().Be(2);
         result.Value.PageSize.Should().Be(2);
     }
+
+    [Fact]
+    public async Task CachedSearchApartments_ShouldReturnSharedDataWithoutFavoriteState()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(
+            ownerId: owner.Id,
+            name: "Shared Data Apartment",
+            city: "SharedDataCity",
+            priceAmount: 150m);
+
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        var query = new CachedSearchApartmentsQuery(
+            City: "SharedDataCity", MinPrice: null, MaxPrice: null, Start: null, End: null, Page: 1, PageSize: 10);
+
+        // Act
+        var result = await Sender.Send(query);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        var item = result.Value.Items.Should().ContainSingle().Subject;
+        item.Id.Should().Be(apartment.Id);
+        item.PricePerNight.Should().Be(150m);
+        item.Currency.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task SearchApartments_ShouldReturnSameApartmentsAsCachedLayer()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var apartment = ApartmentTestData.CreateApartment(
+            ownerId: owner.Id,
+            name: "Consistency Apartment",
+            city: "ConsistencyCity");
+
+        DbContext.AddRange(owner, apartment);
+        await DbContext.SaveChangesAsync();
+
+        // Act
+        var outerResult = await Sender.Send(new SearchApartmentsQuery(
+            City: "ConsistencyCity", MinPrice: null, MaxPrice: null, Start: null, End: null, Page: 1, PageSize: 10));
+
+        var innerResult = await Sender.Send(new CachedSearchApartmentsQuery(
+            City: "ConsistencyCity", MinPrice: null, MaxPrice: null, Start: null, End: null, Page: 1, PageSize: 10));
+
+        // Assert
+        outerResult.IsSuccess.Should().BeTrue();
+        innerResult.IsSuccess.Should().BeTrue();
+        outerResult.Value.Items.Select(i => i.Id)
+            .Should().BeEquivalentTo(innerResult.Value.Items.Select(i => i.Id));
+        outerResult.Value.TotalCount.Should().Be(innerResult.Value.TotalCount);
+    }
 }
