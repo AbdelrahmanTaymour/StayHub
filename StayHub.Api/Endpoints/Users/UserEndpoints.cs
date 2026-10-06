@@ -11,6 +11,7 @@ using StayHub.Application.Users.LogOutUser;
 using StayHub.Application.Users.RefreshAccessToken;
 using StayHub.Application.Users.RegisterUser;
 using StayHub.Application.Users.RevokeUserSession;
+using StayHub.Application.Users.UpdateUserAvatar;
 using StayHub.Application.Users.UpdateUserName;
 using StayHub.Application.Users.UpdateUserProfile;
 
@@ -66,15 +67,22 @@ public static class UserEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem();
 
-        group.MapPut("{id:guid}/name", UpdateName)
+        group.MapPut("profile", UpdateProfile)
+            .HasPermission(Permissions.UserUpdate)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPut("profile/name", UpdateName)
             .HasPermission(Permissions.UserUpdate)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        group.MapPut("{id:guid}/profile", UpdateProfile)
+        group.MapPut("profile/avatar", UpdateProfileAvatar)
+            .DisableAntiforgery()
             .HasPermission(Permissions.UserUpdate)
-            .Produces(StatusCodes.Status204NoContent)
+            .Produces<Guid>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         // ---- Sessions ----
@@ -170,12 +178,11 @@ public static class UserEndpoints
     }
 
     private static async Task<IResult> UpdateName(
-        Guid id,
         UpdateUserNameRequest request,
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateUserNameCommand(id, request.FirstName, request.LastName);
+        var command = new UpdateUserNameCommand(request.FirstName, request.LastName);
 
         var result = await sender.Send(command, cancellationToken);
 
@@ -183,16 +190,29 @@ public static class UserEndpoints
     }
 
     private static async Task<IResult> UpdateProfile(
-        Guid id,
         UpdateUserProfileRequest request,
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateUserProfileCommand(id, request.AvatarUrl, request.Bio, request.PhoneNumber);
+        var command = new UpdateUserProfileCommand(request.Bio, request.PhoneNumber);
 
         var result = await sender.Send(command, cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> UpdateProfileAvatar(
+        IFormFile file,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = file.OpenReadStream();
+
+        var command = new UpdateUserAvatarCommand(stream, file.FileName, file.ContentType);
+
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.IsFailure ? result.ToProblemDetails() : TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> GetSessions(Guid id, ISender sender, CancellationToken cancellationToken)

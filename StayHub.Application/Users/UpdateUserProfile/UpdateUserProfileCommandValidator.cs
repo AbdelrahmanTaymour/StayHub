@@ -6,12 +6,6 @@ internal sealed class UpdateUserProfileCommandValidator : AbstractValidator<Upda
 {
     public UpdateUserProfileCommandValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty();
-
-        RuleFor(x => x.AvatarUrl)
-            .MaximumLength(2000)
-            .When(x => x.AvatarUrl is not null);
-
         RuleFor(x => x.Bio)
             .MaximumLength(1000)
             .When(x => x.Bio is not null);

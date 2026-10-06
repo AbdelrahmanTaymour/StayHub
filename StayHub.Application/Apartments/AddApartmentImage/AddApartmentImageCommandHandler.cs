@@ -36,9 +36,8 @@ internal sealed class AddApartmentImageCommandHandler(
             primaryImage?.UnsetAsPrimary();
         }
 
-
         // TODO: TO BACKGROUND JOB
-        var url = await fileStorageService.UploadAsync(
+        var imageKey = await fileStorageService.UploadAsync(
             request.FileContent,
             request.FileName,
             request.ContentType,
@@ -47,7 +46,7 @@ internal sealed class AddApartmentImageCommandHandler(
 
         var image = ApartmentImage.Create(
             request.ApartmentId,
-            new ApartmentImageKey(url),
+            new ApartmentImageKey(imageKey),
             countExistingImages,
             dateTimeProvider.UtcNow,
             request.IsPrimary);
@@ -62,7 +61,7 @@ internal sealed class AddApartmentImageCommandHandler(
         catch
         {
             // Clean up orphan file in cloud/storage if database commit fails
-            await fileStorageService.DeleteAsync(url, cancellationToken);
+            await fileStorageService.DeleteAsync(imageKey, cancellationToken);
             throw;
         }
     }

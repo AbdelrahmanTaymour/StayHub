@@ -73,7 +73,7 @@ public static class ApartmentEndpoints
 
         group.MapGet("by-owner/{ownerId:guid}", GetByOwner)
             .AllowAnonymous()
-            .Produces<IReadOnlyList<OwnerApartmentsResponse>>();
+            .Produces<PagedResponse<OwnerApartmentsResponse>>();
 
         group.MapPost("", Create)
             .HasPermission(Permissions.ApartmentCreate)
