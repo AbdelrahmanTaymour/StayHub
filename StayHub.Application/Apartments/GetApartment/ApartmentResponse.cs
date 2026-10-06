@@ -30,7 +30,7 @@ public sealed record ApartmentResponse
 
     public int ReviewCount { get; init; }
 
-    public bool IsFavorited { get; init; }
+    public required bool IsFavorited { get; init; }
 
     public required ApartmentHostResponse Host { get; set; }
 

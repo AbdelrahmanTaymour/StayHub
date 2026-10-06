@@ -85,23 +85,8 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
             };
         }
 
-        // Favorites — only when authenticated, only for this page's ids, never cached.
-        HashSet<Guid> favoritedIds;
-        if (userContext.UserId is { } currentUserId)
-        {
-            var apartmentIds = rows.Select(r => r.Id).ToArray();
-
-            var favoriteRows = await connection.QueryAsync<Guid>(
-                """
-                SELECT apartment_id
-                FROM favorite_apartments
-                WHERE user_id = @UserId
-                  AND apartment_id = ANY(@ApartmentIds)
-                """,
-                new { UserId = currentUserId, ApartmentIds = apartmentIds });
-
-            favoritedIds = favoriteRows.ToHashSet();
-        }
+        var apartmentIds = rows.Select(r => r.Id).ToArray();
+        var favoritedIds = await GetFavoritedApartmentIdsAsync(apartmentIds);
 
         var items = await ToOwnerApartmentResponsesAsync(rows, favoritedIds, cancellationToken);
 
@@ -145,6 +130,27 @@ internal sealed class GetApartmentsByOwnerQueryHandler(
         });
 
         return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    private async Task<HashSet<Guid>> GetFavoritedApartmentIdsAsync(Guid[] apartmentIds)
+    {
+        if (!userContext.IsAuthenticated || apartmentIds.Length == 0)
+        {
+            return [];
+        }
+
+        using var connection = sqlConnectionFactory.CreateConnection();
+
+        var favoriteIds = await connection.QueryAsync<Guid>(
+            """
+            SELECT apartment_id
+            FROM favorite_apartments
+            WHERE user_id = @UserId
+              AND apartment_id = ANY(@ApartmentIds)
+            """,
+            new { userContext.UserId, ApartmentIds = apartmentIds });
+
+        return favoriteIds.ToHashSet();
     }
 
     internal sealed class OwnerApartmentRow
