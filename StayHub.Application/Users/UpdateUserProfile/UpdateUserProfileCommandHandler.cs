@@ -14,15 +14,9 @@ internal sealed class UpdateUserProfileCommandHandler(
 {
     public async Task<Result> Handle(UpdateUserProfileCommand request, CancellationToken cancellationToken)
     {
-        if (userContext.UserId != request.UserId && !userContext.IsAdmin)
-            return Result.Failure(UserErrors.NotAuthorized);
-
-        var profile = await userProfileRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        var profile = await userProfileRepository.GetByUserIdAsync(userContext.UserId, cancellationToken);
 
         if (profile is null) return Result.Failure(UserProfileErrors.NotFound);
-
-        if (request.AvatarUrl is not null)
-            profile.UpdateAvatar(new AvatarKey(request.AvatarUrl), dateTimeProvider.UtcNow);
 
         if (request.Bio is not null) profile.UpdateBio(new Bio(request.Bio), dateTimeProvider.UtcNow);
 

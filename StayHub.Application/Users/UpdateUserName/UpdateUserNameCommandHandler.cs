@@ -12,10 +12,7 @@ internal sealed class UpdateUserNameCommandHandler(
 {
     public async Task<Result> Handle(UpdateUserNameCommand request, CancellationToken cancellationToken)
     {
-        if (userContext.UserId != request.UserId && !userContext.IsAdmin)
-            return Result.Failure(UserErrors.NotAuthorized);
-
-        var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var user = await userRepository.GetByIdAsync(userContext.UserId, cancellationToken);
 
         if (user is null) return Result.Failure(UserErrors.NotFound);
 

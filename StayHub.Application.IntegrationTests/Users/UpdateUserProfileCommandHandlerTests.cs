@@ -25,7 +25,7 @@ public class UpdateUserProfileCommandHandlerTests(IntegrationTestWebAppFactory f
 
         SetCurrentUser(user.Id, Role.Guest.Name);
 
-        var command = new UpdateUserProfileCommand(user.Id, null, "Updated bio for testing.", "+15551234567");
+        var command = new UpdateUserProfileCommand("Updated bio for testing.", "+15551234567");
 
         // Act
         var result = await Sender.Send(command);

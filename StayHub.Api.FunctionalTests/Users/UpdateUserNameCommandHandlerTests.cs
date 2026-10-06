@@ -18,7 +18,7 @@ public class UpdateUserNameCommandHandlerTests(FunctionalTestWebAppFactory facto
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
-            $"api/v1/users/{userId}/name",
+            $"api/v1/users/profile/name",
             new UpdateUserNameRequest("Updated", "Name"));
 
         // Assert
@@ -31,23 +31,6 @@ public class UpdateUserNameCommandHandlerTests(FunctionalTestWebAppFactory facto
     }
 
     [Fact]
-    public async Task UpdateName_ShouldReturnForbidden_WhenCallerIsAnUnrelatedUser()
-    {
-        // Arrange
-        var (_, _, targetUserId) = await RegisterAndAuthenticateAsync();
-        var (callerAccessToken, _, _) = await RegisterAndAuthenticateAsync();
-        AuthenticateAs(callerAccessToken);
-
-        // Act
-        var response = await HttpClient.PutAsJsonAsync(
-            $"api/v1/users/{targetUserId}/name",
-            new UpdateUserNameRequest("Hacked", "Name"));
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task UpdateName_ShouldReturnUnauthorized_WhenNoTokenIsProvided()
     {
         // Arrange
@@ -55,7 +38,7 @@ public class UpdateUserNameCommandHandlerTests(FunctionalTestWebAppFactory facto
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
-            $"api/v1/users/{userId}/name",
+            $"api/v1/users/profile/name",
             new UpdateUserNameRequest("New", "Name"));
 
         // Assert
@@ -73,7 +56,7 @@ public class UpdateUserNameCommandHandlerTests(FunctionalTestWebAppFactory facto
 
         // Act
         var response = await HttpClient.PutAsJsonAsync(
-            $"api/v1/users/{userId}/name",
+            $"api/v1/users/profile/name",
             new UpdateUserNameRequest(firstName, lastName));
 
         // Assert

@@ -20,7 +20,7 @@ public class UpdateUserNameCommandHandlerTests
     }
 
     private static UpdateUserNameCommand CommandFor(Guid userId) =>
-        new(UserId: userId, FirstName: "Updated", LastName: "Name");
+        new(FirstName: "Updated", LastName: "Name");
 
     [Fact]
     public async Task Handle_Should_ReturnFailure_WhenCallerIsNotSelfOrAdmin()
@@ -35,8 +35,7 @@ public class UpdateUserNameCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(UserErrors.NotAuthorized);
-        await _userRepositoryMock.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        result.Error.Should().Be(UserErrors.NotFound);
     }
 
     [Fact]
@@ -71,22 +70,5 @@ public class UpdateUserNameCommandHandlerTests
         user.FirstName.Should().Be(new FirstName("Updated"));
         user.LastName.Should().Be(new LastName("Name"));
         await _unitOfWorkMock.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Handle_Should_UpdateName_WhenCallerIsAdminActingOnSomeoneElse()
-    {
-        // Arrange
-        var user = UserData.Create();
-        _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.IsAdmin.Returns(true);
-        _userRepositoryMock.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
-
-        // Act
-        var result = await _handler.Handle(CommandFor(user.Id), default);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        user.FirstName.Should().Be(new FirstName("Updated"));
     }
 }

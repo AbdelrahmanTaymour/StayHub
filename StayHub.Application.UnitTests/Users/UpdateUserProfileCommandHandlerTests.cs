@@ -30,37 +30,18 @@ public class UpdateUserProfileCommandHandlerTests
             _dateTimeProviderMock);
     }
 
-    private static UpdateUserProfileCommand CommandFor(Guid userId, string? avatarUrl = null, string? bio = null,
+    private static UpdateUserProfileCommand CommandFor(string? bio = null,
         string? phoneNumber = null) =>
-        new(UserId: userId, AvatarUrl: avatarUrl, Bio: bio, PhoneNumber: phoneNumber);
+        new(Bio: bio, PhoneNumber: phoneNumber);
 
     [Fact]
-    public async Task Handle_Should_ReturnFailure_WhenCallerIsNotSelfOrAdmin()
+    public async Task Handle_Should_ReturnFailure_WhenCallerIsNotSelf()
     {
         // Arrange
         var targetUserId = Guid.CreateVersion7();
         _userContextMock.UserId.Returns(Guid.CreateVersion7());
         _userContextMock.Roles.Returns([]);
-        var command = CommandFor(targetUserId, bio: "New bio");
-
-        // Act
-        var result = await _handler.Handle(command, default);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(UserErrors.NotAuthorized);
-        await _userProfileRepositoryMock.DidNotReceive()
-            .GetByUserIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Handle_Should_ReturnFailure_WhenProfileNotFound()
-    {
-        // Arrange
-        var userId = Guid.CreateVersion7();
-        _userContextMock.UserId.Returns(userId);
-        _userProfileRepositoryMock.GetByUserIdAsync(userId, Arg.Any<CancellationToken>()).Returns((UserProfile?)null);
-        var command = CommandFor(userId, bio: "New bio");
+        var command = CommandFor(bio: "New bio");
 
         // Act
         var result = await _handler.Handle(command, default);
@@ -71,43 +52,39 @@ public class UpdateUserProfileCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_UpdateAvatarBioAndPhoneNumber_WhenAllProvidedAndCallerIsSelf()
+    public async Task Handle_Should_ReturnFailure_WhenProfileNotFound()
+    {
+        // Arrange
+        var userId = Guid.CreateVersion7();
+        _userContextMock.UserId.Returns(userId);
+        _userProfileRepositoryMock.GetByUserIdAsync(userId, Arg.Any<CancellationToken>()).Returns((UserProfile?)null);
+        var command = CommandFor(bio: "New bio");
+
+        // Act
+        var result = await _handler.Handle(command, default);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(UserProfileErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task Handle_Should_UpdateBioAndPhoneNumber_WhenAllProvidedAndCallerIsSelf()
     {
         // Arrange
         var userId = Guid.CreateVersion7();
         var profile = UserProfile.Create(userId, UtcNow);
         _userContextMock.UserId.Returns(userId);
         _userProfileRepositoryMock.GetByUserIdAsync(userId, Arg.Any<CancellationToken>()).Returns(profile);
-        var command = CommandFor(userId, avatarUrl: "https://cdn.stayhub.dev/a.png", bio: "New bio",
-            phoneNumber: "+15551234567");
+        var command = CommandFor(bio: "New bio", phoneNumber: "+15551234567");
 
         // Act
         var result = await _handler.Handle(command, default);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        profile.AvatarKey.Should().Be(new AvatarKey("https://cdn.stayhub.dev/a.png"));
         profile.Bio.Should().Be(new Bio("New bio"));
         profile.PhoneNumber!.Value.Should().Be("+15551234567");
-    }
-
-    [Fact]
-    public async Task Handle_Should_ReturnSuccess_WhenCallerIsAdminUpdatingSomeoneElsesProfile()
-    {
-        // Arrange
-        var targetUserId = Guid.CreateVersion7();
-        var profile = UserProfile.Create(targetUserId, UtcNow);
-        _userContextMock.UserId.Returns(Guid.CreateVersion7());
-        _userContextMock.IsAdmin.Returns(true);
-        _userProfileRepositoryMock.GetByUserIdAsync(targetUserId, Arg.Any<CancellationToken>()).Returns(profile);
-        var command = CommandFor(targetUserId, bio: "Admin edit");
-
-        // Act
-        var result = await _handler.Handle(command, default);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        profile.Bio.Should().Be(new Bio("Admin edit"));
     }
 
     [Fact]
@@ -118,7 +95,7 @@ public class UpdateUserProfileCommandHandlerTests
         var profile = UserProfile.Create(userId, UtcNow);
         _userContextMock.UserId.Returns(userId);
         _userProfileRepositoryMock.GetByUserIdAsync(userId, Arg.Any<CancellationToken>()).Returns(profile);
-        var command = CommandFor(userId, phoneNumber: "not-a-number");
+        var command = CommandFor(phoneNumber: "not-a-number");
 
         // Act
         var result = await _handler.Handle(command, default);
@@ -131,15 +108,12 @@ public class UpdateUserProfileCommandHandlerTests
     [Fact]
     public async Task Handle_Should_NotSaveChanges_WhenPhoneNumberIsInvalid_EvenIfOtherFieldsWereValid()
     {
-        // Arrange — avatar/bio would have applied successfully in-memory,
-        // but nothing gets persisted because SaveChangesAsync is only
-        // reached after ALL fields validate.
+        // Arrange
         var userId = Guid.CreateVersion7();
         var profile = UserProfile.Create(userId, UtcNow);
         _userContextMock.UserId.Returns(userId);
         _userProfileRepositoryMock.GetByUserIdAsync(userId, Arg.Any<CancellationToken>()).Returns(profile);
-        var command = CommandFor(userId, avatarUrl: "https://cdn.stayhub.dev/a.png", bio: "New bio",
-            phoneNumber: "invalid");
+        var command = CommandFor(bio: "New bio", phoneNumber: "invalid");
 
         // Act
         await _handler.Handle(command, default);
@@ -156,7 +130,7 @@ public class UpdateUserProfileCommandHandlerTests
         var profile = UserProfile.Create(userId, UtcNow);
         _userContextMock.UserId.Returns(userId);
         _userProfileRepositoryMock.GetByUserIdAsync(userId, Arg.Any<CancellationToken>()).Returns(profile);
-        var command = CommandFor(userId);
+        var command = CommandFor();
 
         // Act
         var result = await _handler.Handle(command, default);

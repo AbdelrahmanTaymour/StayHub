@@ -1,15 +1,12 @@
 using FluentValidation;
 using StayHub.Application.Shared;
 
-namespace StayHub.Application.Apartments.AddApartmentImage;
+namespace StayHub.Application.Users.UpdateUserAvatar;
 
-internal sealed class AddApartmentImageCommandValidator : AbstractValidator<AddApartmentImageCommand>
+internal sealed class UpdateUserAvatarCommandValidator : AbstractValidator<UpdateUserAvatarCommand>
 {
-    public AddApartmentImageCommandValidator()
+    public UpdateUserAvatarCommandValidator()
     {
-        RuleFor(x => x.ApartmentId)
-            .NotEmpty();
-
         RuleFor(x => x.FileContent)
             .NotNull()
             .WithMessage("File content is required.")
