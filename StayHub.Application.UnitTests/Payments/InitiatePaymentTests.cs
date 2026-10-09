@@ -96,26 +96,95 @@ public class InitiatePaymentTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnFailure_WhenActivePaymentAlreadyExists()
+    public async Task Handle_ShouldReuseExistingPaymentIntent_WhenPendingPaymentAlreadyExists()
     {
         // Arrange
         var apartment = ApartmentData.Create();
         var guestId = Guid.CreateVersion7();
         var booking = BookingData.ReserveAndConfirm(apartment, guestId);
         var existingPayment = PaymentData.Initiate(booking.Id);
-        _bookingRepositoryMock.GetByIdAsync(booking.Id, Arg.Any<CancellationToken>()).Returns(booking);
+
+        var existingIntent = new PaymentIntentResult(
+            existingPayment.ProviderReference.Value,
+            "existing_client_secret");
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
         _userContextMock.UserId.Returns(guestId);
-        _paymentRepositoryMock.GetActiveByBookingIdAsync(booking.Id, Arg.Any<CancellationToken>())
+
+        _paymentRepositoryMock
+            .GetActiveByBookingIdAsync(booking.Id, Arg.Any<CancellationToken>())
             .Returns(existingPayment);
+
+        _paymentGatewayServiceMock
+            .GetPaymentIntentAsync(
+                existingPayment.ProviderReference,
+                Arg.Any<CancellationToken>())
+            .Returns(existingIntent);
 
         // Act
         var result = await _handler.Handle(new InitiatePaymentCommand(booking.Id), default);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.PaymentId.Should().Be(existingPayment.Id);
+        result.Value.ClientSecret.Should().Be(existingIntent.ClientSecret);
+
+        await _paymentGatewayServiceMock.Received(1).GetPaymentIntentAsync(
+            existingPayment.ProviderReference,
+            Arg.Any<CancellationToken>());
+
+        await _paymentGatewayServiceMock.DidNotReceive().CreatePaymentIntentAsync(
+            Arg.Any<decimal>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+
+        _paymentRepositoryMock.DidNotReceive().Add(Arg.Any<Payment>());
+
+        await _unitOfWorkMock.DidNotReceive()
+            .SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnFailure_WhenExistingPaymentHasSucceeded()
+    {
+        // Arrange
+        var apartment = ApartmentData.Create();
+        var guestId = Guid.CreateVersion7();
+        var booking = BookingData.ReserveAndConfirm(apartment, guestId);
+        var existingPayment = PaymentData.Initiate(booking.Id);
+
+        existingPayment.MarkAsSucceeded(UtcNow);
+
+        _bookingRepositoryMock
+            .GetByIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(booking);
+
+        _userContextMock.UserId.Returns(guestId);
+
+        _paymentRepositoryMock
+            .GetActiveByBookingIdAsync(booking.Id, Arg.Any<CancellationToken>())
+            .Returns(existingPayment);
+
+        // Act
+        var result = await _handler.Handle(
+            new InitiatePaymentCommand(booking.Id),
+            default);
+
+        // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(PaymentErrors.AlreadyInitiated);
+
+        await _paymentGatewayServiceMock.DidNotReceive().GetPaymentIntentAsync(
+            Arg.Any<ProviderReference>(),
+            Arg.Any<CancellationToken>());
+
         await _paymentGatewayServiceMock.DidNotReceive().CreatePaymentIntentAsync(
-            Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<decimal>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -12,6 +12,19 @@ internal sealed class StripePaymentGatewayService : IPaymentGatewayService
         StripeConfiguration.ApiKey = stripeSettings.Value.SecretKey;
     }
 
+    public async Task<PaymentIntentResult> GetPaymentIntentAsync(
+        ProviderReference providerReference,
+        CancellationToken cancellationToken = default)
+    {
+        var service = new PaymentIntentService();
+
+        var paymentIntent = await service.GetAsync(
+            providerReference.Value,
+            cancellationToken: cancellationToken);
+
+        return new PaymentIntentResult(paymentIntent.Id, paymentIntent.ClientSecret);
+    }
+
     public async Task<PaymentIntentResult> CreatePaymentIntentAsync(
         decimal amount,
         string currency,

@@ -1,4 +1,5 @@
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetMyBookings;
 
@@ -15,6 +16,10 @@ public sealed record MyBookingsResponse
     public string? PrimaryImageUrl { get; init; }
 
     public BookingStatus Status { get; init; }
+
+    public PaymentStatus? PaymentStatus { get; init; }
+
+    public bool HasReview { get; init; }
 
     public decimal PricePerNight { get; init; }
 

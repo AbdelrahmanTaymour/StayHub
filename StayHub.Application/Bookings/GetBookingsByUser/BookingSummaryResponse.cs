@@ -1,4 +1,5 @@
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetBookingsByUser;
 
@@ -9,6 +10,8 @@ public sealed class BookingSummaryResponse
     public Guid ApartmentId { get; init; }
 
     public BookingStatus Status { get; init; }
+
+    public PaymentStatus? PaymentStatus { get; init; }
 
     public decimal TotalPriceAmount { get; init; }
 

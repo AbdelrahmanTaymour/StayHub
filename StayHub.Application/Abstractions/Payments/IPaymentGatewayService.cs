@@ -4,6 +4,10 @@ namespace StayHub.Application.Abstractions.Payments;
 
 public interface IPaymentGatewayService
 {
+    Task<PaymentIntentResult> GetPaymentIntentAsync(
+        ProviderReference providerReference,
+        CancellationToken cancellationToken = default);
+
     Task<PaymentIntentResult> CreatePaymentIntentAsync(
         decimal amount,
         string currency,
