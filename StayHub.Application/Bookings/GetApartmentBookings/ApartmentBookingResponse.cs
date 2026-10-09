@@ -1,4 +1,5 @@
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetApartmentBookings;
 
@@ -11,6 +12,7 @@ public sealed record ApartmentBookingResponse
     public string? GuestAvatarUrl { get; init; }
 
     public BookingStatus Status { get; init; }
+    public PaymentStatus? PaymentStatus { get; init; }
 
     public DateOnly DurationStart { get; init; }
     public DateOnly DurationEnd { get; init; }

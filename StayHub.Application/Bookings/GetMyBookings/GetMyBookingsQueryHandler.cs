@@ -6,6 +6,7 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetMyBookings;
 
@@ -42,7 +43,15 @@ internal sealed class GetMyBookingsQueryHandler(
                                         b.total_price_currency AS TotalPriceCurrency,
                                         b.duration_start AS DurationStart,
                                         b.duration_end AS DurationEnd,
-                                        COUNT(*) OVER() AS TotalCount
+                                        COUNT(*) OVER() AS TotalCount,
+
+                                        p.status AS PaymentStatus,
+
+                                        EXISTS (
+                                            SELECT 1
+                                            FROM reviews r
+                                            WHERE r.booking_id = b.id
+                                        ) AS HasReview
 
                                     FROM bookings b
 
@@ -52,6 +61,14 @@ internal sealed class GetMyBookingsQueryHandler(
                                     LEFT JOIN apartment_images img
                                         ON img.apartment_id = a.id
                                         AND img.is_primary = true
+
+                                    LEFT JOIN LATERAL (
+                                        SELECT p.status
+                                        FROM payments p
+                                        WHERE p.booking_id = b.id
+                                        ORDER BY p.created_on_utc DESC, p.id DESC
+                                        LIMIT 1
+                                    ) p ON TRUE
 
                                     WHERE b.user_id = @UserId
                                     """);
@@ -149,6 +166,8 @@ internal sealed class GetMyBookingsQueryHandler(
                 ApartmentCity = r.ApartmentCity,
                 PrimaryImageUrl = primaryImageUrl,
                 Status = r.Status,
+                PaymentStatus = r.PaymentStatus,
+                HasReview = r.HasReview,
                 PricePerNight = r.PricePerNight,
                 TotalPriceAmount = r.TotalPriceAmount,
                 TotalPriceCurrency = r.TotalPriceCurrency,
@@ -171,6 +190,8 @@ internal sealed class GetMyBookingsQueryHandler(
         public string ApartmentCity { get; init; } = string.Empty;
         public string? PrimaryImageKey { get; init; }
         public BookingStatus Status { get; init; }
+        public PaymentStatus? PaymentStatus { get; init; }
+        public bool HasReview { get; init; }
         public decimal PricePerNight { get; init; }
         public decimal TotalPriceAmount { get; init; }
         public string TotalPriceCurrency { get; init; } = string.Empty;

@@ -119,21 +119,45 @@ public sealed class InitiatePaymentTests(FunctionalTestWebAppFactory factory) : 
     }
 
     [Fact]
-    public async Task Initiate_ShouldReturnConflict_WhenAPendingPaymentAlreadyExistsForTheBooking()
+    public async Task Initiate_ShouldReuseExistingPayment_WhenPendingPaymentAlreadyExists()
     {
         // Arrange
         var (_, guestToken, bookingId) = await ArrangeConfirmedBookingAsync();
         AuthenticateAs(guestToken);
-        var firstInitiate = await HttpClient.PostAsJsonAsync(PaymentRoutes.BaseRoute, new { BookingId = bookingId });
-        firstInitiate.EnsureSuccessStatusCode();
+
+        var firstResponse = await HttpClient.PostAsJsonAsync(
+            PaymentRoutes.BaseRoute,
+            new { BookingId = bookingId });
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var firstBody = await firstResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var firstPaymentId = firstBody.GetProperty("paymentId").GetGuid();
+        var firstClientSecret = firstBody.GetProperty("clientSecret").GetString();
 
         // Act
-        var response = await HttpClient.PostAsJsonAsync(PaymentRoutes.BaseRoute, new { BookingId = bookingId });
+        var secondResponse = await HttpClient.PostAsJsonAsync(
+            PaymentRoutes.BaseRoute,
+            new { BookingId = bookingId });
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("Payment.AlreadyInitiated");
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var secondBody = await secondResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        secondBody.GetProperty("paymentId").GetGuid().Should().Be(firstPaymentId);
+        secondBody.GetProperty("clientSecret").GetString().Should().Be(firstClientSecret);
+
+        using var scope = Factory.Services.CreateScope();
+
+        var gatewayService = scope.ServiceProvider
+            .GetRequiredService<IPaymentGatewayService>()
+            .Should()
+            .BeOfType<TestPaymentGatewayService>()
+            .Subject;
+
+        gatewayService.CreatedPaymentIntents.Should().ContainSingle();
+        gatewayService.RetrievedPaymentIntents.Should().ContainSingle();
     }
 
     [Fact]

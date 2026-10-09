@@ -8,6 +8,8 @@ public sealed record CreatedPaymentIntent(decimal Amount, string Currency, strin
 
 public sealed record IssuedRefund(ProviderReference ProviderReference);
 
+public sealed record RetrievedPaymentIntent(string ProviderReference);
+
 /// <summary>
 /// Test double for the true external boundary (Stripe). Real success path by
 /// default; tests can flip <see cref="FailNextCreatePaymentIntent"/> to force
@@ -18,6 +20,7 @@ public sealed class TestPaymentGatewayService : IPaymentGatewayService
 {
     private ConcurrentBag<CreatedPaymentIntent> _createdPaymentIntents = new();
     private ConcurrentBag<IssuedRefund> _issuedRefunds = new();
+    private ConcurrentBag<RetrievedPaymentIntent> _retrievedPaymentIntents = new();
 
     /// <summary>
     /// When set, the next CreatePaymentIntentAsync call throws this instead of
@@ -29,6 +32,19 @@ public sealed class TestPaymentGatewayService : IPaymentGatewayService
     public IReadOnlyCollection<CreatedPaymentIntent> CreatedPaymentIntents => _createdPaymentIntents.ToArray();
 
     public IReadOnlyCollection<IssuedRefund> IssuedRefunds => _issuedRefunds.ToArray();
+
+    public IReadOnlyCollection<RetrievedPaymentIntent> RetrievedPaymentIntents => _retrievedPaymentIntents.ToArray();
+
+    public Task<PaymentIntentResult> GetPaymentIntentAsync(
+        ProviderReference providerReference,
+        CancellationToken cancellationToken = default)
+    {
+        _retrievedPaymentIntents.Add(
+            new RetrievedPaymentIntent(providerReference.Value));
+
+        return Task.FromResult(
+            new PaymentIntentResult(providerReference.Value, $"{providerReference.Value}_secret"));
+    }
 
     public Task<PaymentIntentResult> CreatePaymentIntentAsync(
         decimal amount,
@@ -63,5 +79,7 @@ public sealed class TestPaymentGatewayService : IPaymentGatewayService
     {
         _createdPaymentIntents = [];
         _issuedRefunds = [];
+        _retrievedPaymentIntents = [];
+        FailNextCreatePaymentIntent = null;
     }
 }

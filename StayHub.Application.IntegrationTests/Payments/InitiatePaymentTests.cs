@@ -71,23 +71,34 @@ public class InitiatePaymentTests(IntegrationTestWebAppFactory factory) : BaseIn
     }
 
     [Fact]
-    public async Task InitiatePayment_ShouldReturnAlreadyInitiated_WhenAnActivePaymentAlreadyExists()
+    public async Task InitiatePayment_ShouldReuseExistingPaymentAndReturnItsClientSecret_WhenPendingPaymentExists()
     {
         // Arrange
         var owner = UserTestData.CreateUser();
         var guest = UserTestData.CreateUser();
         var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
+
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
         var booking = BookingTestData.Reserve(
-            apartment, guest.Id, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 5), PricingService);
+            apartment,
+            guest.Id,
+            new DateOnly(2026, 1, 1),
+            new DateOnly(2026, 1, 5),
+            PricingService);
+
         booking.Confirm(DateTime.UtcNow);
+
         DbContext.Add(booking);
         await DbContext.SaveChangesAsync();
 
-        var existingPayment = PaymentTestData.Initiate(booking.Id, booking.TotalPrice.Amount,
-            booking.TotalPrice.Currency.Code, "pi_existing");
+        var existingPayment = PaymentTestData.Initiate(
+            booking.Id,
+            booking.TotalPrice.Amount,
+            booking.TotalPrice.Currency.Code,
+            "pi_existing");
+
         DbContext.Add(existingPayment);
         await DbContext.SaveChangesAsync();
 
@@ -97,8 +108,24 @@ public class InitiatePaymentTests(IntegrationTestWebAppFactory factory) : BaseIn
         var result = await Sender.Send(new InitiatePaymentCommand(booking.Id));
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(PaymentErrors.AlreadyInitiated);
+        result.IsSuccess.Should().BeTrue();
+        result.Value.PaymentId.Should().Be(existingPayment.Id);
+        result.Value.ClientSecret.Should().Be("pi_existing_secret");
+
+        PaymentGatewayService.CreatedPaymentIntents.Should().BeEmpty();
+
+        PaymentGatewayService.RetrievedPaymentIntents.Should()
+            .ContainSingle(i => i.ProviderReference == "pi_existing");
+
+        DbContext.ChangeTracker.Clear();
+
+        var payments = await DbContext.Set<Payment>()
+            .Where(p => p.BookingId == booking.Id)
+            .ToListAsync();
+
+        payments.Should().ContainSingle();
+        payments[0].Id.Should().Be(existingPayment.Id);
+        payments[0].Status.Should().Be(PaymentStatus.Pending);
     }
 
     [Fact]

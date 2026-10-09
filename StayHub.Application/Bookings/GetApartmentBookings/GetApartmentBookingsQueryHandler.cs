@@ -7,6 +7,7 @@ using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetApartmentBookings;
 
@@ -66,22 +67,31 @@ internal sealed class GetApartmentBookingsQueryHandler(
                                          b.id AS Id,
                                          u.id AS GuestId,
                                          u.first_name || ' ' || u.last_name AS GuestFullName,
-                                         p.avatar_key AS GuestAvatarKey,
+                                         profile.avatar_key AS GuestAvatarKey,
                                          b.status AS Status,
                                          b.duration_start AS DurationStart,
                                          b.duration_end AS DurationEnd,
                                          b.total_price_amount AS TotalPriceAmount,
                                          b.total_price_currency AS TotalPriceCurrency,
                                          b.created_on_utc AS CreatedOnUtc,
-                                         COUNT(*) OVER() AS TotalCount
+                                         COUNT(*) OVER() AS TotalCount,
+                                         payment.status AS PaymentStatus
 
                                      FROM bookings b
 
                                      JOIN users u
                                          ON u.id = b.user_id
 
-                                     LEFT JOIN user_profiles p
-                                         ON p.user_id = u.id
+                                     LEFT JOIN user_profiles profile
+                                         ON profile.user_id = u.id
+
+                                     LEFT JOIN LATERAL (
+                                         SELECT pay.status
+                                         FROM payments pay
+                                         WHERE pay.booking_id = b.id
+                                         ORDER BY pay.created_on_utc DESC, pay.id DESC
+                                         LIMIT 1
+                                     ) payment ON TRUE
 
                                      WHERE b.apartment_id = @ApartmentId
                                      {statusFilter}
@@ -148,6 +158,7 @@ internal sealed class GetApartmentBookingsQueryHandler(
                 GuestFullName = r.GuestFullName,
                 GuestAvatarUrl = guestAvatarUrl,
                 Status = r.Status,
+                PaymentStatus = r.PaymentStatus,
                 DurationStart = r.DurationStart,
                 DurationEnd = r.DurationEnd,
                 Nights = r.DurationEnd.DayNumber - r.DurationStart.DayNumber,
@@ -170,6 +181,7 @@ internal sealed class GetApartmentBookingsQueryHandler(
         public string GuestFullName { get; init; } = string.Empty;
         public string? GuestAvatarKey { get; init; }
         public BookingStatus Status { get; init; }
+        public PaymentStatus? PaymentStatus { get; init; }
         public DateOnly DurationStart { get; init; }
         public DateOnly DurationEnd { get; init; }
         public decimal TotalPriceAmount { get; init; }

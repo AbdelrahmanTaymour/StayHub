@@ -5,6 +5,7 @@ using StayHub.Application.Abstractions.Messaging;
 using StayHub.Application.Abstractions.Storage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetConversationBookingDetails;
 
@@ -34,7 +35,8 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
                                b.total_price_currency AS TotalPriceCurrency,
                                owner.first_name || ' ' || owner.last_name AS HostName,
                                owner_profile.avatar_key AS HostAvatarKey,
-                               owner_profile.phone_number AS HostPhoneNumber
+                               owner_profile.phone_number AS HostPhoneNumber,
+                               p.status AS PaymentStatus
 
                            FROM conversations c
 
@@ -53,6 +55,14 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
                            LEFT JOIN apartment_images img
                                ON img.apartment_id = a.id
                                AND img.is_primary = true
+
+                           LEFT JOIN LATERAL (
+                               SELECT p.status
+                               FROM payments p
+                               WHERE p.booking_id = b.id
+                               ORDER BY p.created_on_utc DESC, p.id DESC
+                               LIMIT 1
+                           ) p ON TRUE
 
                            WHERE c.id = @ConversationId
                              AND (c.guest_id = @UserId OR c.owner_id = @UserId)
@@ -87,6 +97,7 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
         {
             BookingId = row.BookingId,
             Status = row.Status,
+            PaymentStatus = row.PaymentStatus,
             ApartmentId = row.ApartmentId,
             ApartmentName = row.ApartmentName,
             ApartmentImageUrl = await apartmentImageUrlTask,
@@ -106,6 +117,7 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
     {
         public Guid BookingId { get; init; }
         public BookingStatus Status { get; init; }
+        public PaymentStatus? PaymentStatus { get; init; }
         public Guid ApartmentId { get; init; }
         public string ApartmentName { get; init; } = string.Empty;
         public string? ApartmentImageKey { get; init; }

@@ -1,5 +1,6 @@
 using StayHub.Application.Apartments.GetApartment;
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetBooking;
 
@@ -9,7 +10,11 @@ public sealed class BookingResponse
 
     public BookingStatus Status { get; init; }
 
+    public PaymentStatus? PaymentStatus { get; init; }
+
     public bool CanCancel { get; init; }
+
+    public bool HasReview { get; init; }
 
     public DateTime CreatedOnUtc { get; init; }
 

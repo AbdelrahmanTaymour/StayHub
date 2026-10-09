@@ -16,15 +16,20 @@ internal sealed class RefundPaymentCommandHandler(
     IPaymentGatewayService paymentGatewayService,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider) : ICommandHandler<RefundPaymentCommand>
+    IDateTimeProvider dateTimeProvider)
+    : ICommandHandler<RefundPaymentCommand>
 {
-    public async Task<Result> Handle(RefundPaymentCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(
+        RefundPaymentCommand request,
+        CancellationToken cancellationToken)
     {
         var payment = await paymentRepository.GetByIdAsync(request.PaymentId, cancellationToken);
 
         if (payment is null) return Result.Failure(PaymentErrors.NotFound);
 
         if (payment.Status == PaymentStatus.Refunded) return Result.Failure(PaymentErrors.AlreadyRefunded);
+
+        if (payment.Status != PaymentStatus.Succeeded) return Result.Failure(PaymentErrors.NotSucceeded);
 
         var booking = await bookingRepository.GetByIdAsync(payment.BookingId, cancellationToken);
 
@@ -39,15 +44,13 @@ internal sealed class RefundPaymentCommandHandler(
         var isAdmin = userContext.IsAdmin;
 
         if (!isGuest && !isOwner && !isAdmin)
-        {
             return Result.Failure(PaymentErrors.NotAuthorized);
-        }
+
+        await paymentGatewayService.RefundAsync(payment.ProviderReference, cancellationToken);
 
         var result = payment.Refund(dateTimeProvider.UtcNow);
 
         if (result.IsFailure) return result;
-
-        await paymentGatewayService.RefundAsync(payment.ProviderReference, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

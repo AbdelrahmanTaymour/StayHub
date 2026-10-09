@@ -6,6 +6,7 @@ using StayHub.Application.Abstractions.Storage;
 using StayHub.Application.Apartments.GetApartment;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Bookings;
+using StayHub.Domain.Payments;
 
 namespace StayHub.Application.Bookings.GetBooking;
 
@@ -49,6 +50,14 @@ internal sealed class GetBookingQueryHandler(
                                b.cleaning_fee_amount AS CleaningFeeAmount,
                                b.amenities_up_charge_amount AS AmenitiesUpChargeAmount,
                                b.total_price_amount AS TotalPriceAmount,
+                               
+                               p.status AS PaymentStatus,
+                               
+                               EXISTS (
+                                   SELECT 1
+                                   FROM reviews r
+                                   WHERE r.booking_id = b.id
+                               ) AS HasReview,
 
                                owner.id AS HostId,
                                owner.first_name || ' ' || owner.last_name AS HostFullName,
@@ -75,6 +84,14 @@ internal sealed class GetBookingQueryHandler(
                                ON c.apartment_id = b.apartment_id
                                AND c.guest_id = b.user_id
                                AND c.owner_id = a.owner_id
+
+                           LEFT JOIN LATERAL (
+                               SELECT p.status
+                               FROM payments p
+                               WHERE p.booking_id = b.id
+                               ORDER BY p.created_on_utc DESC, p.id DESC
+                               LIMIT 1
+                           ) p ON TRUE
 
                            WHERE b.id = @BookingId
                              AND (b.user_id = @UserId OR a.owner_id = @UserId OR @IsAdmin = TRUE)
@@ -118,6 +135,7 @@ internal sealed class GetBookingQueryHandler(
         {
             Id = row.Id,
             Status = row.Status,
+            PaymentStatus = row.PaymentStatus,
 
             CanCancel = row.GuestId == userContext.UserId
                         && row.Status is BookingStatus.Reserved or BookingStatus.Confirmed
@@ -156,6 +174,8 @@ internal sealed class GetBookingQueryHandler(
                 AvatarUrl = await hostAvatarUrlTask
             },
 
+            HasReview = row.HasReview,
+
             ConversationId = row.ConversationId
         };
     }
@@ -165,6 +185,8 @@ internal sealed class GetBookingQueryHandler(
         public Guid Id { get; init; }
         public Guid GuestId { get; init; }
         public BookingStatus Status { get; init; }
+        public PaymentStatus? PaymentStatus { get; init; }
+        public bool HasReview { get; init; }
         public DateTime CreatedOnUtc { get; init; }
         public DateTime UpdatedOnUtc { get; init; }
 

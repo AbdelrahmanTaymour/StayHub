@@ -38,7 +38,17 @@ internal sealed class InitiatePaymentCommandHandler(
         var activePayment = await paymentRepository.GetActiveByBookingIdAsync(booking.Id, cancellationToken);
 
         if (activePayment is not null)
-            return Result.Failure<InitiatePaymentResponse>(PaymentErrors.AlreadyInitiated);
+        {
+            if (activePayment.Status == PaymentStatus.Succeeded)
+                return Result.Failure<InitiatePaymentResponse>(PaymentErrors.AlreadyInitiated);
+
+            var existingIntent = await paymentGatewayService.GetPaymentIntentAsync(
+                activePayment.ProviderReference,
+                cancellationToken);
+
+            return Result.Success(
+                new InitiatePaymentResponse(activePayment.Id, existingIntent.ClientSecret));
+        }
 
         var intent = await paymentGatewayService.CreatePaymentIntentAsync(
             booking.TotalPrice.Amount,

@@ -28,16 +28,27 @@ internal sealed class GetBookingsByUserQueryHandler(
 
         const string sql = """
                            SELECT
-                               id AS Id,
-                               apartment_id AS ApartmentId,
-                               status AS Status,
-                               total_price_amount AS TotalPriceAmount,
-                               total_price_currency AS TotalPriceCurrency,
-                               duration_start AS DurationStart,
-                               duration_end AS DurationEnd
-                           FROM bookings
-                           WHERE user_id = @UserId
-                           ORDER BY created_on_utc DESC
+                               b.id AS Id,
+                               b.apartment_id AS ApartmentId,
+                               b.status AS Status,
+                               b.total_price_amount AS TotalPriceAmount,
+                               b.total_price_currency AS TotalPriceCurrency,
+                               b.duration_start AS DurationStart,
+                               b.duration_end AS DurationEnd,
+                               
+                               p.status AS PaymentStatus
+                           FROM bookings b
+
+                           LEFT JOIN LATERAL (
+                               SELECT p.status
+                               FROM payments p
+                               WHERE p.booking_id = b.id
+                               ORDER BY p.created_on_utc DESC, p.id DESC
+                               LIMIT 1
+                           ) p ON TRUE
+
+                           WHERE b.user_id = @UserId
+                           ORDER BY b.created_on_utc DESC
                            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
                            """;
 
