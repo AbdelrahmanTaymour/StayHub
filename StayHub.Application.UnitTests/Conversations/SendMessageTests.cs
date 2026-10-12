@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
+using StayHub.Application.Abstractions.Realtime;
 using StayHub.Application.Conversations.SendMessage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Conversations;
@@ -17,6 +18,10 @@ public class SendMessageTests
 
     private readonly SendMessageCommandHandler _handler;
     private readonly IMessageRepository _messageRepositoryMock = Substitute.For<IMessageRepository>();
+
+    private readonly IRealtimeConversationNotifier _realtimeConversationNotifierMock =
+        Substitute.For<IRealtimeConversationNotifier>();
+
     private readonly IUnitOfWork _unitOfWorkMock = Substitute.For<IUnitOfWork>();
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
@@ -29,6 +34,7 @@ public class SendMessageTests
             _messageRepositoryMock,
             _userContextMock,
             _unitOfWorkMock,
+            _realtimeConversationNotifierMock,
             _dateTimeProviderMock);
     }
 

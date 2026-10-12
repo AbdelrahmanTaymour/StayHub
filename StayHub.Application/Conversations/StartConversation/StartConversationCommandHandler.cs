@@ -1,6 +1,7 @@
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Realtime;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
@@ -15,6 +16,7 @@ internal sealed class StartConversationCommandHandler(
     IMessageRepository messageRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
+    IRealtimeConversationNotifier notifier,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<StartConversationCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(StartConversationCommand request, CancellationToken cancellationToken)
@@ -83,6 +85,10 @@ internal sealed class StartConversationCommandHandler(
         messageRepository.Add(message);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notifier.NotifyInboxUpdatedAsync(
+            [conversation.GuestId, conversation.OwnerId],
+            cancellationToken);
 
         return conversation.Id;
     }

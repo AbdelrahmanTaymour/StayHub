@@ -3,7 +3,7 @@ using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace StayHub.Infrastructure.Authentication;
 
-internal static class ClaimsPrincipalExtensions
+public static class ClaimsPrincipalExtensions
 {
     public static Guid GetUserId(this ClaimsPrincipal? principal)
     {

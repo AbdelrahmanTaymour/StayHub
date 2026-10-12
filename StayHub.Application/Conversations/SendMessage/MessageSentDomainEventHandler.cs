@@ -25,8 +25,6 @@ public class MessageSentDomainEventHandler(
 
         if (conversation is null) return;
 
-        conversation.RegisterMessage(message.SentOnUtc);
-
         var recipientId = notification.SenderId == conversation.GuestId
             ? conversation.OwnerId
             : conversation.GuestId;

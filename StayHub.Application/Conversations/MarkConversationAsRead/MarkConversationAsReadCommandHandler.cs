@@ -1,6 +1,7 @@
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Messaging;
+using StayHub.Application.Abstractions.Realtime;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Conversations;
 
@@ -11,6 +12,7 @@ internal sealed class MarkConversationAsReadCommandHandler(
     IMessageRepository messageRepository,
     IUserContext userContext,
     IUnitOfWork unitOfWork,
+    IRealtimeConversationNotifier notifier,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<MarkConversationAsReadCommand>
 {
     public async Task<Result> Handle(MarkConversationAsReadCommand request, CancellationToken cancellationToken)
@@ -29,7 +31,18 @@ internal sealed class MarkConversationAsReadCommandHandler(
 
         foreach (var message in unreadMessages) message.MarkAsRead(dateTimeProvider.UtcNow);
 
-        if (unreadMessages.Count > 0) await unitOfWork.SaveChangesAsync(cancellationToken);
+        if (unreadMessages.Count > 0)
+        {
+            var now = dateTimeProvider.UtcNow;
+
+            conversation.RegisterRead(userContext.UserId, now);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        await notifier.NotifyConversationUpdatedAsync(conversation.Id, cancellationToken);
+        await notifier.NotifyInboxUpdatedAsync([userContext.UserId], cancellationToken);
+
 
         return Result.Success();
     }

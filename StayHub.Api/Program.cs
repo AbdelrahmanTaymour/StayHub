@@ -14,7 +14,9 @@ using StayHub.Api.Endpoints.Payments;
 using StayHub.Api.Endpoints.Reviews;
 using StayHub.Api.Endpoints.Users;
 using StayHub.Api.Extensions;
+using StayHub.Api.Hubs;
 using StayHub.Api.OpenApi;
+using StayHub.Api.Realtime;
 using StayHub.Application;
 using StayHub.Infrastructure;
 
@@ -77,6 +79,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddRealtime();
 
 builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 
@@ -127,6 +130,9 @@ app.UseAuthorization();
 app.UseBackgroundProcessing();
 
 app.MapControllers();
+
+app.MapHub<ConversationHub>("/hubs/conversations")
+    .RequireCors("AllowFrontend");
 
 ApiVersionSet apiVersionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(1))

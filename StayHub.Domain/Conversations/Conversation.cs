@@ -67,4 +67,9 @@ public sealed class Conversation : Entity
     {
         LastMessageOnUtc = sentOnUtc;
     }
+
+    public void RegisterRead(Guid readerId, DateTime readOnUtc)
+    {
+        RaiseDomainEvent(new ConversationReadDomainEvent(Id, readerId, readOnUtc));
+    }
 }

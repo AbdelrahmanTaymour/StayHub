@@ -6,16 +6,16 @@ using StayHub.Domain.Bookings;
 using StayHub.Domain.Bookings.Events;
 using StayHub.Domain.Conversations;
 
-namespace StayHub.Application.Bookings.ReserveBooking;
+namespace StayHub.Application.Bookings.ConfirmBooking;
 
-public class BookingReservedConversationStartedDomainEventHandler(
+public class BookingConfirmedConversationStartedDomainEventHandler(
     IBookingRepository bookingRepository,
     IApartmentRepository apartmentRepository,
     IConversationRepository conversationRepository,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider) : INotificationHandler<BookingReservedDomainEvent>
+    IDateTimeProvider dateTimeProvider) : INotificationHandler<BookingConfirmedDomainEvent>
 {
-    public async Task Handle(BookingReservedDomainEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(BookingConfirmedDomainEvent notification, CancellationToken cancellationToken)
     {
         var booking = await bookingRepository.GetByIdAsync(notification.BookingId, cancellationToken);
 
