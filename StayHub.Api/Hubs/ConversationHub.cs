@@ -26,7 +26,7 @@ public sealed class ConversationHub(IConversationRepository conversationReposito
 
         var conversation = await conversationRepository.GetByIdAsync(conversationId, Context.ConnectionAborted);
 
-        if (conversation is null || (conversation.GuestId != userId && conversation.OwnerId != userId))
+        if (conversation is null || (conversation.InitiatorId != userId && conversation.RecipientId != userId))
         {
             throw new HubException("Not authorized to join this conversation.");
         }

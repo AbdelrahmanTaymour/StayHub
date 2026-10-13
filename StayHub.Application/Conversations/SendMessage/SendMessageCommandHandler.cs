@@ -23,7 +23,7 @@ internal sealed class SendMessageCommandHandler(
 
         if (conversation is null) return Result.Failure<Guid>(ConversationErrors.NotFound);
 
-        if (conversation.GuestId != senderId && conversation.OwnerId != senderId)
+        if (conversation.InitiatorId != senderId && conversation.RecipientId != senderId)
             return Result.Failure<Guid>(MessageErrors.NotAuthorized);
 
         var now = dateTimeProvider.UtcNow;
@@ -40,11 +40,10 @@ internal sealed class SendMessageCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // FOR REALTIME COMMUNICATION
         await notifier.NotifyConversationUpdatedAsync(conversation.Id, cancellationToken);
 
         await notifier.NotifyInboxUpdatedAsync(
-            [conversation.GuestId, conversation.OwnerId],
+            [conversation.InitiatorId, conversation.RecipientId],
             cancellationToken);
 
         return message.Id;

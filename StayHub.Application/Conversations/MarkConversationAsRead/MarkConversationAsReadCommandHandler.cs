@@ -21,7 +21,7 @@ internal sealed class MarkConversationAsReadCommandHandler(
 
         if (conversation is null) return Result.Failure(ConversationErrors.NotFound);
 
-        if (conversation.GuestId != userContext.UserId && !userContext.IsOwner(conversation.OwnerId))
+        if (conversation.InitiatorId != userContext.UserId && conversation.RecipientId != userContext.UserId)
             return Result.Failure(ConversationErrors.NotAuthorized);
 
         var unreadMessages = await messageRepository.GetUnreadForRecipientAsync(
@@ -42,7 +42,6 @@ internal sealed class MarkConversationAsReadCommandHandler(
 
         await notifier.NotifyConversationUpdatedAsync(conversation.Id, cancellationToken);
         await notifier.NotifyInboxUpdatedAsync([userContext.UserId], cancellationToken);
-
 
         return Result.Success();
     }

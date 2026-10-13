@@ -15,12 +15,12 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
 
         builder.HasKey(conversation => conversation.Id);
 
-        builder.HasIndex(conversation => new { conversation.ApartmentId, conversation.GuestId, conversation.OwnerId })
-            .IsUnique();
+        builder.HasIndex(conversation => new { conversation.InitiatorId, conversation.RecipientId });
 
         builder.HasOne<Apartment>()
             .WithMany()
-            .HasForeignKey(conversation => conversation.ApartmentId);
+            .HasForeignKey(conversation => conversation.ApartmentId)
+            .IsRequired(false);
 
         builder.HasOne<Booking>()
             .WithMany()
@@ -28,12 +28,12 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
 
         builder.HasOne<User>()
             .WithMany()
-            .HasForeignKey(conversation => conversation.GuestId)
+            .HasForeignKey(conversation => conversation.InitiatorId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<User>()
             .WithMany()
-            .HasForeignKey(conversation => conversation.OwnerId)
+            .HasForeignKey(conversation => conversation.RecipientId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

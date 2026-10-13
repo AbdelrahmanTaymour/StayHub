@@ -4,8 +4,12 @@ namespace StayHub.Application.UnitTests.Conversations;
 
 internal static class ConversationData
 {
-    public static Conversation Start(Guid apartmentId, Guid guestId, Guid ownerId, Guid? bookingId = null)
+    public static Conversation Start(
+        Guid initiatorId,
+        Guid recipientId,
+        Guid? apartmentId = null,
+        Guid? bookingId = null)
     {
-        return Conversation.Start(apartmentId, bookingId, guestId, ownerId, DateTime.UtcNow).Value;
+        return Conversation.Start(initiatorId, recipientId, apartmentId, bookingId, DateTime.UtcNow).Value;
     }
 }

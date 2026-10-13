@@ -27,6 +27,11 @@ internal sealed class UserRepository(ApplicationDbContext dbContext)
             .AnyAsync(user => user.Email == email, cancellationToken);
     }
 
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await DbContext.Set<User>().AnyAsync(user => user.Id == id, cancellationToken);
+    }
+
     public async Task<bool> IsEmailExistsAsync(Domain.Users.Email email, CancellationToken cancellationToken = default)
     {
         return await DbContext

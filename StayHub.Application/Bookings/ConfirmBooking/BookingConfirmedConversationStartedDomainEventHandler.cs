@@ -1,5 +1,6 @@
 using MediatR;
 using StayHub.Application.Abstractions.Clock;
+using StayHub.Application.Abstractions.Realtime;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Apartments;
 using StayHub.Domain.Bookings;
@@ -13,6 +14,7 @@ public class BookingConfirmedConversationStartedDomainEventHandler(
     IApartmentRepository apartmentRepository,
     IConversationRepository conversationRepository,
     IUnitOfWork unitOfWork,
+    IRealtimeConversationNotifier notifier,
     IDateTimeProvider dateTimeProvider) : INotificationHandler<BookingConfirmedDomainEvent>
 {
     public async Task Handle(BookingConfirmedDomainEvent notification, CancellationToken cancellationToken)
@@ -25,23 +27,37 @@ public class BookingConfirmedConversationStartedDomainEventHandler(
 
         if (apartment is null) return;
 
-        var existingConversation = await conversationRepository.GetBetweenParticipantsAsync(
-            apartment.Id,
+        var conversation = await conversationRepository.GetBetweenParticipantsAsync(
             booking.UserId,
             apartment.OwnerId,
             cancellationToken);
 
-        if (existingConversation is not null) return;
+        bool wasExisting = conversation is not null;
 
-        var conversation = Conversation.Start(
-            apartment.Id,
-            booking.Id,
-            booking.UserId,
-            apartment.OwnerId,
-            dateTimeProvider.UtcNow).Value;
+        if (conversation is null)
+        {
+            conversation = Conversation.Start(
+                booking.UserId,
+                apartment.OwnerId,
+                apartment.Id,
+                booking.Id,
+                dateTimeProvider.UtcNow).Value;
 
-        conversationRepository.Add(conversation);
+            conversationRepository.Add(conversation);
+        }
+        else
+        {
+            conversation.AttachApartment(apartment.Id);
+            conversation.AttachBooking(booking.Id);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Only meaningful for the reuse path — a brand-new conversation
+        // can't be open in anyone's reservation-details pane yet.
+        if (wasExisting)
+        {
+            await notifier.NotifyConversationUpdatedAsync(conversation.Id, cancellationToken);
+        }
     }
 }

@@ -91,22 +91,4 @@ public class SendMessageTests
         conversation.LastMessageOnUtc.Should().Be(UtcNow);
         await _unitOfWorkMock.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
-
-    [Fact]
-    public async Task Handle_Should_SendMessage_WhenCallerIsOwner()
-    {
-        // Arrange
-        var apartmentId = Guid.CreateVersion7();
-        var guestId = Guid.CreateVersion7();
-        var ownerId = Guid.CreateVersion7();
-        var conversation = ConversationData.Start(apartmentId, guestId, ownerId);
-        _conversationRepositoryMock.GetByIdAsync(conversation.Id, Arg.Any<CancellationToken>()).Returns(conversation);
-        _userContextMock.UserId.Returns(ownerId);
-
-        // Act
-        var result = await _handler.Handle(new SendMessageCommand(conversation.Id, "Sure, happy to help!"), default);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-    }
 }

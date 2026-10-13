@@ -39,14 +39,14 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
     public async Task GetByConversation_ShouldReturnNotFound_WhenConversationHasNoLinkedBooking()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -61,7 +61,7 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
     public async Task GetByConversation_ShouldReturnNotFound_WhenCallerIsNotAParticipant()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
@@ -73,7 +73,7 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
         var bookingId = await reserveResponse.Content.ReadFromJsonAsync<Guid>();
 
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId, bookingId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId, bookingId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -91,7 +91,7 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
     public async Task GetByConversation_ShouldReturnExpectedShape_WhenCallerIsTheGuest()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
@@ -103,7 +103,7 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
         var bookingId = await reserveResponse.Content.ReadFromJsonAsync<Guid>();
 
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId, bookingId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId, bookingId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -126,7 +126,7 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
     public async Task GetByConversation_ShouldReturnOk_WhenCallerIsTheOwner()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
@@ -138,7 +138,7 @@ public sealed class GetConversationBookingDetailsTests(FunctionalTestWebAppFacto
         var bookingId = await reserveResponse.Content.ReadFromJsonAsync<Guid>();
 
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId, bookingId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId, bookingId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 

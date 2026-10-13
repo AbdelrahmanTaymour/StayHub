@@ -13,13 +13,15 @@ namespace StayHub.Application.Bookings.GetBooking;
 internal sealed class GetBookingQueryHandler(
     ISqlConnectionFactory sqlConnectionFactory,
     IUserContext userContext,
-    IFileStorageService fileStorageService) : IQueryHandler<GetBookingQuery, BookingResponse>
+    IFileStorageService fileStorageService)
+    : IQueryHandler<GetBookingQuery, BookingResponse>
 {
-    public async Task<Result<BookingResponse>> Handle(GetBookingQuery request, CancellationToken cancellationToken)
+    public async Task<Result<BookingResponse>> Handle(
+        GetBookingQuery request,
+        CancellationToken cancellationToken)
     {
         using var connection = sqlConnectionFactory.CreateConnection();
 
-        // Enforce guest, owner, or admin access in the query itself.
         const string sql = """
                            SELECT
                                b.id AS Id,
@@ -31,7 +33,8 @@ internal sealed class GetBookingQueryHandler(
                                    b.confirmed_on_utc,
                                    b.rejected_on_utc,
                                    b.completed_on_utc,
-                                   b.cancelled_on_utc) AS UpdatedOnUtc,
+                                   b.cancelled_on_utc
+                               ) AS UpdatedOnUtc,
 
                                a.id AS ApartmentId,
                                a.name AS ApartmentName,
@@ -50,9 +53,9 @@ internal sealed class GetBookingQueryHandler(
                                b.cleaning_fee_amount AS CleaningFeeAmount,
                                b.amenities_up_charge_amount AS AmenitiesUpChargeAmount,
                                b.total_price_amount AS TotalPriceAmount,
-                               
+
                                p.status AS PaymentStatus,
-                               
+
                                EXISTS (
                                    SELECT 1
                                    FROM reviews r
@@ -78,12 +81,26 @@ internal sealed class GetBookingQueryHandler(
 
                            LEFT JOIN apartment_images img
                                ON img.apartment_id = a.id
-                               AND img.is_primary = true
+                               AND img.is_primary = TRUE
 
-                           LEFT JOIN conversations c
-                               ON c.apartment_id = b.apartment_id
-                               AND c.guest_id = b.user_id
-                               AND c.owner_id = a.owner_id
+                           LEFT JOIN LATERAL (
+                               SELECT c.id
+                               FROM conversations c
+                               WHERE c.apartment_id = b.apartment_id
+                                 AND (
+                                     (
+                                         c.initiator_id = b.user_id
+                                         AND c.recipient_id = a.owner_id
+                                     )
+                                     OR
+                                     (
+                                         c.initiator_id = a.owner_id
+                                         AND c.recipient_id = b.user_id
+                                     )
+                                 )
+                               ORDER BY c.created_on_utc DESC, c.id DESC
+                               LIMIT 1
+                           ) c ON TRUE
 
                            LEFT JOIN LATERAL (
                                SELECT p.status
@@ -94,7 +111,11 @@ internal sealed class GetBookingQueryHandler(
                            ) p ON TRUE
 
                            WHERE b.id = @BookingId
-                             AND (b.user_id = @UserId OR a.owner_id = @UserId OR @IsAdmin = TRUE)
+                             AND (
+                                 b.user_id = @UserId
+                                 OR a.owner_id = @UserId
+                                 OR @IsAdmin = TRUE
+                             )
                            """;
 
         var row = await connection.QueryFirstOrDefaultAsync<BookingRow>(
@@ -119,12 +140,16 @@ internal sealed class GetBookingQueryHandler(
         CancellationToken cancellationToken)
     {
         var apartmentImageUrlTask = string.IsNullOrWhiteSpace(row.ApartmentImageKey)
-            ? Task.FromResult<string?>(null)!
-            : fileStorageService.GeneratePresignedUrlAsync(row.ApartmentImageKey, cancellationToken)!;
+            ? Task.FromResult<string?>(null)
+            : fileStorageService.GeneratePresignedUrlAsync(
+                row.ApartmentImageKey,
+                cancellationToken);
 
         var hostAvatarUrlTask = string.IsNullOrWhiteSpace(row.HostAvatarKey)
-            ? Task.FromResult<string?>(null)!
-            : fileStorageService.GeneratePresignedUrlAsync(row.HostAvatarKey, cancellationToken)!;
+            ? Task.FromResult<string?>(null)
+            : fileStorageService.GeneratePresignedUrlAsync(
+                row.HostAvatarKey,
+                cancellationToken);
 
         await Task.WhenAll(apartmentImageUrlTask, hostAvatarUrlTask);
 
@@ -147,6 +172,7 @@ internal sealed class GetBookingQueryHandler(
             ApartmentId = row.ApartmentId,
             ApartmentName = row.ApartmentName,
             ApartmentImageUrl = await apartmentImageUrlTask,
+
             Address = new AddressResponse
             {
                 Country = row.Country,
@@ -161,7 +187,9 @@ internal sealed class GetBookingQueryHandler(
             Nights = nights,
 
             Currency = row.Currency,
-            PricePerNight = nights > 0 ? row.PriceForPeriodAmount / nights : row.PriceForPeriodAmount,
+            PricePerNight = nights > 0
+                ? row.PriceForPeriodAmount / nights
+                : row.PriceForPeriodAmount,
             PriceForPeriodAmount = row.PriceForPeriodAmount,
             CleaningFeeAmount = row.CleaningFeeAmount,
             AmenitiesUpChargeAmount = row.AmenitiesUpChargeAmount,
@@ -175,7 +203,6 @@ internal sealed class GetBookingQueryHandler(
             },
 
             HasReview = row.HasReview,
-
             ConversationId = row.ConversationId
         };
     }

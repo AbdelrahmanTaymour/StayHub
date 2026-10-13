@@ -21,7 +21,7 @@ public class GetConversationMessagesTests(IntegrationTestWebAppFactory factory) 
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         var message = Message.Send(conversation.Id, guest.Id, new MessageBody("Hello!"), DateTime.UtcNow);
         DbContext.AddRange(conversation, message);
         await DbContext.SaveChangesAsync();
@@ -46,7 +46,7 @@ public class GetConversationMessagesTests(IntegrationTestWebAppFactory factory) 
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -84,8 +84,33 @@ public class GetConversationMessagesTests(IntegrationTestWebAppFactory factory) 
         DbContext.Add(booking);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, booking.Id, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, booking.Id, DateTime.UtcNow).Value;
         var message = Message.Send(conversation.Id, guest.Id, new MessageBody("Looking forward to it!"),
+            DateTime.UtcNow);
+        DbContext.AddRange(conversation, message);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(guest.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetConversationMessagesQuery(conversation.Id, Page: 1, PageSize: 10));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Items.Should().ContainSingle(m => m.Id == message.Id);
+    }
+
+    [Fact]
+    public async Task GetMessagesByConversation_ShouldReturnMessages_WhenConversationHasNoApartment()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+        DbContext.AddRange(owner, guest);
+        await DbContext.SaveChangesAsync();
+
+        var conversation = Conversation.Start(guest.Id, owner.Id, null, null, DateTime.UtcNow).Value;
+        var message = Message.Send(conversation.Id, guest.Id, new MessageBody("Are you still hosting in Lisbon?"),
             DateTime.UtcNow);
         DbContext.AddRange(conversation, message);
         await DbContext.SaveChangesAsync();
