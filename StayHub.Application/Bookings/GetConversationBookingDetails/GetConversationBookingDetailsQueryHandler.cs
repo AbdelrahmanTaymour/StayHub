@@ -42,19 +42,20 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
 
                            JOIN bookings b
                                ON b.id = c.booking_id
+                              AND b.apartment_id = c.apartment_id
 
                            JOIN apartments a
                                ON a.id = b.apartment_id
 
                            JOIN users owner
-                               ON owner.id = c.owner_id
+                               ON owner.id = a.owner_id
 
                            LEFT JOIN user_profiles owner_profile
                                ON owner_profile.user_id = owner.id
 
                            LEFT JOIN apartment_images img
                                ON img.apartment_id = a.id
-                               AND img.is_primary = true
+                              AND img.is_primary = true
 
                            LEFT JOIN LATERAL (
                                SELECT p.status
@@ -65,15 +66,30 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
                            ) p ON TRUE
 
                            WHERE c.id = @ConversationId
-                             AND (c.guest_id = @UserId OR c.owner_id = @UserId)
+                             AND (
+                                 c.initiator_id = @UserId
+                                 OR c.recipient_id = @UserId
+                             )
+                             AND c.booking_id IS NOT NULL
+                             AND (
+                                 (c.initiator_id = b.user_id AND c.recipient_id = a.owner_id)
+                                 OR
+                                 (c.recipient_id = b.user_id AND c.initiator_id = a.owner_id)
+                             )
                            """;
 
         var row = await connection.QueryFirstOrDefaultAsync<ReservationRow>(
-            sql, new { request.ConversationId, userContext.UserId });
+            sql,
+            new
+            {
+                request.ConversationId,
+                UserId = userContext.UserId
+            });
 
         if (row is null)
         {
-            return Result.Failure<ConversationBookingDetailsResponse>(BookingErrors.NotFound);
+            return Result.Failure<ConversationBookingDetailsResponse>(
+                BookingErrors.NotFound);
         }
 
         return await ToConversationBookingDetailsResponseAsync(row, cancellationToken);
@@ -85,11 +101,15 @@ internal sealed class GetConversationBookingDetailsQueryHandler(
     {
         var apartmentImageUrlTask = string.IsNullOrWhiteSpace(row.ApartmentImageKey)
             ? Task.FromResult<string?>(null)
-            : fileStorageService.GeneratePresignedUrlAsync(row.ApartmentImageKey, cancellationToken)!;
+            : fileStorageService.GeneratePresignedUrlAsync(
+                row.ApartmentImageKey,
+                cancellationToken)!;
 
         var hostAvatarUrlTask = string.IsNullOrWhiteSpace(row.HostAvatarKey)
             ? Task.FromResult<string?>(null)
-            : fileStorageService.GeneratePresignedUrlAsync(row.HostAvatarKey, cancellationToken)!;
+            : fileStorageService.GeneratePresignedUrlAsync(
+                row.HostAvatarKey,
+                cancellationToken)!;
 
         await Task.WhenAll(apartmentImageUrlTask, hostAvatarUrlTask);
 

@@ -382,7 +382,7 @@ public class GetBookingTests(IntegrationTestWebAppFactory factory) : BaseIntegra
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         var booking = BookingTestData.Reserve(
             apartment, guest.Id, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 5), PricingService);
         DbContext.AddRange(conversation, booking);
@@ -410,7 +410,7 @@ public class GetBookingTests(IntegrationTestWebAppFactory factory) : BaseIntegra
         await DbContext.SaveChangesAsync();
 
         var unrelatedConversation =
-            Conversation.Start(otherApartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+            Conversation.Start(guest.Id, owner.Id, otherApartment.Id, null, DateTime.UtcNow).Value;
         var booking = BookingTestData.Reserve(
             apartment, guest.Id, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 5), PricingService);
         DbContext.AddRange(unrelatedConversation, booking);

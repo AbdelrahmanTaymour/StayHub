@@ -30,14 +30,14 @@ public class GetConversationBookingDetailsTests(IntegrationTestWebAppFactory fac
     [Fact]
     public async Task GetByConversation_ShouldReturnNotFound_WhenConversationHasNoLinkedBooking()
     {
-        // Arrange — an inquiry-only conversation, started before any booking exists.
+        // Arrange
         var owner = UserTestData.CreateUser();
         var guest = UserTestData.CreateUser();
         var apartment = ApartmentTestData.CreateApartment(ownerId: owner.Id);
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -68,7 +68,7 @@ public class GetConversationBookingDetailsTests(IntegrationTestWebAppFactory fac
         DbContext.Add(booking);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, booking.Id, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, booking.Id, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -100,7 +100,7 @@ public class GetConversationBookingDetailsTests(IntegrationTestWebAppFactory fac
         DbContext.Add(booking);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, booking.Id, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, booking.Id, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -138,7 +138,7 @@ public class GetConversationBookingDetailsTests(IntegrationTestWebAppFactory fac
         DbContext.Add(booking);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, booking.Id, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, booking.Id, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -169,7 +169,7 @@ public class GetConversationBookingDetailsTests(IntegrationTestWebAppFactory fac
         DbContext.Add(booking);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, booking.Id, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, booking.Id, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 

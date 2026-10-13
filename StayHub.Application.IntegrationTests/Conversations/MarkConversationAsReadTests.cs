@@ -21,7 +21,7 @@ public class MarkConversationAsReadTests(IntegrationTestWebAppFactory factory) :
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -46,9 +46,6 @@ public class MarkConversationAsReadTests(IntegrationTestWebAppFactory factory) :
         var persistedGuestMessage = await DbContext.Set<Message>().SingleAsync(m => m.Id == messageFromGuest.Id);
         persistedGuestMessage.ReadOnUtc.Should().NotBeNull();
 
-        // The owner's own message should never be touched by marking their
-        // OWN inbox as read — GetUnreadForRecipientAsync must exclude
-        // messages the caller sent themselves.
         var persistedOwnerMessage = await DbContext.Set<Message>().SingleAsync(m => m.Id == messageFromOwnerAlready.Id);
         persistedOwnerMessage.ReadOnUtc.Should().BeNull();
     }
@@ -63,7 +60,7 @@ public class MarkConversationAsReadTests(IntegrationTestWebAppFactory factory) :
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -77,5 +74,35 @@ public class MarkConversationAsReadTests(IntegrationTestWebAppFactory factory) :
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(ConversationErrors.NotAuthorized);
+    }
+
+    [Fact]
+    public async Task MarkConversationAsRead_ShouldMarkAsRead_WhenConversationHasNoApartment()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+        DbContext.AddRange(owner, guest);
+        await DbContext.SaveChangesAsync();
+
+        var conversation = Conversation.Start(guest.Id, owner.Id, null, null, DateTime.UtcNow).Value;
+        DbContext.Add(conversation);
+        await DbContext.SaveChangesAsync();
+
+        var messageFromGuest = Message.Send(conversation.Id, guest.Id, new MessageBody("Hi there"), DateTime.UtcNow);
+        DbContext.Add(messageFromGuest);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new MarkConversationAsReadCommand(conversation.Id));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        DbContext.ChangeTracker.Clear();
+        var persistedMessage = await DbContext.Set<Message>().SingleAsync(m => m.Id == messageFromGuest.Id);
+        persistedMessage.ReadOnUtc.Should().NotBeNull();
     }
 }

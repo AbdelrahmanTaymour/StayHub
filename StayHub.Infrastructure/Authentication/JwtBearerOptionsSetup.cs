@@ -14,6 +14,22 @@ internal sealed class JwtBearerOptionsSetup(IOptions<AuthenticationOptions> auth
         options.MetadataAddress = _authenticationOptions.MetadataUrl;
         options.RequireHttpsMetadata = _authenticationOptions.RequireHttpsMetadata;
         options.TokenValidationParameters.ValidIssuer = _authenticationOptions.Issuer;
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     }
 
     public void Configure(string? name, JwtBearerOptions options)

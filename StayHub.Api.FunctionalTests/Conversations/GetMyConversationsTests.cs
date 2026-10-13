@@ -39,14 +39,14 @@ public sealed class GetMyConversationsTests(FunctionalTestWebAppFactory factory)
     public async Task GetMyConversations_ShouldReturnConversationsWhereCallerIsGuestOrOwner()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
 
         // Act
@@ -63,14 +63,14 @@ public sealed class GetMyConversationsTests(FunctionalTestWebAppFactory factory)
     public async Task GetMyConversations_ShouldNotReturnConversations_WhenCallerIsNotPartOf()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
 
         var (unrelatedToken, _, _) = await RegisterAndAuthenticateAsync();
@@ -83,5 +83,27 @@ public sealed class GetMyConversationsTests(FunctionalTestWebAppFactory factory)
         // Assert
         var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
         results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetMyConversations_ShouldReturnNullApartmentId_WhenConversationHasNoApartment()
+    {
+        // Arrange
+        var (_, _, recipientId) = await RegisterAndAuthenticateAsync();
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var startResponse = await HttpClient.PostAsJsonAsync(
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(recipientId));
+        startResponse.EnsureSuccessStatusCode();
+
+        // Act
+        var response = await HttpClient.GetAsync(ConversationRoutes.BaseRoute);
+        response.EnsureSuccessStatusCode();
+
+        // Assert
+        var results = await response.Content.ReadFromJsonAsync<JsonElement[]>();
+        results.Should().ContainSingle();
+        results![0].GetProperty("apartmentId").ValueKind.Should().Be(JsonValueKind.Null);
     }
 }

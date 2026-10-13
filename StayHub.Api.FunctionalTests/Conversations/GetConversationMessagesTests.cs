@@ -11,14 +11,14 @@ public sealed class GetConversationMessagesTests(FunctionalTestWebAppFactory fac
 {
     private async Task<(string OwnerToken, string GuestToken, Guid ConversationId)> ArrangeConversationAsync()
     {
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -104,6 +104,28 @@ public sealed class GetConversationMessagesTests(FunctionalTestWebAppFactory fac
         result!.Items.Should().HaveCount(2);
         result.Items[0].GetProperty("body").GetString().Should().Be("Second message");
         result.TotalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetMessages_ShouldReturnOk_WhenConversationHasNoApartment()
+    {
+        // Arrange
+        var (_, _, recipientId) = await RegisterAndAuthenticateAsync();
+
+        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(guestToken);
+        var startResponse = await HttpClient.PostAsJsonAsync(
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(recipientId));
+        startResponse.EnsureSuccessStatusCode();
+        var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
+
+        // Act
+        var response = await HttpClient.GetAsync(ConversationRoutes.Messages(conversationId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PagedResponseDto<JsonElement>>();
+        result!.Items.Should().ContainSingle();
     }
 
     private sealed record PagedResponseDto<T>(

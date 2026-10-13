@@ -22,7 +22,7 @@ public class SendMessageTests(IntegrationTestWebAppFactory factory) : BaseIntegr
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -57,7 +57,7 @@ public class SendMessageTests(IntegrationTestWebAppFactory factory) : BaseIntegr
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -71,5 +71,29 @@ public class SendMessageTests(IntegrationTestWebAppFactory factory) : BaseIntegr
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(MessageErrors.NotAuthorized);
+    }
+
+    [Fact]
+    public async Task SendMessage_ShouldSucceed_WhenConversationHasNoApartment()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+        DbContext.AddRange(owner, guest);
+        await DbContext.SaveChangesAsync();
+
+        var conversation = Conversation.Start(guest.Id, owner.Id, null, null, DateTime.UtcNow).Value;
+        DbContext.Add(conversation);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(owner.Id, Role.Guest.Name);
+
+        var command = new SendMessageCommand(conversation.Id, "Sure, happy to help!");
+
+        // Act
+        var result = await Sender.Send(command);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
     }
 }

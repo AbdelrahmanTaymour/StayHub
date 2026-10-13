@@ -10,14 +10,14 @@ public sealed class SendMessageTests(FunctionalTestWebAppFactory factory) : Base
 {
     private async Task<(string OwnerToken, string GuestToken, Guid ConversationId)> ArrangeConversationAsync()
     {
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 

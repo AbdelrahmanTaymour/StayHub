@@ -7,17 +7,17 @@ public sealed class Conversation : Entity
 {
     private Conversation(
         Guid id,
-        Guid apartmentId,
+        Guid initiatorId,
+        Guid recipientId,
+        Guid? apartmentId,
         Guid? bookingId,
-        Guid guestId,
-        Guid ownerId,
         DateTime createdOnUtc)
         : base(id)
     {
+        InitiatorId = initiatorId;
+        RecipientId = recipientId;
         ApartmentId = apartmentId;
         BookingId = bookingId;
-        GuestId = guestId;
-        OwnerId = ownerId;
         CreatedOnUtc = createdOnUtc;
     }
 
@@ -25,32 +25,47 @@ public sealed class Conversation : Entity
     {
     }
 
-    public Guid ApartmentId { get; private set; }
+    public Guid InitiatorId { get; private set; }
+    public Guid RecipientId { get; private set; }
+    public Guid? ApartmentId { get; private set; }
     public Guid? BookingId { get; private set; }
-    public Guid GuestId { get; private set; }
-    public Guid OwnerId { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
     public DateTime? LastMessageOnUtc { get; private set; }
 
-    public static Result<Conversation> Start(Guid apartmentId, Guid? bookingId, Guid guestId, Guid ownerId,
+    public static Result<Conversation> Start(
+        Guid initiatorId,
+        Guid recipientId,
+        Guid? apartmentId,
+        Guid? bookingId,
         DateTime utcNow)
     {
-        if (ownerId == guestId)
+        if (initiatorId == recipientId)
         {
             return Result.Failure<Conversation>(ConversationErrors.CannotMessageSelf);
         }
 
         var conversation = new Conversation(
             Guid.CreateVersion7(),
+            initiatorId,
+            recipientId,
             apartmentId,
             bookingId,
-            guestId,
-            ownerId,
             utcNow);
 
         conversation.RaiseDomainEvent(new ConversationStartedDomainEvent(conversation.Id));
 
         return conversation;
+    }
+
+    /// <summary>Set once; a conversation already tied to an apartment keeps its original one.</summary>
+    public void AttachApartment(Guid apartmentId)
+    {
+        if (ApartmentId is not null)
+        {
+            return;
+        }
+
+        ApartmentId = apartmentId;
     }
 
     public void AttachBooking(Guid bookingId)
@@ -66,5 +81,10 @@ public sealed class Conversation : Entity
     public void RegisterMessage(DateTime sentOnUtc)
     {
         LastMessageOnUtc = sentOnUtc;
+    }
+
+    public void RegisterRead(Guid readerId, DateTime readOnUtc)
+    {
+        RaiseDomainEvent(new ConversationReadDomainEvent(Id, readerId, readOnUtc));
     }
 }
