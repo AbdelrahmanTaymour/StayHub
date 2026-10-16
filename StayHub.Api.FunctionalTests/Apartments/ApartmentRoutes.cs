@@ -42,6 +42,7 @@ internal static class ApartmentRoutes
 
     public static string Staff(Guid apartmentId) => $"{BaseRoute}/{apartmentId}/staff";
     public static string StaffById(Guid assignmentId) => $"{BaseRoute}/staff/{assignmentId}";
+    public static string StaffRole(Guid assignmentId) => $"{BaseRoute}/staff/{assignmentId}/role";
 
     public static string Pricing(Guid apartmentId, string? query = null) =>
         $"{BaseRoute}/{apartmentId}/pricing" + (query is null ? "" : $"?{query}");

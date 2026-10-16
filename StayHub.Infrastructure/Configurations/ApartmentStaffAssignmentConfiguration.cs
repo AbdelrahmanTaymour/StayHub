@@ -13,7 +13,13 @@ internal sealed class ApartmentStaffAssignmentConfiguration : IEntityTypeConfigu
 
         builder.HasKey(assignment => assignment.Id);
 
-        builder.HasIndex(assignment => new { assignment.ApartmentId, assignment.UserId }).IsUnique();
+        builder.HasIndex(x => new
+            {
+                x.ApartmentId,
+                x.UserId
+            })
+            .IsUnique()
+            .HasFilter("\"revoked_on_utc\" IS NULL");
 
         builder.HasOne<Apartment>()
             .WithMany()

@@ -7,6 +7,7 @@ using StayHub.Application.Apartments.ActivateApartment;
 using StayHub.Application.Apartments.AddApartmentAmenity;
 using StayHub.Application.Apartments.AddApartmentImage;
 using StayHub.Application.Apartments.AssignApartmentStaff;
+using StayHub.Application.Apartments.ChangeApartmentStaffRole;
 using StayHub.Application.Apartments.CreateApartment;
 using StayHub.Application.Apartments.CreateApartmentAvailabilityBlock;
 using StayHub.Application.Apartments.DeactivateApartment;
@@ -207,6 +208,13 @@ public static class ApartmentEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPatch("staff/{assignmentId:guid}/role", ChangeStaffRole)
+            .HasPermission(Permissions.ApartmentManage)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapGet("{apartmentId:guid}/staff/search", SearchStaffCandidate)
             .HasPermission(Permissions.ApartmentManage)
@@ -543,6 +551,25 @@ public static class ApartmentEndpoints
         var result = await sender.Send(new RevokeApartmentStaffAssignmentCommand(assignmentId), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.NoContent();
+    }
+
+    private static async Task<IResult> ChangeStaffRole(
+        Guid assignmentId,
+        ChangeApartmentStaffRoleRequest request,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var command = new ChangeApartmentStaffRoleCommand(
+            assignmentId,
+            request.Role);
+
+        var result = await sender.Send(
+            command,
+            cancellationToken);
+
+        return result.IsFailure
+            ? result.ToProblemDetails()
+            : Results.NoContent();
     }
 
     private static async Task<IResult> SearchStaffCandidate(

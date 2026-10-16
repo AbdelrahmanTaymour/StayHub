@@ -186,7 +186,8 @@ namespace StayHub.Infrastructure.Migrations
 
                     b.HasIndex("ApartmentId", "UserId")
                         .IsUnique()
-                        .HasDatabaseName("ix_apartment_staff_assignments_apartment_id_user_id");
+                        .HasDatabaseName("ix_apartment_staff_assignments_apartment_id_user_id")
+                        .HasFilter("\"revoked_on_utc\" IS NULL");
 
                     b.ToTable("apartment_staff_assignments", (string)null);
                 });
