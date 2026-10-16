@@ -38,7 +38,10 @@ public class ApartmentStaffAssignmentTests : BaseTest
         var assignment = ApartmentData.CreateStaffAssignment();
 
         // Assert
-        var domainEvent = AssertDomainEventWasPublished<ApartmentStaffAssignmentCreatedDomainEvent>(assignment);
+        var domainEvent =
+            AssertDomainEventWasPublished<ApartmentStaffAssignmentCreatedDomainEvent>(
+                assignment);
+
         domainEvent.Id.Should().Be(assignment.Id);
         domainEvent.ApartmentId.Should().Be(assignment.ApartmentId);
         domainEvent.UserId.Should().Be(assignment.UserId);
@@ -48,7 +51,8 @@ public class ApartmentStaffAssignmentTests : BaseTest
     public void ChangeRole_Should_UpdateRole_WhenNotRevoked()
     {
         // Arrange
-        var assignment = ApartmentData.CreateStaffAssignment(role: ApartmentStaffRole.Cleaner);
+        var assignment = ApartmentData.CreateStaffAssignment(
+            role: ApartmentStaffRole.Cleaner);
 
         // Act
         var result = assignment.ChangeRole(ApartmentStaffRole.Manager);
@@ -56,6 +60,68 @@ public class ApartmentStaffAssignmentTests : BaseTest
         // Assert
         result.IsSuccess.Should().BeTrue();
         assignment.Role.Should().Be(ApartmentStaffRole.Manager);
+    }
+
+    [Fact]
+    public void ChangeRole_Should_RaiseRoleChangedDomainEvent_WhenRoleChanges()
+    {
+        // Arrange
+        var assignment = ApartmentData.CreateStaffAssignment(
+            role: ApartmentStaffRole.Cleaner);
+
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.ChangeRole(ApartmentStaffRole.Manager);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        var domainEvent =
+            AssertDomainEventWasPublished<ApartmentStaffAssignmentRoleChangedDomainEvent>(
+                assignment);
+
+        domainEvent.AssignmentId.Should().Be(assignment.Id);
+        domainEvent.ApartmentId.Should().Be(assignment.ApartmentId);
+        domainEvent.UserId.Should().Be(assignment.UserId);
+        domainEvent.PreviousRole.Should().Be(ApartmentStaffRole.Cleaner);
+        domainEvent.NewRole.Should().Be(ApartmentStaffRole.Manager);
+    }
+
+    [Fact]
+    public void ChangeRole_Should_ReturnSuccessWithoutChangingRole_WhenRoleIsUnchanged()
+    {
+        // Arrange
+        var assignment = ApartmentData.CreateStaffAssignment(
+            role: ApartmentStaffRole.Cleaner);
+
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.ChangeRole(ApartmentStaffRole.Cleaner);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        assignment.Role.Should().Be(ApartmentStaffRole.Cleaner);
+    }
+
+    [Fact]
+    public void ChangeRole_Should_NotRaiseDomainEvent_WhenRoleIsUnchanged()
+    {
+        // Arrange
+        var assignment = ApartmentData.CreateStaffAssignment(
+            role: ApartmentStaffRole.Cleaner);
+
+        assignment.ClearDomainEvents();
+
+        // Act
+        assignment.ChangeRole(ApartmentStaffRole.Cleaner);
+
+        // Assert
+        AssertDomainEventWasPublishedTimes<
+            ApartmentStaffAssignmentRoleChangedDomainEvent>(
+            assignment,
+            0);
     }
 
     [Fact]
@@ -70,15 +136,17 @@ public class ApartmentStaffAssignmentTests : BaseTest
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ApartmentStaffAssignmentErrors.AlreadyRevoked);
+        result.Error.Should().Be(
+            ApartmentStaffAssignmentErrors.AlreadyRevoked);
     }
 
     [Fact]
     public void ChangeRole_Should_NotChangeRole_WhenAlreadyRevoked()
     {
-        // Arrange — a revoked assignment's role should stay frozen at
-        // whatever it was when revoked, not silently update.
-        var assignment = ApartmentData.CreateStaffAssignment(role: ApartmentStaffRole.Cleaner);
+        // Arrange
+        var assignment = ApartmentData.CreateStaffAssignment(
+            role: ApartmentStaffRole.Cleaner);
+
         assignment.Revoke(DateTime.UtcNow);
 
         // Act
@@ -86,6 +154,26 @@ public class ApartmentStaffAssignmentTests : BaseTest
 
         // Assert
         assignment.Role.Should().Be(ApartmentStaffRole.Cleaner);
+    }
+
+    [Fact]
+    public void ChangeRole_Should_NotRaiseRoleChangedEvent_WhenAlreadyRevoked()
+    {
+        // Arrange
+        var assignment = ApartmentData.CreateStaffAssignment(
+            role: ApartmentStaffRole.Cleaner);
+
+        assignment.Revoke(DateTime.UtcNow);
+        assignment.ClearDomainEvents();
+
+        // Act
+        assignment.ChangeRole(ApartmentStaffRole.Manager);
+
+        // Assert
+        AssertDomainEventWasPublishedTimes<
+            ApartmentStaffAssignmentRoleChangedDomainEvent>(
+            assignment,
+            0);
     }
 
     [Fact]
@@ -114,10 +202,12 @@ public class ApartmentStaffAssignmentTests : BaseTest
         assignment.Revoke(DateTime.UtcNow);
 
         // Assert
-        var domainEvent = AssertDomainEventWasPublished<ApartmentStaffAssignmentRevokedDomainEvent>(assignment);
+        var domainEvent =
+            AssertDomainEventWasPublished<ApartmentStaffAssignmentRevokedDomainEvent>(
+                assignment);
+
         domainEvent.ApartmentStaffAssignmentId.Should().Be(assignment.Id);
     }
-
 
     [Fact]
     public void Revoke_Should_ReturnFailure_WhenAlreadyRevoked()
@@ -131,7 +221,8 @@ public class ApartmentStaffAssignmentTests : BaseTest
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ApartmentStaffAssignmentErrors.AlreadyRevoked);
+        result.Error.Should().Be(
+            ApartmentStaffAssignmentErrors.AlreadyRevoked);
     }
 
     [Fact]
@@ -145,6 +236,9 @@ public class ApartmentStaffAssignmentTests : BaseTest
         assignment.Revoke(DateTime.UtcNow);
 
         // Assert
-        AssertDomainEventWasPublishedTimes<ApartmentStaffAssignmentRevokedDomainEvent>(assignment, 1);
+        AssertDomainEventWasPublishedTimes<
+            ApartmentStaffAssignmentRevokedDomainEvent>(
+            assignment,
+            1);
     }
 }

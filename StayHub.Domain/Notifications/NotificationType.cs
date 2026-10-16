@@ -10,5 +10,6 @@ public enum NotificationType
     ReviewResponseReceived = 6,
     MaintenanceRequestCreated = 7,
     MaintenanceRequestUpdate = 8,
-    ApartmentStaffAssignmentCreated = 9
+    ApartmentStaffAssignmentCreated = 9,
+    ApartmentStaffAssignmentRoleChanged = 10
 }

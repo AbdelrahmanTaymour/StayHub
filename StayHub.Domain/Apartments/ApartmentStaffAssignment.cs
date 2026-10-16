@@ -48,10 +48,26 @@ public sealed class ApartmentStaffAssignment : Entity
     {
         if (RevokedOnUtc is not null)
         {
-            return Result.Failure(ApartmentStaffAssignmentErrors.AlreadyRevoked);
+            return Result.Failure(
+                ApartmentStaffAssignmentErrors.AlreadyRevoked);
         }
 
+        if (Role == role)
+        {
+            return Result.Success();
+        }
+
+        var previousRole = Role;
+
         Role = role;
+
+        RaiseDomainEvent(
+            new ApartmentStaffAssignmentRoleChangedDomainEvent(
+                Id,
+                ApartmentId,
+                UserId,
+                previousRole,
+                role));
 
         return Result.Success();
     }

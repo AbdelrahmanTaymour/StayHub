@@ -29,6 +29,23 @@ internal sealed class BookingRepository(ApplicationDbContext dbContext)
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Booking>> GetOverlappingReservedAsync(
+        Guid apartmentId,
+        Guid excludedBookingId,
+        DateOnly startDate,
+        DateOnly endDate,
+        CancellationToken cancellationToken)
+    {
+        return await DbContext.Set<Booking>()
+            .Where(booking =>
+                booking.ApartmentId == apartmentId &&
+                booking.Id != excludedBookingId &&
+                booking.Status == BookingStatus.Reserved &&
+                booking.Duration.Start < endDate &&
+                booking.Duration.End > startDate)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Booking>> GetConfirmedPastEndDateAsync(
         DateOnly asOf,
         CancellationToken cancellationToken = default)

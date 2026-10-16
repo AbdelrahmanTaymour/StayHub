@@ -243,4 +243,149 @@ public sealed class StaffAssignmentTests(FunctionalTestWebAppFactory factory)
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("ApartmentStaffAssignment.AlreadyRevoked");
     }
+
+    // ---- Change role ----
+
+    [Fact]
+    public async Task ChangeStaffRole_ShouldReturnNoContent_WhenCallerIsOwner()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var assignResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.Staff(apartmentId),
+            new { StaffUserId = staffUserId, Role = ApartmentStaffRole.Cleaner });
+
+        assignResponse.EnsureSuccessStatusCode();
+
+        var assignmentId = await assignResponse.Content.ReadFromJsonAsync<Guid>();
+
+        // Act
+        var response = await HttpClient.PatchAsJsonAsync(
+            ApartmentRoutes.StaffRole(assignmentId),
+            new { Role = ApartmentStaffRole.Manager });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task ChangeStaffRole_ShouldReturnForbidden_WhenCallerIsNotApartmentOwner()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var assignResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.Staff(apartmentId),
+            new { StaffUserId = staffUserId, Role = ApartmentStaffRole.Cleaner });
+
+        assignResponse.EnsureSuccessStatusCode();
+
+        var assignmentId = await assignResponse.Content.ReadFromJsonAsync<Guid>();
+
+        var (otherToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(otherToken);
+
+        // Act
+        var response = await HttpClient.PatchAsJsonAsync(
+            ApartmentRoutes.StaffRole(assignmentId),
+            new { Role = ApartmentStaffRole.Manager });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task ChangeStaffRole_ShouldReturnNotFound_WhenAssignmentDoesNotExist()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        // Act
+        var response = await HttpClient.PatchAsJsonAsync(
+            ApartmentRoutes.StaffRole(Guid.NewGuid()),
+            new { Role = ApartmentStaffRole.Manager });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task ChangeStaffRole_ShouldReturnConflict_WhenAssignmentIsRevoked()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var assignResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.Staff(apartmentId),
+            new { StaffUserId = staffUserId, Role = ApartmentStaffRole.Cleaner });
+
+        assignResponse.EnsureSuccessStatusCode();
+
+        var assignmentId = await assignResponse.Content.ReadFromJsonAsync<Guid>();
+
+        var revokeResponse = await HttpClient.DeleteAsync(
+            ApartmentRoutes.StaffById(assignmentId));
+
+        revokeResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Act
+        var response = await HttpClient.PatchAsJsonAsync(
+            ApartmentRoutes.StaffRole(assignmentId),
+            new { Role = ApartmentStaffRole.Manager });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("ApartmentStaffAssignment.AlreadyRevoked");
+    }
+
+    [Fact]
+    public async Task ChangeStaffRole_ShouldReturnBadRequest_WhenInvalidRoleEnum()
+    {
+        // Arrange
+        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
+
+        var (_, _, staffUserId) = await RegisterAndAuthenticateAsync();
+        AuthenticateAs(ownerToken);
+
+        var assignResponse = await HttpClient.PostAsJsonAsync(
+            ApartmentRoutes.Staff(apartmentId),
+            new { StaffUserId = staffUserId, Role = ApartmentStaffRole.Cleaner });
+
+        assignResponse.EnsureSuccessStatusCode();
+
+        var assignmentId = await assignResponse.Content.ReadFromJsonAsync<Guid>();
+
+        // Act
+        var response = await HttpClient.PatchAsJsonAsync(
+            ApartmentRoutes.StaffRole(assignmentId),
+            new { Role = 9999 });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

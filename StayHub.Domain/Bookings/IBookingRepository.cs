@@ -24,6 +24,13 @@ public interface IBookingRepository
         DateTime asOfUtc,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Booking>> GetOverlappingReservedAsync(
+        Guid apartmentId,
+        Guid excludedBookingId,
+        DateOnly startDate,
+        DateOnly endDate,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Booking>> GetConfirmedPastEndDateAsync(
         DateOnly asOf,
         CancellationToken cancellationToken = default);
