@@ -6,8 +6,12 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# Force the SDK to run natively on the GitHub Actions host platform (amd64) for maximum speed
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
+
+# Explicitly catch the target architecture passed by GitHub's Buildx (--platform linux/arm64)
+ARG TARGETARCH
 WORKDIR /src
 
 # Copy project files first to preserve restore-layer caching
@@ -16,19 +20,20 @@ COPY ["StayHub.Application/*.csproj", "StayHub.Application/"]
 COPY ["StayHub.Domain/*.csproj", "StayHub.Domain/"]
 COPY ["StayHub.Infrastructure/*.csproj", "StayHub.Infrastructure/"]
 
-# Restore dependencies
-RUN dotnet restore "StayHub.Api/StayHub.Api.csproj"
+# Restore dependencies using native cross-compilation flags (-a $TARGETARCH)
+RUN dotnet restore "StayHub.Api/StayHub.Api.csproj" -a $TARGETARCH
 
 # Copy remaining source code
 COPY . .
 
-# Build and publish
+# Build and publish using native cross-compilation flags (-a $TARGETARCH)
 WORKDIR /src/StayHub.Api
 RUN --mount=type=secret,id=sixlabors_license,required=true \
     test -s /run/secrets/sixlabors_license && \
     SixLaborsLicenseKey="$(cat /run/secrets/sixlabors_license)" \
     dotnet publish "./StayHub.Api.csproj" \
     -c $BUILD_CONFIGURATION \
+    -a $TARGETARCH \
     -o /app/publish \
     /p:UseAppHost=false \
     --no-restore
