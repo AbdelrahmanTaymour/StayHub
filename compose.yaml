@@ -1,0 +1,136 @@
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: StayHub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stayhub_local}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d StayHub"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:18080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    ports:
+      - "18080:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./docker/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /realms/StayHub/.well-known/openid-configuration HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  seq:
+    image: datalust/seq:2025
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5341:80"
+      - "5342:5341"
+    volumes:
+      - seq_data:/data
+
+  api:
+    image: ataymour/stayhub-backend:latest
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=StayHub;Username=postgres;Password=${POSTGRES_PASSWORD:-stayhub_local}
+      ConnectionStrings__Cache: redis:6379
+
+      Authentication__Audience: account
+      Authentication__Issuer: http://localhost:18080/realms/StayHub
+      Authentication__MetadataUrl: http://keycloak:8080/realms/StayHub/.well-known/openid-configuration
+      Authentication__RequireHttpsMetadata: "false"
+
+      Keycloak__BaseUrl: http://keycloak:8080
+      Keycloak__AdminUrl: http://keycloak:8080/admin/realms/StayHub/
+      Keycloak__TokenUrl: http://keycloak:8080/realms/StayHub/protocol/openid-connect/token
+      Keycloak__AdminClientId: stayhub-admin-client
+      Keycloak__AuthClientId: stayhub-auth-client
+      Keycloak__PasswordResetClientId: stayhub-auth-client
+      Keycloak__PasswordResetRedirectUri: http://localhost:3000/login
+      Keycloak__PasswordResetLifespan: "900"
+      Keycloak__AuthClientSecret: ${KEYCLOAK_AUTH_CLIENT_SECRET:-}
+      Keycloak__AdminClientSecret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-}
+
+      Email__Host: mailpit
+      Email__Port: "1025"
+      Email__Username: ${EMAIL_USERNAME:-}
+      Email__Password: ${EMAIL_PASSWORD:-}
+      Email__FromAddress: stayhub.teams@gmail.com
+      Email__FromName: StayHub
+
+      Storage__Provider: IDrivee2
+      Storage__AccessKey: ${STORAGE_ACCESS_KEY:-local-demo}
+      Storage__SecretKey: ${STORAGE_SECRET_KEY:-local-demo}
+      Storage__BucketName: stayhub-media
+      Storage__Region: eu-south-1
+      Storage__ServiceUrl: https://s3.eu-south-1.idrivee2.com
+      Storage__PresignedUrlExpirationMinutes: "60"
+
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-}
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+
+      MediatR__LicenseKey: ${MEDIATR_LICENSE_KEY:-}
+
+      BackgroundJobs__Enabled: "true"
+      Outbox__IntervalInSeconds: "10"
+      Outbox__BatchSize: "10"
+      Outbox__MaxRetries: "2"
+
+      Serilog__WriteTo__1__Args__serverUrl: http://seq:80
+
+    ports:
+      - "5236:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      seq:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  keycloak_data:
+  seq_data:

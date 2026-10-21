@@ -20,8 +20,9 @@ sixlabors.lic
 
 # Environment files with sensitive data
 .env
+.env.*
 secrets.env
 secrets/
 
 # keep the template
-!.env.template
+!.env.example
