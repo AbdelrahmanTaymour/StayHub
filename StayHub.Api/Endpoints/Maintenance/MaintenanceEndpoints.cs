@@ -8,6 +8,7 @@ using StayHub.Application.Maintenance.GetMaintenanceRequest;
 using StayHub.Application.Maintenance.GetMaintenanceRequestForGuest;
 using StayHub.Application.Maintenance.ResolveMaintenanceRequest;
 using StayHub.Application.Maintenance.StartMaintenanceRequest;
+using StayHub.Domain.Abstractions;
 using StayHub.Domain.Maintenance;
 
 namespace StayHub.Api.Endpoints.Maintenance;
@@ -20,7 +21,7 @@ public static class MaintenanceEndpoints
 
         group.MapGet("{id:guid}/maintenance-requests", GetMaintenanceRequestsByApartment)
             .HasPermission(Permissions.MaintenanceManage)
-            .Produces<IReadOnlyList<MaintenanceRequestsResponse>>()
+            .Produces<PagedResponse<MaintenanceRequestsResponse>>()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
