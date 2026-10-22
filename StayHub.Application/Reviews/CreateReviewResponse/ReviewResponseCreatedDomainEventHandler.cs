@@ -29,6 +29,7 @@ public class ReviewResponseCreatedDomainEventHandler(
         if (reviewer is null) return;
 
         var payload = new ReviewResponseCreatedNotificationPayload(
+            ApartmentId: review.ApartmentId,
             ReviewId: domainEvent.ReviewId,
             ResponseReviewId: domainEvent.ReviewResponseId,
             Message: review.Comment.Value);

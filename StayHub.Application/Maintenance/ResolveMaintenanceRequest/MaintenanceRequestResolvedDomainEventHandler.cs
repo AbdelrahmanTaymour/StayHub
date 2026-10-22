@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediatR;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Email;
+using StayHub.Application.Maintenance.StartMaintenanceRequest;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Maintenance;
 using StayHub.Domain.Maintenance.Events;
@@ -32,7 +33,7 @@ public class MaintenanceRequestResolvedDomainEventHandler(
 
         const string message = "A maintenance request has been resolved.";
 
-        var payload = new MaintenanceRequestResolvedNotificationPayload(
+        var payload = new MaintenanceRequestUpdateNotificationPayload(
             MaintenanceRequestId: maintenanceRequest.Id,
             Message: message);
 

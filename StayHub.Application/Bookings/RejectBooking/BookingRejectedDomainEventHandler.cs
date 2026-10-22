@@ -44,7 +44,6 @@ public class BookingRejectedDomainEventHandler(
 
         var payload = new BookingRejectedNotificationPayload(
             BookingId: booking.Id,
-            ApartmentId: booking.ApartmentId,
             Message: message);
 
         var notification = Notification.Create(

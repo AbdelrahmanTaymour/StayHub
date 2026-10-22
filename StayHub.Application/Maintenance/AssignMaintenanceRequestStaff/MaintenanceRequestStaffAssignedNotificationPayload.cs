@@ -1,3 +1,0 @@
-namespace StayHub.Application.Maintenance.AssignMaintenanceRequestStaff;
-
-public sealed record MaintenanceRequestStaffAssignedNotificationPayload(Guid MaintenanceRequestId, string Message);
