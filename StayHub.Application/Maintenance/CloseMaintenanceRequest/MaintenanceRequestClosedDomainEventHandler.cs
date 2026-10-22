@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediatR;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Email;
+using StayHub.Application.Maintenance.StartMaintenanceRequest;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Maintenance;
 using StayHub.Domain.Maintenance.Events;
@@ -33,7 +34,7 @@ public class MaintenanceRequestStartedDomainEventHandler(
         const string message =
             "Your maintenance request has been closed. Please check the request for more details.";
 
-        var payload = new MaintenanceRequestClosedNotificationPayload(
+        var payload = new MaintenanceRequestUpdateNotificationPayload(
             MaintenanceRequestId: maintenanceRequest.Id,
             Message: message);
 

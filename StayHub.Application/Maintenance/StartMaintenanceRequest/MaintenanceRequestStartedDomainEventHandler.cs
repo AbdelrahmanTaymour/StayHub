@@ -2,7 +2,6 @@ using System.Text.Json;
 using MediatR;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Email;
-using StayHub.Application.Maintenance.CreateMaintenanceRequest;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Maintenance;
 using StayHub.Domain.Maintenance.Events;
@@ -34,7 +33,7 @@ public class MaintenanceRequestStartedDomainEventHandler(
         const string message =
             "A maintenance request has been started for your apartment. Please check the status of the request.";
 
-        var payload = new MaintenanceRequestStartedNotificationPayload(
+        var payload = new MaintenanceRequestUpdateNotificationPayload(
             MaintenanceRequestId: maintenanceRequest.Id,
             Message: message);
 

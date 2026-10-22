@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediatR;
 using StayHub.Application.Abstractions.Clock;
 using StayHub.Application.Abstractions.Email;
+using StayHub.Application.Maintenance.StartMaintenanceRequest;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Maintenance;
 using StayHub.Domain.Maintenance.Events;
@@ -34,7 +35,7 @@ public class MaintenanceRequestStaffAssignedDomainEventHandler(
 
         const string message = "You've been assigned to a maintenance request.";
 
-        var payload = new MaintenanceRequestStaffAssignedNotificationPayload(
+        var payload = new MaintenanceRequestUpdateNotificationPayload(
             MaintenanceRequestId: maintenanceRequest.Id,
             Message: message);
 

@@ -31,7 +31,6 @@ public class MessageSentDomainEventHandler(
 
         var payload = new NewMessageNotificationPayload(
             ConversationId: conversation.Id,
-            MessageId: message.Id,
             $"Message: {message.Body}");
 
         var systemNotification = Notification.Create(

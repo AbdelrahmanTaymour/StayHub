@@ -42,7 +42,7 @@ public class MaintenanceRequestCreatedDomainEventHandler(
         var payload = new MaintenanceRequestCreatedNotificationPayload(
             MaintenanceRequestId: maintenanceRequest.Id,
             ApartmentId: maintenanceRequest.ApartmentId,
-            Comment: maintenanceRequest.Title.Value);
+            Message: maintenanceRequest.Title.Value);
 
         var serializedPayload = JsonSerializer.Serialize(payload);
 
