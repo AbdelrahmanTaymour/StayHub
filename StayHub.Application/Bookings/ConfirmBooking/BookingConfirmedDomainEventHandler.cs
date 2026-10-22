@@ -41,7 +41,7 @@ public sealed class BookingConfirmedDomainEventHandler(
         {
             foreach (var overlappingBooking in overlappingBookings)
             {
-                // EMPTY GUID INDICATES TO AUTO REJECTION
+                // EMPTY GUID IS INDICATED TO AUTO REJECTION
                 overlappingBooking.Reject(Guid.Empty, now);
             }
         }
@@ -49,9 +49,12 @@ public sealed class BookingConfirmedDomainEventHandler(
         // A missing user must not prevent conflict resolution.
         var user = await userRepository.GetByIdAsync(booking.UserId, cancellationToken);
 
-        var payload = new BookingConfirmedNotificationPayload(
-            BookingId: booking.Id,
-            Message: "Your booking has been confirmed by the owner.");
+        if (user is not null)
+        {
+            var payload = new BookingConfirmedNotificationPayload(
+                BookingId: booking.Id,
+                ApartmentId: booking.ApartmentId,
+                Message: "Your booking has been confirmed by the owner.");
 
             var notification = Notification.Create(
                 user.Id,
@@ -62,8 +65,6 @@ public sealed class BookingConfirmedDomainEventHandler(
             notificationRepository.Add(notification);
         }
 
-        // One unit-of-work save persists all tracked booking changes
-        // and the notification, if one was created.
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (user is not null)
