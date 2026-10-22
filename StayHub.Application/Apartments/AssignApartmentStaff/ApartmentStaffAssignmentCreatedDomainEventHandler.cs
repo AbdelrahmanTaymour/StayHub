@@ -12,7 +12,6 @@ namespace StayHub.Application.Apartments.AssignApartmentStaff;
 
 public class ApartmentStaffAssignmentCreatedDomainEventHandler(
     IApartmentRepository apartmentRepository,
-    IApartmentStaffAssignmentRepository assignmentRepository,
     IUserRepository userRepository,
     INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork,

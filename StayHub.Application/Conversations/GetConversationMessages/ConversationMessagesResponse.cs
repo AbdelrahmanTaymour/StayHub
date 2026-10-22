@@ -6,7 +6,7 @@ public sealed class ConversationMessagesResponse
 
     public Guid SenderId { get; init; }
 
-    public string Body { get; init; }
+    public string Body { get; init; } = string.Empty;
 
     public DateTime SentOnUtc { get; init; }
 

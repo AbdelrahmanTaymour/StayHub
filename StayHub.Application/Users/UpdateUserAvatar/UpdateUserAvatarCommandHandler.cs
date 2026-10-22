@@ -28,7 +28,7 @@ internal sealed class UpdateUserAvatarCommandHandler(
             ImageCategory.UserAvatar,
             cancellationToken);
 
-        if (profile.AvatarKey != null)
+        if (profile.AvatarKey != null && !string.IsNullOrWhiteSpace(profile.AvatarKey.key))
         {
             await fileStorageService.DeleteAsync(profile.AvatarKey.key, cancellationToken);
         }

@@ -4,9 +4,9 @@ public sealed class UserSessionResponse
 {
     public Guid Id { get; init; }
 
-    public string DeviceInfo { get; init; }
+    public string DeviceInfo { get; init; } = string.Empty;
 
-    public string IpAddress { get; init; }
+    public string IpAddress { get; init; } = string.Empty;
 
     public DateTime CreatedOnUtc { get; init; }
 

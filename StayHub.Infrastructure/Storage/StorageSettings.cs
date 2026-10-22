@@ -6,13 +6,13 @@ public sealed class StorageSettings
 
     public StorageProvider Provider { get; init; }
 
-    public string AccessKey { get; init; }
+    public string AccessKey { get; init; } = string.Empty;
 
-    public string SecretKey { get; init; }
+    public string SecretKey { get; init; } = string.Empty;
 
-    public string BucketName { get; init; }
+    public string BucketName { get; init; } = string.Empty;
 
-    public string? Region { get; init; }
+    public string? Region { get; init; } = string.Empty;
 
     public string? ServiceUrl { get; init; }
 

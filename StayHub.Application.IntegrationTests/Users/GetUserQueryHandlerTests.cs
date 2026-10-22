@@ -109,7 +109,7 @@ public class GetUserQueryHandlerTests(IntegrationTestWebAppFactory factory) : Ba
 
         SetCurrentUser(loggedInUser.Id, Role.Guest.Name);
 
-        var query = new GetLoggedInUserQuery(UserContext);
+        var query = new GetLoggedInUserQuery();
 
         // Act
         var result = await Sender.Send(query);
