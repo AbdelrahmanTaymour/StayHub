@@ -66,7 +66,11 @@ public static class ConversationEndpoints
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var command = new StartConversationCommand(request.ApartmentId, request.BookingId, request.InitialMessage);
+        var command = new StartConversationCommand(
+            request.RecipientId,
+            request.ApartmentId,
+            request.BookingId,
+            request.InitialMessage);
 
         var result = await sender.Send(command, cancellationToken);
 

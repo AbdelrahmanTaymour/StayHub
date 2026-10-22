@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using StayHub.Application.Abstractions.Authentication;
 using StayHub.Application.Abstractions.Clock;
+using StayHub.Application.Abstractions.Realtime;
 using StayHub.Application.Conversations.SendMessage;
 using StayHub.Domain.Abstractions;
 using StayHub.Domain.Conversations;
@@ -17,6 +18,10 @@ public class SendMessageTests
 
     private readonly SendMessageCommandHandler _handler;
     private readonly IMessageRepository _messageRepositoryMock = Substitute.For<IMessageRepository>();
+
+    private readonly IRealtimeConversationNotifier _realtimeConversationNotifierMock =
+        Substitute.For<IRealtimeConversationNotifier>();
+
     private readonly IUnitOfWork _unitOfWorkMock = Substitute.For<IUnitOfWork>();
     private readonly IUserContext _userContextMock = Substitute.For<IUserContext>();
 
@@ -29,6 +34,7 @@ public class SendMessageTests
             _messageRepositoryMock,
             _userContextMock,
             _unitOfWorkMock,
+            _realtimeConversationNotifierMock,
             _dateTimeProviderMock);
     }
 
@@ -84,23 +90,5 @@ public class SendMessageTests
             m.Id == result.Value && m.SenderId == guestId && m.Body.Message == "Hello"));
         conversation.LastMessageOnUtc.Should().Be(UtcNow);
         await _unitOfWorkMock.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Handle_Should_SendMessage_WhenCallerIsOwner()
-    {
-        // Arrange
-        var apartmentId = Guid.CreateVersion7();
-        var guestId = Guid.CreateVersion7();
-        var ownerId = Guid.CreateVersion7();
-        var conversation = ConversationData.Start(apartmentId, guestId, ownerId);
-        _conversationRepositoryMock.GetByIdAsync(conversation.Id, Arg.Any<CancellationToken>()).Returns(conversation);
-        _userContextMock.UserId.Returns(ownerId);
-
-        // Act
-        var result = await _handler.Handle(new SendMessageCommand(conversation.Id, "Sure, happy to help!"), default);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
     }
 }

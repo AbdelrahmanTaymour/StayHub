@@ -7,18 +7,19 @@ internal sealed class ConversationRepository(ApplicationDbContext dbContext)
     : Repository<Conversation>(dbContext), IConversationRepository
 {
     public async Task<Conversation?> GetBetweenParticipantsAsync(
-        Guid apartmentId,
-        Guid guestId,
-        Guid ownerId,
+        Guid userAId,
+        Guid userBId,
         CancellationToken cancellationToken = default)
     {
+        // Order-independent: a conversation started by A->B must still be
+        // found when later looked up as B->A (e.g. the owner later books
+        // something that re-triggers this lookup from the booking side).
         return await DbContext
             .Set<Conversation>()
             .FirstOrDefaultAsync(
                 conversation =>
-                    conversation.ApartmentId == apartmentId &&
-                    conversation.GuestId == guestId &&
-                    conversation.OwnerId == ownerId,
+                    (conversation.InitiatorId == userAId && conversation.RecipientId == userBId) ||
+                    (conversation.InitiatorId == userBId && conversation.RecipientId == userAId),
                 cancellationToken);
     }
 
@@ -28,7 +29,7 @@ internal sealed class ConversationRepository(ApplicationDbContext dbContext)
     {
         return await DbContext
             .Set<Conversation>()
-            .Where(conversation => conversation.GuestId == userId || conversation.OwnerId == userId)
+            .Where(conversation => conversation.InitiatorId == userId || conversation.RecipientId == userId)
             .ToListAsync(cancellationToken);
     }
 }

@@ -12,14 +12,14 @@ public sealed class MarkConversationAsReadTests(FunctionalTestWebAppFactory fact
     public async Task MarkAsRead_ShouldReturnNoContent_WhenCallerIsTheOwnerReadingGuestsMessage()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -36,14 +36,14 @@ public sealed class MarkConversationAsReadTests(FunctionalTestWebAppFactory fact
     public async Task MarkAsRead_ShouldReturnForbidden_WhenCallerIsNotAParticipant()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 
@@ -77,14 +77,14 @@ public sealed class MarkConversationAsReadTests(FunctionalTestWebAppFactory fact
     public async Task MarkAsRead_ShouldReturnNoContent_WhenCallerHasNoUnreadMessages()
     {
         // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
+        var (ownerToken, _, ownerId) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(ownerToken);
         var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
 
         var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
         AuthenticateAs(guestToken);
         var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
+            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(ownerId, apartmentId));
         startResponse.EnsureSuccessStatusCode();
         var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
 

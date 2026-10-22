@@ -19,4 +19,8 @@ public static class ConversationErrors
     public static readonly Error NotAuthorized = Error.Forbidden(
         "Conversation.NotAuthorized",
         "You are not authorized to perform this action");
+
+    public static readonly Error RecipientNotFound = Error.NotFound(
+        "Conversation.RecipientNotFound",
+        "The recipient of this conversation was not found");
 }

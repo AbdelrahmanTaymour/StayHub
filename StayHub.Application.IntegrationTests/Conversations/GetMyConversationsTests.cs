@@ -38,7 +38,7 @@ public class GetMyConversationsTests(IntegrationTestWebAppFactory factory) : Bas
         DbContext.AddRange(owner, guest, apartment);
         await DbContext.SaveChangesAsync();
 
-        var conversation = Conversation.Start(apartment.Id, null, guest.Id, owner.Id, DateTime.UtcNow).Value;
+        var conversation = Conversation.Start(guest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         DbContext.Add(conversation);
         await DbContext.SaveChangesAsync();
 
@@ -79,10 +79,10 @@ public class GetMyConversationsTests(IntegrationTestWebAppFactory factory) : Bas
 
         // Conversation with no messages yet — LastMessageOnUtc stays null.
         var conversationWithNoMessages =
-            Conversation.Start(apartment.Id, null, firstGuest.Id, owner.Id, DateTime.UtcNow).Value;
+            Conversation.Start(firstGuest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
 
         var conversationWithMessage =
-            Conversation.Start(apartment.Id, null, secondGuest.Id, owner.Id, DateTime.UtcNow).Value;
+            Conversation.Start(secondGuest.Id, owner.Id, apartment.Id, null, DateTime.UtcNow).Value;
         conversationWithMessage.RegisterMessage(DateTime.UtcNow);
 
         DbContext.AddRange(conversationWithNoMessages, conversationWithMessage);
@@ -98,5 +98,32 @@ public class GetMyConversationsTests(IntegrationTestWebAppFactory factory) : Bas
         result.Value.Should().HaveCount(2);
         result.Value[0].Id.Should().Be(conversationWithMessage.Id);
         result.Value[1].Id.Should().Be(conversationWithNoMessages.Id);
+    }
+
+    [Fact]
+    public async Task GetMyConversations_ShouldReturnNullApartmentFields_WhenConversationHasNoApartment()
+    {
+        // Arrange
+        var owner = UserTestData.CreateUser();
+        var guest = UserTestData.CreateUser();
+        DbContext.AddRange(owner, guest);
+        await DbContext.SaveChangesAsync();
+
+        var conversation = Conversation.Start(guest.Id, owner.Id, null, null, DateTime.UtcNow).Value;
+        conversation.RegisterMessage(DateTime.UtcNow);
+        DbContext.Add(conversation);
+        await DbContext.SaveChangesAsync();
+
+        SetCurrentUser(guest.Id, Role.Guest.Name);
+
+        // Act
+        var result = await Sender.Send(new GetMyConversationsQuery());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().ContainSingle();
+        result.Value[0].ApartmentId.Should().BeNull();
+        result.Value[0].ApartmentName.Should().BeNull();
+        result.Value[0].OtherPartyId.Should().Be(owner.Id);
     }
 }

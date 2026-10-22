@@ -186,7 +186,8 @@ namespace StayHub.Infrastructure.Migrations
 
                     b.HasIndex("ApartmentId", "UserId")
                         .IsUnique()
-                        .HasDatabaseName("ix_apartment_staff_assignments_apartment_id_user_id");
+                        .HasDatabaseName("ix_apartment_staff_assignments_apartment_id_user_id")
+                        .HasFilter("\"revoked_on_utc\" IS NULL");
 
                     b.ToTable("apartment_staff_assignments", (string)null);
                 });
@@ -300,7 +301,7 @@ namespace StayHub.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("ApartmentId")
+                    b.Property<Guid?>("ApartmentId")
                         .HasColumnType("uuid")
                         .HasColumnName("apartment_id");
 
@@ -312,33 +313,32 @@ namespace StayHub.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_on_utc");
 
-                    b.Property<Guid>("GuestId")
+                    b.Property<Guid>("InitiatorId")
                         .HasColumnType("uuid")
-                        .HasColumnName("guest_id");
+                        .HasColumnName("initiator_id");
 
                     b.Property<DateTime?>("LastMessageOnUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_message_on_utc");
 
-                    b.Property<Guid>("OwnerId")
+                    b.Property<Guid>("RecipientId")
                         .HasColumnType("uuid")
-                        .HasColumnName("owner_id");
+                        .HasColumnName("recipient_id");
 
                     b.HasKey("Id")
                         .HasName("pk_conversations");
 
+                    b.HasIndex("ApartmentId")
+                        .HasDatabaseName("ix_conversations_apartment_id");
+
                     b.HasIndex("BookingId")
                         .HasDatabaseName("ix_conversations_booking_id");
 
-                    b.HasIndex("GuestId")
-                        .HasDatabaseName("ix_conversations_guest_id");
+                    b.HasIndex("RecipientId")
+                        .HasDatabaseName("ix_conversations_recipient_id");
 
-                    b.HasIndex("OwnerId")
-                        .HasDatabaseName("ix_conversations_owner_id");
-
-                    b.HasIndex("ApartmentId", "GuestId", "OwnerId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_conversations_apartment_id_guest_id_owner_id");
+                    b.HasIndex("InitiatorId", "RecipientId")
+                        .HasDatabaseName("ix_conversations_initiator_id_recipient_id");
 
                     b.ToTable("conversations", (string)null);
                 });
@@ -1483,8 +1483,6 @@ namespace StayHub.Infrastructure.Migrations
                     b.HasOne("StayHub.Domain.Apartments.Apartment", null)
                         .WithMany()
                         .HasForeignKey("ApartmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_conversations_apartments_apartment_id");
 
                     b.HasOne("StayHub.Domain.Bookings.Booking", null)
@@ -1494,17 +1492,17 @@ namespace StayHub.Infrastructure.Migrations
 
                     b.HasOne("StayHub.Domain.Users.User", null)
                         .WithMany()
-                        .HasForeignKey("GuestId")
+                        .HasForeignKey("InitiatorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_conversations_user_guest_id");
+                        .HasConstraintName("fk_conversations_user_initiator_id");
 
                     b.HasOne("StayHub.Domain.Users.User", null)
                         .WithMany()
-                        .HasForeignKey("OwnerId")
+                        .HasForeignKey("RecipientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_conversations_user_owner_id");
+                        .HasConstraintName("fk_conversations_user_recipient_id");
                 });
 
             modelBuilder.Entity("StayHub.Domain.Conversations.Message", b =>

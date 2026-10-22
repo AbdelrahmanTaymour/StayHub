@@ -37,7 +37,7 @@ internal sealed class GetConversationMessagesQueryHandler(
                            FROM messages m
                            INNER JOIN conversations c ON c.id = m.conversation_id
                            WHERE m.conversation_id = @ConversationId
-                             AND (c.guest_id = @UserId OR c.owner_id = @UserId)
+                             AND (c.initiator_id = @UserId OR c.recipient_id = @UserId)
                            ORDER BY m.sent_on_utc DESC
                            LIMIT @PageSize OFFSET @Offset
                            """;

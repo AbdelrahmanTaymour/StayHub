@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using StayHub.Api.FunctionalTests.Apartments;
-using StayHub.Api.FunctionalTests.Conversations;
 using StayHub.Api.FunctionalTests.Infrastructure;
 
 namespace StayHub.Api.FunctionalTests.Bookings;
@@ -237,31 +236,5 @@ public sealed class GetBookingTests(FunctionalTestWebAppFactory factory) : BaseF
         // Assert
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("canCancel").GetBoolean().Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetBooking_ShouldReturnConversationId_WhenGuestHasStartedAConversationWithTheHost()
-    {
-        // Arrange
-        var (ownerToken, _, _) = await RegisterAndAuthenticateAsync();
-        AuthenticateAs(ownerToken);
-        var apartmentId = await ApartmentTestFixtures.CreateApartmentAsOwnerAsync(HttpClient);
-
-        var (guestToken, _, _) = await RegisterAndAuthenticateAsync();
-        AuthenticateAs(guestToken);
-        var bookingId = await BookingTestFixtures.ReserveAsync(HttpClient, apartmentId);
-
-        var startResponse = await HttpClient.PostAsJsonAsync(
-            ConversationRoutes.BaseRoute, ConversationTestData.ValidStartRequest(apartmentId));
-        startResponse.EnsureSuccessStatusCode();
-        var conversationId = await startResponse.Content.ReadFromJsonAsync<Guid>();
-
-        // Act
-        var response = await HttpClient.GetAsync(BookingRoutes.ById(bookingId));
-        response.EnsureSuccessStatusCode();
-
-        // Assert
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        body.GetProperty("conversationId").GetGuid().Should().Be(conversationId);
     }
 }

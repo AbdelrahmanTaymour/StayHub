@@ -17,6 +17,19 @@ internal sealed class CacheService(
         return bytes is null ? default : Deserialize<T>(bytes);
     }
 
+    public async Task<long> GetVersionAsync(
+        string key,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var database = redis.GetDatabase();
+
+        RedisValue value = await database.StringGetAsync(key);
+
+        return value.IsNull ? 0 : (long)value;
+    }
+
     public Task SetAsync<T>(
         string key,
         T value,

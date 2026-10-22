@@ -61,9 +61,9 @@ internal sealed class QueryCachingBehavior<TRequest, TResponse>(
             return request.CacheKey;
         }
 
-        var version = await cacheService.GetAsync<long?>(
+        var version = await cacheService.GetVersionAsync(
             versionedQuery.VersionKey,
-            cancellationToken) ?? 0;
+            cancellationToken);
 
         return $"{request.CacheKey}:v{version}";
     }

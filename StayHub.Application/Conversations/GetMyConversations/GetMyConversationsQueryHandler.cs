@@ -26,24 +26,19 @@ internal sealed class GetMyConversationsQueryHandler(
                                a.name AS ApartmentName,
 
                                CASE
-                                   WHEN c.guest_id = @UserId THEN c.owner_id
-                                   ELSE c.guest_id
+                                   WHEN c.initiator_id = @UserId THEN c.recipient_id
+                                   ELSE c.initiator_id
                                END AS OtherPartyId,
 
                                CASE
-                                   WHEN c.guest_id = @UserId THEN owner.first_name || ' ' || owner.last_name
-                                   ELSE guest.first_name || ' ' || guest.last_name
+                                   WHEN c.initiator_id = @UserId THEN recipient.first_name || ' ' || recipient.last_name
+                                   ELSE initiator.first_name || ' ' || initiator.last_name
                                END AS OtherPartyName,
 
                                CASE
-                                   WHEN c.guest_id = @UserId THEN owner_profile.avatar_key
-                                   ELSE guest_profile.avatar_key
+                                   WHEN c.initiator_id = @UserId THEN recipient_profile.avatar_key
+                                   ELSE initiator_profile.avatar_key
                                END AS OtherPartyAvatarKey,
-
-                               CASE
-                                   WHEN c.guest_id = @UserId THEN 0  -- Host
-                                   ELSE 1                             -- Guest
-                               END AS OtherPartyRole,
 
                                lm.body AS LastMessagePreview,
                                c.last_message_on_utc AS LastMessageOnUtc,
@@ -58,20 +53,20 @@ internal sealed class GetMyConversationsQueryHandler(
 
                            FROM conversations c
 
-                           JOIN apartments a
+                           LEFT JOIN apartments a
                                ON a.id = c.apartment_id
 
-                           JOIN users guest
-                               ON guest.id = c.guest_id
+                           JOIN users initiator
+                               ON initiator.id = c.initiator_id
 
-                           JOIN users owner
-                               ON owner.id = c.owner_id
+                           JOIN users recipient
+                               ON recipient.id = c.recipient_id
 
-                           LEFT JOIN user_profiles guest_profile
-                               ON guest_profile.user_id = guest.id
+                           LEFT JOIN user_profiles initiator_profile
+                               ON initiator_profile.user_id = initiator.id
 
-                           LEFT JOIN user_profiles owner_profile
-                               ON owner_profile.user_id = owner.id
+                           LEFT JOIN user_profiles recipient_profile
+                               ON recipient_profile.user_id = recipient.id
 
                            LEFT JOIN LATERAL (
                                SELECT m.body
@@ -81,7 +76,7 @@ internal sealed class GetMyConversationsQueryHandler(
                                LIMIT 1
                            ) lm ON true
 
-                           WHERE c.guest_id = @UserId OR c.owner_id = @UserId
+                           WHERE c.initiator_id = @UserId OR c.recipient_id = @UserId
                            ORDER BY c.last_message_on_utc DESC NULLS LAST
                            """;
 
@@ -115,7 +110,6 @@ internal sealed class GetMyConversationsQueryHandler(
                 OtherPartyId = r.OtherPartyId,
                 OtherPartyName = r.OtherPartyName,
                 OtherPartyAvatarUrl = otherPartyAvatarUrl,
-                OtherPartyRole = r.OtherPartyRole,
                 LastMessagePreview = r.LastMessagePreview,
                 LastMessageOnUtc = r.LastMessageOnUtc,
                 UnreadCount = r.UnreadCount
@@ -128,12 +122,11 @@ internal sealed class GetMyConversationsQueryHandler(
     internal sealed class ConversationRow
     {
         public Guid Id { get; init; }
-        public Guid ApartmentId { get; init; }
-        public string ApartmentName { get; init; } = string.Empty;
+        public Guid? ApartmentId { get; init; }
+        public string? ApartmentName { get; init; }
         public Guid OtherPartyId { get; init; }
         public string OtherPartyName { get; init; } = string.Empty;
         public string? OtherPartyAvatarKey { get; init; }
-        public ConversationRole OtherPartyRole { get; init; }
         public string? LastMessagePreview { get; init; }
         public DateTime? LastMessageOnUtc { get; init; }
         public int UnreadCount { get; init; }

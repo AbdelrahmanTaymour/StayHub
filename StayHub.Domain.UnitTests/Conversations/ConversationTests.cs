@@ -8,23 +8,23 @@ namespace StayHub.Domain.UnitTests.Conversations;
 public class ConversationTests : BaseTest
 {
     [Fact]
-    public void Start_Should_ReturnSuccessAndSetPropertyValues_WhenGuestAndOwnerDiffer()
+    public void Start_Should_ReturnSuccessAndSetPropertyValues_WhenInitiatorAndRecipientDiffer()
     {
         // Arrange
+        var initiatorId = Guid.CreateVersion7();
+        var recipientId = Guid.CreateVersion7();
         var apartmentId = Guid.CreateVersion7();
         var bookingId = Guid.CreateVersion7();
-        var guestId = Guid.CreateVersion7();
-        var ownerId = Guid.CreateVersion7();
 
         // Act
-        var result = Conversation.Start(apartmentId, bookingId, guestId, ownerId, DateTime.UtcNow);
+        var result = Conversation.Start(initiatorId, recipientId, apartmentId, bookingId, DateTime.UtcNow);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
+        result.Value.InitiatorId.Should().Be(initiatorId);
+        result.Value.RecipientId.Should().Be(recipientId);
         result.Value.ApartmentId.Should().Be(apartmentId);
         result.Value.BookingId.Should().Be(bookingId);
-        result.Value.GuestId.Should().Be(guestId);
-        result.Value.OwnerId.Should().Be(ownerId);
         result.Value.LastMessageOnUtc.Should().BeNull();
     }
 
@@ -39,7 +39,25 @@ public class ConversationTests : BaseTest
     }
 
     [Fact]
-    public void Start_Should_RaiseConversationStartedDomainEvent_WhenGuestAndOwnerDiffer()
+    public void Start_Should_AllowNullApartmentId()
+    {
+        // Arrange — the core new capability: a conversation with no
+        // apartment/booking context at all, e.g. messaging an owner
+        // straight from their profile page.
+        var initiatorId = Guid.CreateVersion7();
+        var recipientId = Guid.CreateVersion7();
+
+        // Act
+        var result = Conversation.Start(initiatorId, recipientId, apartmentId: null, bookingId: null, DateTime.UtcNow);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ApartmentId.Should().BeNull();
+        result.Value.BookingId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Start_Should_RaiseConversationStartedDomainEvent_WhenInitiatorAndRecipientDiffer()
     {
         // Act
         var conversation = ConversationData.Start();
@@ -50,17 +68,17 @@ public class ConversationTests : BaseTest
     }
 
     [Fact]
-    public void Start_Should_ReturnFailure_WhenGuestIdEqualsOwnerId()
+    public void Start_Should_ReturnFailure_WhenInitiatorIdEqualsRecipientId()
     {
         // Arrange
         var sameUserId = Guid.CreateVersion7();
 
         // Act
         var result = Conversation.Start(
-            Guid.CreateVersion7(),
+            initiatorId: sameUserId,
+            recipientId: sameUserId,
+            apartmentId: Guid.CreateVersion7(),
             bookingId: null,
-            guestId: sameUserId,
-            ownerId: sameUserId,
             DateTime.UtcNow);
 
         // Assert
@@ -69,17 +87,17 @@ public class ConversationTests : BaseTest
     }
 
     [Fact]
-    public void Start_Should_NotRaiseDomainEvent_WhenGuestAndOwnerAreSame()
+    public void Start_Should_NotRaiseDomainEvent_WhenInitiatorAndRecipientAreSame()
     {
         // Arrange
         var sameUserId = Guid.CreateVersion7();
 
         // Act
         var result = Conversation.Start(
+            sameUserId,
+            sameUserId,
             Guid.CreateVersion7(),
             null,
-            sameUserId,
-            sameUserId,
             DateTime.UtcNow);
 
         // Assert
@@ -167,6 +185,52 @@ public class ConversationTests : BaseTest
 
         // Act
         conversation.AttachBooking(Guid.CreateVersion7());
+
+        // Assert
+        conversation.GetDomainEvents().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AttachApartment_Should_SetApartmentId_WhenNoneWasLinkedYet()
+    {
+        // Arrange — the scenario that unblocks this whole refactor: a
+        // conversation started with no apartment (e.g. from an owner
+        // profile) later gets one attached once a specific listing comes
+        // into the picture.
+        var conversation = ConversationData.Start(apartmentId: null);
+        var apartmentId = Guid.CreateVersion7();
+
+        // Act
+        conversation.AttachApartment(apartmentId);
+
+        // Assert
+        conversation.ApartmentId.Should().Be(apartmentId);
+    }
+
+    [Fact]
+    public void AttachApartment_Should_NotOverwriteExistingApartmentId()
+    {
+        // Arrange
+        var originalApartmentId = Guid.CreateVersion7();
+        var conversation = ConversationData.Start(apartmentId: originalApartmentId);
+        var otherApartmentId = Guid.CreateVersion7();
+
+        // Act
+        conversation.AttachApartment(otherApartmentId);
+
+        // Assert
+        conversation.ApartmentId.Should().Be(originalApartmentId);
+    }
+
+    [Fact]
+    public void AttachApartment_Should_NotRaiseAnyDomainEvent()
+    {
+        // Arrange
+        var conversation = ConversationData.Start(apartmentId: null);
+        conversation.ClearDomainEvents();
+
+        // Act
+        conversation.AttachApartment(Guid.CreateVersion7());
 
         // Assert
         conversation.GetDomainEvents().Should().BeEmpty();
