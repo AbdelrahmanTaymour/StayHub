@@ -53,7 +53,6 @@ public sealed class BookingConfirmedDomainEventHandler(
         {
             var payload = new BookingConfirmedNotificationPayload(
                 BookingId: booking.Id,
-                ApartmentId: booking.ApartmentId,
                 Message: "Your booking has been confirmed by the owner.");
 
             var notification = Notification.Create(
