@@ -100,10 +100,11 @@ public static class UserEndpoints
         return builder;
     }
 
-    private static async Task<IResult> GetLoggedInUser(ISender sender, IUserContext userContext,
+    private static async Task<IResult> GetLoggedInUser(
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new GetLoggedInUserQuery(userContext), cancellationToken);
+        var result = await sender.Send(new GetLoggedInUserQuery(), cancellationToken);
 
         return result.IsFailure ? result.ToProblemDetails() : Results.Ok(result.Value);
     }
