@@ -18,6 +18,8 @@ Many property owners have apartments that stay empty for months without generati
 
 ![Apartment Details](docs/images/apartment.png)
 
+- [See More Screenshots](https://github.com/AbdelrahmanTaymour/StayHub.UI#screenshots)
+
 The solution uses **Clean Architecture** and **MediatR** to handle application requests and domain events, **Entity Framework Core** for write operations, and **Dapper** for optimized read queries where appropriate.
 
 ## Features
